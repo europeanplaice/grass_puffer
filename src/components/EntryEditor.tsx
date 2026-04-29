@@ -6,9 +6,10 @@ interface Props {
   getContent: (date: string) => Promise<DiaryEntry | null>
   onSave: (date: string, content: string) => Promise<void>
   onDelete: (date: string) => Promise<void>
+  onMenuClick: () => void
 }
 
-export function EntryEditor({ date, getContent, onSave, onDelete }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [loading, setLoading] = useState(false)
@@ -63,7 +64,10 @@ export function EntryEditor({ date, getContent, onSave, onDelete }: Props) {
   return (
     <div className="editor">
       <div className="editor-header">
-        <h2>{date}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
+          <h2>{date}</h2>
+        </div>
         <div className="editor-actions">
           {status && <span className="editor-status">{status}</span>}
           <button onClick={save} disabled={saving || !isDirty}>

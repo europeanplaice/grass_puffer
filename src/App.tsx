@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { LoginScreen } from './components/LoginScreen'
@@ -15,6 +15,13 @@ export default function App() {
   const { accessToken, signIn, signOut } = useAuth()
   const diary = useDiary(accessToken)
   const [selectedDate, setSelectedDate] = useState(todayYMD)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
+  const selectDate = useCallback((d: string) => {
+    setSelectedDate(d)
+    setSidebarOpen(false)
+  }, [])
 
   if (!accessToken) {
     return <LoginScreen onSignIn={signIn} />
@@ -24,13 +31,17 @@ export default function App() {
 
   return (
     <div className="app">
-      <aside className="sidebar">
+      <div
+        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+        onClick={closeSidebar}
+      />
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-top">
           <h1 className="app-title">📔 Diary</h1>
           <button className="btn-signout" onClick={signOut} title="Sign out">↩</button>
         </div>
-        <SearchBar onSearch={diary.search} onSelect={setSelectedDate} />
-        <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={setSelectedDate} />
+        <SearchBar onSearch={diary.search} onSelect={selectDate} />
+        <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         {diary.loading && <div className="sidebar-status">Loading entries…</div>}
         {diary.error && <div className="sidebar-status error">{diary.error}</div>}
         <ul className="entry-list">
@@ -38,7 +49,7 @@ export default function App() {
             <li
               key={d}
               className={d === selectedDate ? 'active' : ''}
-              onClick={() => setSelectedDate(d)}
+              onClick={() => selectDate(d)}
             >
               {d}
             </li>
@@ -51,6 +62,7 @@ export default function App() {
           getContent={diary.getContent}
           onSave={diary.save}
           onDelete={diary.remove}
+          onMenuClick={() => setSidebarOpen(true)}
         />
       </main>
     </div>
