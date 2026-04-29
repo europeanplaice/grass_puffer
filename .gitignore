@@ -5,3 +5,5 @@ dist
 *.local
 CLAUDE.md
 .playwright-mcp/
+.codex
+.serena/
