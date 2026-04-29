@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Grass Puffer Diary</title>
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+      color: #2c2c2c;
+      line-height: 1.8;
+      background: #faf9f6;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+    h2 { font-size: 1.1rem; margin-top: 2rem; margin-bottom: 0.5rem; border-bottom: 1px solid #ddd; padding-bottom: 0.3rem; }
+    p, li { font-size: 0.95rem; }
+    ul { padding-left: 1.4rem; }
+    .meta { color: #777; font-size: 0.85rem; margin-bottom: 2rem; }
+    a { color: #5a7a5a; }
+    .back { display: inline-block; margin-bottom: 1.5rem; font-size: 0.9rem; color: #5a7a5a; text-decoration: none; }
+    .back:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <a href="/grass_puffer/" class="back">← Back to Grass Puffer Diary</a>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Last updated: April 29, 2026</p>
+
+  <h2>1. Overview</h2>
+  <p>
+    Grass Puffer Diary is a browser-only web app that stores diary entries in your own Google Drive.
+    It has no server and does not transmit your data anywhere outside of Google's infrastructure.
+  </p>
+
+  <h2>2. Information We Access</h2>
+  <p>The only information this app accesses via OAuth is:</p>
+  <ul>
+    <li>A Google OAuth access token (used solely to make Drive API calls on your behalf)</li>
+    <li>Files in your Google Drive that were created by this app (JSON files inside the <code>GrassPuffer Diary/</code> folder)</li>
+  </ul>
+  <p>
+    The access token is held in browser memory only — it is never written to <code>localStorage</code>,
+    cookies, or any server. It is discarded when you close the page.
+  </p>
+
+  <h2>3. How We Use Your Information</h2>
+  <p>
+    The access token is used exclusively to create, read, update, and delete your diary entries
+    in Google Drive. It is not used for any other purpose.
+  </p>
+
+  <h2>4. Data Sharing</h2>
+  <p>
+    We do not share, sell, or transmit your data to any third party.
+    All data remains within your own Google Drive account.
+  </p>
+
+  <h2>5. OAuth Scope</h2>
+  <p>
+    This app requests only the <code>https://www.googleapis.com/auth/drive.file</code> scope.
+    This scope grants access <strong>only to files created by this app</strong> — it does not
+    provide access to the rest of your Google Drive.
+  </p>
+
+  <h2>6. Analytics &amp; Advertising</h2>
+  <p>This app uses no analytics, advertising, or tracking of any kind.</p>
+
+  <h2>7. Deleting Your Data</h2>
+  <p>
+    All data created by this app is stored in the <code>GrassPuffer Diary/</code> folder in your
+    Google Drive. You can delete it at any time by removing that folder. You can also revoke this
+    app's access at any time via
+    <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account → Apps &amp; services</a>.
+  </p>
+
+  <h2>8. Security</h2>
+  <p>
+    Data storage and protection rely on Google Drive's security infrastructure.
+    Because this app has no server, there is no server-side data to be breached.
+  </p>
+
+  <h2>9. Contact</h2>
+  <p>
+    For privacy-related questions, please contact:<br />
+    <a href="mailto:europeanplaice@gmail.com">europeanplaice@gmail.com</a>
+  </p>
+</body>
+</html>

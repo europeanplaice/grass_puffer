@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { DiaryEntry, DriveFileMeta } from '../types'
-import { ensureFolder, listEntries, getEntry, saveEntry, deleteEntry } from '../api/driveEntries'
+import { ensureFolder, listEntries, getEntry, saveEntry, deleteEntry, TokenExpiredError } from '../api/driveEntries'
 
 interface EntryCache {
   meta: DriveFileMeta
@@ -17,11 +17,13 @@ export interface DiaryState {
   search: (query: string) => Promise<{ date: string; snippet: string }[]>
 }
 
-export function useDiary(accessToken: string | null): DiaryState {
+export function useDiary(accessToken: string | null, onExpired: () => void): DiaryState {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cache, setCache] = useState<Map<string, EntryCache>>(new Map())
   const folderIdRef = useRef<string | null>(null)
+  const onExpiredRef = useRef(onExpired)
+  useEffect(() => { onExpiredRef.current = onExpired })
 
   // Load entry list when token becomes available
   useEffect(() => {
@@ -47,6 +49,7 @@ export function useDiary(accessToken: string | null): DiaryState {
         }
         setCache(newCache)
       } catch (e) {
+        if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
         setError(String(e))
       } finally {
         setLoading(false)
@@ -59,52 +62,72 @@ export function useDiary(accessToken: string | null): DiaryState {
     const entry = cache.get(date)
     if (!entry) return null
     if (entry.content) return entry.content
-    const content = await getEntry(accessToken, entry.meta.id)
-    setCache(prev => {
-      const next = new Map(prev)
-      const existing = next.get(date)
-      if (existing) next.set(date, { ...existing, content })
-      return next
-    })
-    return content
+    try {
+      const content = await getEntry(accessToken, entry.meta.id)
+      setCache(prev => {
+        const next = new Map(prev)
+        const existing = next.get(date)
+        if (existing) next.set(date, { ...existing, content })
+        return next
+      })
+      return content
+    } catch (e) {
+      if (e instanceof TokenExpiredError) { onExpiredRef.current(); return null }
+      throw e
+    }
   }, [accessToken, cache])
 
   const save = useCallback(async (date: string, content: string): Promise<void> => {
     if (!accessToken || !folderIdRef.current) throw new Error('Not signed in')
     const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
     const existing = cache.get(date)
-    const meta = await saveEntry(accessToken, entry, folderIdRef.current, existing?.meta.id)
-    setCache(prev => {
-      const next = new Map(prev)
-      next.set(date, { meta, content: entry })
-      return next
-    })
+    try {
+      const meta = await saveEntry(accessToken, entry, folderIdRef.current, existing?.meta.id)
+      setCache(prev => {
+        const next = new Map(prev)
+        next.set(date, { meta, content: entry })
+        return next
+      })
+    } catch (e) {
+      if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
+      throw e
+    }
   }, [accessToken, cache])
 
   const remove = useCallback(async (date: string): Promise<void> => {
     if (!accessToken) throw new Error('Not signed in')
     const existing = cache.get(date)
     if (!existing) return
-    await deleteEntry(accessToken, existing.meta.id)
-    setCache(prev => {
-      const next = new Map(prev)
-      next.delete(date)
-      return next
-    })
+    try {
+      await deleteEntry(accessToken, existing.meta.id)
+      setCache(prev => {
+        const next = new Map(prev)
+        next.delete(date)
+        return next
+      })
+    } catch (e) {
+      if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
+      throw e
+    }
   }, [accessToken, cache])
 
   const search = useCallback(async (query: string): Promise<{ date: string; snippet: string }[]> => {
     if (!accessToken || !query.trim()) return []
     const q = query.toLowerCase()
     const results: { date: string; snippet: string }[] = []
-    for (const [date, entry] of cache.entries()) {
-      const content = entry.content ?? (await getContent(date))
-      if (!content) continue
-      if (content.content.toLowerCase().includes(q)) {
-        const idx = content.content.toLowerCase().indexOf(q)
-        const snippet = content.content.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
-        results.push({ date, snippet })
+    try {
+      for (const [date, entry] of cache.entries()) {
+        const content = entry.content ?? (await getContent(date))
+        if (!content) continue
+        if (content.content.toLowerCase().includes(q)) {
+          const idx = content.content.toLowerCase().indexOf(q)
+          const snippet = content.content.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
+          results.push({ date, snippet })
+        }
       }
+    } catch (e) {
+      if (e instanceof TokenExpiredError) { onExpiredRef.current(); return [] }
+      throw e
     }
     results.sort((a, b) => b.date.localeCompare(a.date))
     return results

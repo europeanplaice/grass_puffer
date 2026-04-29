@@ -6,12 +6,20 @@ const UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3'
 
 let cachedFolderId: string | null = null
 
+export class TokenExpiredError extends Error {
+  constructor() {
+    super('Access token expired')
+    this.name = 'TokenExpiredError'
+  }
+}
+
 function headers(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` }
 }
 
 async function driveJson<T>(token: string, url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, headers: { ...headers(token), ...((init?.headers as Record<string, string>) ?? {}) } })
+  if (res.status === 401) throw new TokenExpiredError()
   if (!res.ok) throw new Error(`Drive API ${res.status}: ${await res.text()}`)
   return res.json() as Promise<T>
 }
@@ -44,6 +52,7 @@ export async function listEntries(token: string, folderId: string): Promise<Driv
 
 export async function getEntry(token: string, fileId: string): Promise<DiaryEntry> {
   const res = await fetch(`${BASE}/files/${fileId}?alt=media`, { headers: headers(token) })
+  if (res.status === 401) throw new TokenExpiredError()
   if (!res.ok) throw new Error(`Drive API ${res.status}: ${await res.text()}`)
   return res.json() as Promise<DiaryEntry>
 }
@@ -92,6 +101,7 @@ export async function saveEntry(
 
 export async function deleteEntry(token: string, fileId: string): Promise<void> {
   const res = await fetch(`${BASE}/files/${fileId}`, { method: 'DELETE', headers: headers(token) })
+  if (res.status === 401) throw new TokenExpiredError()
   if (!res.ok && res.status !== 204) throw new Error(`Drive API ${res.status}: ${await res.text()}`)
 }
 

@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { initTokenClient, requestToken, revokeToken } from '../api/gauth'
 
 export interface AuthState {
   accessToken: string | null
   signIn: () => void
   signOut: () => void
+  handleExpired: () => void
 }
 
 export function useAuth(): AuthState {
@@ -28,5 +29,10 @@ export function useAuth(): AuthState {
     setAccessToken(null)
   }
 
-  return { accessToken, signIn, signOut }
+  // called when a Drive API call returns 401 (token expired without user action)
+  const handleExpired = useCallback(() => {
+    setAccessToken(null)
+  }, [])
+
+  return { accessToken, signIn, signOut, handleExpired }
 }

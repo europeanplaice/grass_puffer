@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { LoginScreen } from './components/LoginScreen'
@@ -12,10 +12,21 @@ function todayYMD(): string {
 }
 
 export default function App() {
-  const { accessToken, signIn, signOut } = useAuth()
-  const diary = useDiary(accessToken)
+  const { accessToken, signIn, signOut, handleExpired } = useAuth()
+  const [sessionExpired, setSessionExpired] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYMD)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const onExpired = useCallback(() => {
+    handleExpired()
+    setSessionExpired(true)
+  }, [handleExpired])
+
+  const diary = useDiary(accessToken, onExpired)
+
+  useEffect(() => {
+    if (accessToken) setSessionExpired(false)
+  }, [accessToken])
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
   const selectDate = useCallback((d: string) => {
@@ -24,7 +35,7 @@ export default function App() {
   }, [])
 
   if (!accessToken) {
-    return <LoginScreen onSignIn={signIn} />
+    return <LoginScreen onSignIn={signIn} sessionExpired={sessionExpired} />
   }
 
   const datesSet = new Set(diary.dates)
