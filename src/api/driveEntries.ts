@@ -46,8 +46,22 @@ export async function ensureFolder(token: string): Promise<string> {
 
 export async function listEntries(token: string, folderId: string): Promise<DriveFileMeta[]> {
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='application/json'`)
-  const res = await driveJson<{ files: DriveFileMeta[] }>(token, `${BASE}/files?q=${q}&fields=files(id,name)&pageSize=1000`)
+  const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
+  const res = await driveJson<{ files: DriveFileMeta[] }>(token, `${BASE}/files?q=${q}&fields=${fields}&pageSize=1000`)
   return res.files
+}
+
+export async function findEntryMeta(token: string, folderId: string, date: string): Promise<DriveFileMeta | null> {
+  const filename = `diary-${date}.json`.replace(/'/g, "\\'")
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name='${filename}'`)
+  const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
+  const res = await driveJson<{ files: DriveFileMeta[] }>(token, `${BASE}/files?q=${q}&fields=${fields}&pageSize=1`)
+  return res.files[0] ?? null
+}
+
+export async function getEntryMeta(token: string, fileId: string): Promise<DriveFileMeta> {
+  const fields = encodeURIComponent('id,name,modifiedTime,version')
+  return driveJson<DriveFileMeta>(token, `${BASE}/files/${fileId}?fields=${fields}`)
 }
 
 export async function getEntry(token: string, fileId: string): Promise<DiaryEntry> {
@@ -84,7 +98,8 @@ export async function saveEntry(
 
   if (fileId) {
     const { contentType, data } = buildMultipart({}, body)
-    return driveJson<DriveFileMeta>(token, `${UPLOAD_BASE}/files/${fileId}?uploadType=multipart`, {
+    const fields = encodeURIComponent('id,name,modifiedTime,version')
+    return driveJson<DriveFileMeta>(token, `${UPLOAD_BASE}/files/${fileId}?uploadType=multipart&fields=${fields}`, {
       method: 'PATCH',
       headers: { 'Content-Type': contentType },
       body: data,
@@ -92,7 +107,8 @@ export async function saveEntry(
   }
 
   const { contentType, data } = buildMultipart({ name: filename, parents: [folderId] }, body)
-  return driveJson<DriveFileMeta>(token, `${UPLOAD_BASE}/files?uploadType=multipart`, {
+  const fields = encodeURIComponent('id,name,modifiedTime,version')
+  return driveJson<DriveFileMeta>(token, `${UPLOAD_BASE}/files?uploadType=multipart&fields=${fields}`, {
     method: 'POST',
     headers: { 'Content-Type': contentType },
     body: data,

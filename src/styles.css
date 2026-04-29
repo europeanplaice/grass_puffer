@@ -294,6 +294,46 @@ body {
 .editor-actions button:not(:disabled):hover { background: var(--accent-hover); }
 .btn-delete { background: var(--danger) !important; }
 .btn-delete:not(:disabled):hover { background: #a93226 !important; }
+.conflict-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid #e0b35b;
+  background: #fff7e8;
+  border-radius: 6px;
+  padding: 0.75rem 0.9rem;
+  margin-bottom: 1rem;
+}
+.conflict-panel strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #6f4a00;
+  margin-bottom: 0.2rem;
+}
+.conflict-panel p {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.conflict-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.conflict-actions button {
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  border-radius: 5px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+.conflict-actions button:not(:disabled):hover { background: var(--sidebar-bg); }
+.conflict-actions button:disabled { opacity: 0.5; cursor: default; }
 
 /* ── Delete confirmation modal ── */
 .delete-modal-overlay {
@@ -399,6 +439,15 @@ body {
   .editor-actions button {
     padding: 0.5rem 0.8rem;
     font-size: 0.82rem;
+  }
+
+  .conflict-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .conflict-actions {
+    flex-wrap: wrap;
   }
 
   .editor-textarea { font-size: 1rem; }

@@ -7,4 +7,11 @@ export interface DiaryEntry {
 export interface DriveFileMeta {
   id: string
   name: string
+  modifiedTime?: string
+  version?: string
+}
+
+export interface LoadedDiaryEntry {
+  entry: DiaryEntry
+  meta: DriveFileMeta
 }
