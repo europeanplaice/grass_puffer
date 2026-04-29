@@ -238,7 +238,59 @@ body {
 .editor-actions button:disabled { opacity: 0.5; cursor: default; }
 .editor-actions button:not(:disabled):hover { background: var(--accent-hover); }
 .btn-delete { background: var(--danger) !important; }
-.btn-delete:hover { background: #a93226 !important; }
+.btn-delete:not(:disabled):hover { background: #a93226 !important; }
+
+/* ── Delete confirmation modal ── */
+.delete-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+.delete-modal {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem;
+  width: min(420px, 90vw);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.delete-modal h3 { font-size: 1.15rem; color: var(--danger); }
+.delete-modal p { font-size: 0.9rem; color: var(--text); line-height: 1.6; }
+.delete-modal-hint { color: var(--text-muted) !important; }
+.delete-modal-input {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.95rem;
+  font-family: monospace;
+  width: 100%;
+  outline: none;
+}
+.delete-modal-input:focus { border-color: var(--danger); }
+.delete-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.7rem;
+  margin-top: 0.3rem;
+}
+.delete-modal-actions button {
+  padding: 0.5rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  background: var(--bg);
+  color: var(--text);
+}
+.delete-modal-actions button:not(:disabled):hover { background: var(--sidebar-bg); }
+.delete-modal-actions button:disabled { opacity: 0.45; cursor: default; }
 .editor-loading { color: var(--text-muted); font-size: 0.9rem; }
 .editor-textarea {
   flex: 1;

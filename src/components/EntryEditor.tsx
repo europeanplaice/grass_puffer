@@ -15,6 +15,8 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteInput, setDeleteInput] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -45,7 +47,12 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
   }, [date, text, onSave])
 
   const del = async () => {
-    if (!confirm('Delete this entry?')) return
+    setDeleteInput('')
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    setShowDeleteModal(false)
     await onDelete(date)
   }
 
@@ -62,6 +69,32 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
   }, [isDirty, save])
 
   return (
+    <>
+    {showDeleteModal && (
+      <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+        <div className="delete-modal" onClick={e => e.stopPropagation()}>
+          <h3>Delete entry?</h3>
+          <p>The entry for {date} will be permanently deleted and cannot be undone.</p>
+          <p className="delete-modal-hint">Type <strong>confirm</strong> to proceed</p>
+          <input
+            className="delete-modal-input"
+            value={deleteInput}
+            onChange={e => setDeleteInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && deleteInput === 'confirm') confirmDelete() }}
+            autoFocus
+            placeholder="confirm"
+          />
+          <div className="delete-modal-actions">
+            <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+            <button
+              className="btn-delete"
+              onClick={confirmDelete}
+              disabled={deleteInput !== 'confirm'}
+            >Delete</button>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="editor">
       <div className="editor-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
@@ -88,5 +121,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
         />
       )}
     </div>
+    </>
   )
 }
