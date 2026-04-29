@@ -1,0 +1,19 @@
+{
+  "name": "Grass Puffer Diary",
+  "short_name": "Grass Puffer",
+  "description": "A private diary app backed by your Google Drive.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7f1df",
+  "theme_color": "#5e9b58",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

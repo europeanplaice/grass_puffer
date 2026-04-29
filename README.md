@@ -11,6 +11,7 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 - Full-text search across all entries
 - Data stays in your Google Drive (`GrassPuffer Diary/` folder)
 - Works on mobile with a drawer sidebar
+- Installable as a Progressive Web App
 
 ## How it works
 
@@ -18,6 +19,8 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 - Storage: Google Drive API v3 — one JSON file per entry (`diary-YYYY-MM-DD.json`)
 - No backend, no cookies, no analytics
 - Access tokens are kept in memory only and never persisted
+- The app shell is cached by a service worker. Google sign-in and Drive
+  read/write operations still require a network connection.
 
 ## Self-hosting
 
