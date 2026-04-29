@@ -30,6 +30,11 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
     if (month === 11) { setYear(y => y + 1); setMonth(0) }
     else setMonth(m => m + 1)
   }
+  const goToToday = () => {
+    setYear(today.getFullYear())
+    setMonth(today.getMonth())
+    onSelect(toYMD(today.getFullYear(), today.getMonth(), today.getDate()))
+  }
 
   const cells: (number | null)[] = [...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
@@ -40,6 +45,9 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
         <button onClick={prev}>‹</button>
         <span>{MONTHS[month]} {year}</span>
         <button onClick={next}>›</button>
+      </div>
+      <div className="calendar-today-row">
+        <button className="today-btn" onClick={goToToday}>Today</button>
       </div>
       <div className="calendar-grid">
         {DAYS.map(d => <div key={d} className="cal-day-label">{d}</div>)}
