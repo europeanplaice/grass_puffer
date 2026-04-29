@@ -33,6 +33,7 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
   const [cache, setCache] = useState<Map<string, EntryCache>>(new Map())
   const cacheRef = useRef(cache)
   const folderIdRef = useRef<string | null>(null)
+  const folderLoadPromiseRef = useRef<Promise<string> | null>(null)
   const onExpiredRef = useRef(onExpired)
   useEffect(() => { onExpiredRef.current = onExpired })
   useEffect(() => { cacheRef.current = cache }, [cache])
@@ -45,6 +46,25 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
     })
   }, [])
 
+  const ensureFolderId = useCallback(async (): Promise<string | null> => {
+    if (!accessToken) return null
+    if (folderIdRef.current) return folderIdRef.current
+
+    if (!folderLoadPromiseRef.current) {
+      folderLoadPromiseRef.current = ensureFolder(accessToken)
+        .then(folderId => {
+          folderIdRef.current = folderId
+          return folderId
+        })
+        .catch(e => {
+          folderLoadPromiseRef.current = null
+          throw e
+        })
+    }
+
+    return folderLoadPromiseRef.current
+  }, [accessToken])
+
   // Load entry list when token becomes available
   useEffect(() => {
     if (!accessToken) {
@@ -52,14 +72,15 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
       cacheRef.current = emptyCache
       setCache(emptyCache)
       folderIdRef.current = null
+      folderLoadPromiseRef.current = null
       return
     }
     setLoading(true)
     setError(null)
     ;(async () => {
       try {
-        const folderId = await ensureFolder(accessToken)
-        folderIdRef.current = folderId
+        const folderId = await ensureFolderId()
+        if (!folderId) return
         const files = await listEntries(accessToken, folderId)
         const newCache = new Map<string, EntryCache>()
         for (const f of files) {
@@ -78,14 +99,15 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
         setLoading(false)
       }
     })()
-  }, [accessToken])
+  }, [accessToken, ensureFolderId])
 
   const getContent = useCallback(async (date: string): Promise<LoadedDiaryEntry | null> => {
     if (!accessToken) return null
     try {
       let entry = cacheRef.current.get(date)
-      if (!entry && folderIdRef.current) {
-        const meta = await findEntryMeta(accessToken, folderIdRef.current, date)
+      const folderId = folderIdRef.current ?? await ensureFolderId()
+      if (!entry && folderId) {
+        const meta = await findEntryMeta(accessToken, folderId, date)
         if (!meta) return null
         entry = { meta }
         updateCache(prev => {
@@ -109,19 +131,20 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return null }
       throw e
     }
-  }, [accessToken, updateCache])
+  }, [accessToken, ensureFolderId, updateCache])
 
   const save = useCallback(async (date: string, content: string, baseVersion: string | null, force = false): Promise<LoadedDiaryEntry> => {
-    if (!accessToken || !folderIdRef.current) throw new Error('Not signed in')
+    const folderId = await ensureFolderId()
+    if (!accessToken || !folderId) throw new Error('Not signed in')
     const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
     try {
-      const currentMeta = await findEntryMeta(accessToken, folderIdRef.current, date)
+      const currentMeta = await findEntryMeta(accessToken, folderId, date)
       if (!force && ((currentMeta?.version ?? null) !== baseVersion)) {
         const remote = currentMeta ? { entry: await getEntry(accessToken, currentMeta.id), meta: currentMeta } : null
         throw new EntryConflictError(remote)
       }
 
-      const meta = await saveEntry(accessToken, entry, folderIdRef.current, currentMeta?.id)
+      const meta = await saveEntry(accessToken, entry, folderId, currentMeta?.id)
       updateCache(prev => {
         const next = new Map(prev)
         next.set(date, { meta, content: entry })
@@ -132,7 +155,7 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); throw e }
       throw e
     }
-  }, [accessToken, updateCache])
+  }, [accessToken, ensureFolderId, updateCache])
 
   const remove = useCallback(async (date: string): Promise<void> => {
     if (!accessToken) throw new Error('Not signed in')
