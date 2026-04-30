@@ -11,8 +11,41 @@ function todayYMD(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function RestoringScreen({ selectedDate }: { selectedDate: string }) {
+  return (
+    <div className="app restoring-app">
+      <aside className="sidebar restoring-sidebar open">
+        <div className="sidebar-top">
+          <h1 className="app-title">📔 Diary</h1>
+        </div>
+        <div className="restoring-search" />
+        <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
+        <div className="sidebar-status">Restoring your session…</div>
+        <ul className="entry-list restoring-entry-list">
+          <li />
+          <li />
+          <li />
+        </ul>
+      </aside>
+      <main className="main">
+        <div className="editor restoring-editor">
+          <div className="editor-header">
+            <h2>{selectedDate}</h2>
+            <span className="editor-status">Signing in…</span>
+          </div>
+          <div className="restoring-lines">
+            <span />
+            <span />
+            <span />
+          </div>
+        </div>
+      </main>
+    </div>
+  )
+}
+
 export default function App() {
-  const { accessToken, signIn, signOut, handleExpired } = useAuth()
+  const { accessToken, status, signIn, signOut, handleExpired } = useAuth()
   const [sessionExpired, setSessionExpired] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYMD)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -59,6 +92,10 @@ export default function App() {
     history.replaceState(null, '', '#')
     signOut()
   }, [signOut])
+
+  if (status === 'initializing') {
+    return <RestoringScreen selectedDate={selectedDate} />
+  }
 
   if (!accessToken) {
     return <LoginScreen onSignIn={signIn} sessionExpired={sessionExpired} />
