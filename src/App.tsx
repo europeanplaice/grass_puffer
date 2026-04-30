@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { LoginScreen } from './components/LoginScreen'
@@ -141,6 +141,15 @@ export default function App() {
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useLayoutEffect(() => {
+    if (!sidebarOpen || !isMobileLayout()) return
+
+    const activeElement = document.activeElement
+    if (activeElement instanceof HTMLElement) {
+      activeElement.blur()
+    }
+  }, [sidebarOpen])
 
   const closeSidebar = useCallback(() => {
     if (isMobileLayout() && !dateFromHash()) {

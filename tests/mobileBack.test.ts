@@ -28,11 +28,14 @@ test.beforeEach(async ({ page }) => {
       value: {
         accounts: {
           oauth2: {
-            initTokenClient: (config: google.accounts.oauth2.TokenClientConfig) => ({
-              requestAccessToken: () => {
-                config.callback?.({ access_token: 'test-token' } as google.accounts.oauth2.TokenResponse)
-              },
-            }),
+            initTokenClient: (config: google.accounts.oauth2.TokenClientConfig) => {
+              ;(window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady = true
+              return {
+                requestAccessToken: () => {
+                  config.callback?.({ access_token: 'test-token' } as google.accounts.oauth2.TokenResponse)
+                },
+              }
+            },
             revoke: () => {},
           },
         },
@@ -51,15 +54,20 @@ test.beforeEach(async ({ page }) => {
 
 test('mobile back from the initial entry opens the calendar instead of leaving the app', async ({ page }) => {
   await page.goto(baseUrl)
+  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
   await page.getByRole('button', { name: 'Sign in with Google' }).click()
 
   await expect(page.locator('.editor-textarea')).toBeVisible()
   const entryHash = await page.evaluate(() => window.location.hash)
   expect(entryHash).toMatch(/^#\d{4}-\d{2}-\d{2}$/)
 
+  await page.locator('.editor-textarea').focus()
+  await expect.poll(() => page.evaluate(() => document.activeElement?.classList.contains('editor-textarea'))).toBe(true)
+
   await page.goBack()
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
   await expect(page.locator('.calendar')).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.activeElement?.classList.contains('editor-textarea'))).toBe(false)
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('')
 
   await page.locator('.sidebar-overlay').click()
