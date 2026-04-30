@@ -354,6 +354,10 @@ export default function App() {
         </div>
         <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
+        <label className="calendar-entry-toggle">
+          <input type="checkbox" checked={autoSave} onChange={handleAutoSaveToggle} />
+          <span>Auto-save</span>
+        </label>
         {diary.loading && <div className="sidebar-status">Loading entries…</div>}
         {diary.error && <div className="sidebar-status error">{diary.error}</div>}
         {recentDates.length > 0 && <h2 className="entry-list-heading">Recent</h2>}
@@ -388,7 +392,6 @@ export default function App() {
           }}
           onDirtyChange={setEditorDirty}
           autoSave={autoSave}
-          onAutoSaveToggle={handleAutoSaveToggle}
           onPrevDay={onPrevDay}
           onNextDay={onNextDay}
         />

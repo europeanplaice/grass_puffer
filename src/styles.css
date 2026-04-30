@@ -218,22 +218,8 @@ body {
 }
 .btn-day-nav:hover { background: var(--border); color: var(--text); }
 
-/* ── Auto-save toggle ── */
-.auto-save-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  cursor: pointer;
-  user-select: none;
-  white-space: nowrap;
-}
-.auto-save-toggle input {
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-.auto-save-toggle:hover { color: var(--text); }
+/* ── Button icon / text helpers ── */
+.btn-icon { display: block; flex-shrink: 0; }
 
 /* ── Sidebar overlay backdrop ── */
 .sidebar-overlay {
@@ -885,6 +871,11 @@ body {
   }
 
   .editor-textarea { font-size: 1rem; }
+
+  /* Icon-only action buttons on mobile */
+  .btn-text { display: none; }
+  .editor-actions .btn-save { min-width: 0; padding: 0.5rem 0.65rem; }
+  .editor-actions .btn-delete { padding: 0.5rem 0.65rem; }
 
   /* Larger tap targets for calendar */
   .cal-day { padding: 0.4rem 0; }

@@ -11,9 +11,32 @@ interface Props {
   onMenuClick: () => void
   onDirtyChange: (isDirty: boolean) => void
   autoSave: boolean
-  onAutoSaveToggle: () => void
   onPrevDay: () => void
   onNextDay: () => void
+}
+
+function SaveIcon() {
+  return (
+    <svg className="btn-icon" aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7l-4-4zm-5 16a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm3-10H5V5h10v4z"/>
+    </svg>
+  )
+}
+
+function CheckIcon() {
+  return (
+    <svg className="btn-icon" aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg className="btn-icon" aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+    </svg>
+  )
 }
 
 const SAVED_STATUS = 'Saved.'
@@ -22,7 +45,7 @@ const SAVED_STATUS_EXIT_MS = 220
 const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onAutoSaveToggle, onPrevDay, onNextDay }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -273,20 +296,24 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>
         </div>
         <div className="editor-actions">
-          <label className="auto-save-toggle" title={autoSave ? 'Auto-save is on' : 'Auto-save is off'}>
-            <input type="checkbox" checked={autoSave} onChange={onAutoSaveToggle} />
-            <span>Auto</span>
-          </label>
           <button
             className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
             onClick={() => save(true)}
             disabled={saving || !isDirty}
             aria-busy={saving}
+            aria-label={saving ? 'Saving' : status === SAVED_STATUS ? 'Saved' : 'Save'}
           >
-            {saving && <span className="btn-saving-spinner" aria-hidden="true" />}
-            <span>{saving ? 'Saving…' : status === SAVED_STATUS ? '✓ Saved' : 'Save'}</span>
+            {saving
+              ? <span className="btn-saving-spinner" aria-hidden="true" />
+              : status === SAVED_STATUS ? <CheckIcon /> : <SaveIcon />}
+            <span className="btn-text">{saving ? 'Saving…' : status === SAVED_STATUS ? '✓ Saved' : 'Save'}</span>
           </button>
-          {savedText && <button className="btn-delete" onClick={del}>Delete</button>}
+          {savedText && (
+            <button className="btn-delete" onClick={del} aria-label="Delete entry">
+              <TrashIcon />
+              <span className="btn-text">Delete</span>
+            </button>
+          )}
         </div>
       </div>
       {showDraftBanner && (
