@@ -160,8 +160,14 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
         </div>
         <div className="editor-actions">
           {status && <span className="editor-status">{status}</span>}
-          <button onClick={save} disabled={saving || !isDirty}>
-            {saving ? 'Saving…' : 'Save'}
+          <button
+            className={`btn-save${saving ? ' btn-saving' : ''}`}
+            onClick={save}
+            disabled={saving || !isDirty}
+            aria-busy={saving}
+          >
+            {saving && <span className="btn-saving-spinner" aria-hidden="true" />}
+            <span>{saving ? 'Saving…' : 'Save'}</span>
           </button>
           {savedText && <button className="btn-delete" onClick={del}>Delete</button>}
         </div>

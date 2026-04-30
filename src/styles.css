@@ -362,6 +362,32 @@ body {
 }
 .editor-actions button:disabled { opacity: 0.5; cursor: default; }
 .editor-actions button:not(:disabled):hover { background: var(--accent-hover); }
+.editor-actions .btn-save {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 5.7rem;
+}
+.editor-actions .btn-saving {
+  opacity: 0.85;
+  animation: save-button-pulse 1.1s ease-in-out infinite;
+}
+.btn-saving-spinner {
+  width: 0.72rem;
+  height: 0.72rem;
+  border: 2px solid rgba(255,255,255,0.42);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: save-spinner 0.75s linear infinite;
+}
+@keyframes save-button-pulse {
+  0%, 100% { transform: translateY(0); box-shadow: none; }
+  50% { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(90,122,90,0.25); }
+}
+@keyframes save-spinner {
+  to { transform: rotate(360deg); }
+}
 .btn-delete { background: var(--danger) !important; }
 .btn-delete:not(:disabled):hover { background: #a93226 !important; }
 .conflict-panel {
