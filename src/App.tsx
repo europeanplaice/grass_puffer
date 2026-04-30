@@ -144,6 +144,7 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState(todayYMD)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
+  const [autoSave, setAutoSave] = useState(() => localStorage.getItem('grass_puffer_autosave') !== 'false')
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
@@ -251,6 +252,22 @@ export default function App() {
     selectedDateRef.current = d
     setSidebarOpen(false)
   }, [])
+
+  const handleAutoSaveToggle = useCallback(() => {
+    setAutoSave(prev => {
+      const next = !prev
+      localStorage.setItem('grass_puffer_autosave', String(next))
+      return next
+    })
+  }, [])
+
+  const onPrevDay = useCallback(() => {
+    selectDate(shiftDate(selectedDateRef.current, -1))
+  }, [selectDate])
+
+  const onNextDay = useCallback(() => {
+    selectDate(shiftDate(selectedDateRef.current, 1))
+  }, [selectDate])
 
   const handleSignOut = useCallback(() => {
     seededMobileHistoryRef.current = false
@@ -370,6 +387,10 @@ export default function App() {
             if (isMobileLayout()) setSidebarOpen(true)
           }}
           onDirtyChange={setEditorDirty}
+          autoSave={autoSave}
+          onAutoSaveToggle={handleAutoSaveToggle}
+          onPrevDay={onPrevDay}
+          onNextDay={onNextDay}
         />
       </main>
       {updateAvailable && (

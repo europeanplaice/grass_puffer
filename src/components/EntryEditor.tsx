@@ -10,6 +10,10 @@ interface Props {
   onDelete: (date: string) => Promise<void>
   onMenuClick: () => void
   onDirtyChange: (isDirty: boolean) => void
+  autoSave: boolean
+  onAutoSaveToggle: () => void
+  onPrevDay: () => void
+  onNextDay: () => void
 }
 
 const SAVED_STATUS = 'Saved.'
@@ -18,7 +22,7 @@ const SAVED_STATUS_EXIT_MS = 220
 const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onAutoSaveToggle, onPrevDay, onNextDay }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -188,16 +192,16 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     return () => window.clearTimeout(id)
   }, [text, isDirty, date])
 
-  // Drive auto-save after 3s of being dirty
+  // Drive auto-save after 3s of being dirty (only when auto-save is enabled)
   useEffect(() => {
-    if (!isDirty) return
+    if (!autoSave || !isDirty) return
     const id = window.setTimeout(() => {
       if (savingRef.current || hasConflictRef.current || loadingRef.current) return
       if (textRef.current === savedTextRef.current) return
       save(false)
     }, AUTO_SAVE_MS)
     return () => window.clearTimeout(id)
-  }, [text, isDirty, save])
+  }, [text, isDirty, save, autoSave])
 
   // Ctrl+S / Cmd+S explicit save
   useEffect(() => {
@@ -255,6 +259,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       <div className="editor-header">
         <div className="editor-date-group">
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
+          <button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day">‹</button>
           <h2>
             <span className="entry-date-text">{date}</span>
             <button
@@ -265,8 +270,13 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
               {date}
             </button>
           </h2>
+          <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>
         </div>
         <div className="editor-actions">
+          <label className="auto-save-toggle" title={autoSave ? 'Auto-save is on' : 'Auto-save is off'}>
+            <input type="checkbox" checked={autoSave} onChange={onAutoSaveToggle} />
+            <span>Auto</span>
+          </label>
           <button
             className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
             onClick={() => save(true)}

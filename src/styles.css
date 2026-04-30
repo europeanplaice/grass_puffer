@@ -205,6 +205,36 @@ body {
 }
 .btn-menu:hover { background: var(--border); }
 
+/* ── Day navigation buttons ── */
+.btn-day-nav {
+  background: none;
+  border: none;
+  font-size: 1.35rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+.btn-day-nav:hover { background: var(--border); color: var(--text); }
+
+/* ── Auto-save toggle ── */
+.auto-save-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.auto-save-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.auto-save-toggle:hover { color: var(--text); }
+
 /* ── Sidebar overlay backdrop ── */
 .sidebar-overlay {
   display: none;
