@@ -552,6 +552,15 @@ body {
   from { transform: translateX(0); }
   to { transform: translateX(10px); }
 }
+.editor-actions .btn-save.btn-saved {
+  opacity: 1;
+  background: #437a55;
+  animation: saved-button-flash 0.35s ease-out;
+}
+@keyframes saved-button-flash {
+  0%   { background: #5fad77; }
+  100% { background: #437a55; }
+}
 .btn-delete { background: var(--danger) !important; }
 .btn-delete:not(:disabled):hover { background: #a93226 !important; }
 .conflict-panel {
