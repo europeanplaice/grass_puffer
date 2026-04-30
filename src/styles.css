@@ -133,6 +133,23 @@ body {
   height: 1.65rem;
   flex: 0 0 auto;
 }
+.sidebar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.btn-close-sidebar {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+.btn-close-sidebar:hover { background: var(--border); color: var(--text); }
 .btn-signout {
   background: none;
   border: none;
@@ -221,6 +238,34 @@ body {
   line-height: 1;
 }
 .calendar-nav button:hover { color: var(--text); }
+.calendar-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 11.6rem;
+  font-weight: 600;
+}
+.calendar-month-select,
+.calendar-year-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.1rem 0.2rem;
+}
+.calendar-month-select { width: 6.8rem; }
+.calendar-year-select { width: 4.4rem; }
+.calendar-month-select:hover,
+.calendar-month-select:focus,
+.calendar-year-select:hover,
+.calendar-year-select:focus {
+  border-color: var(--text-muted);
+  outline: none;
+}
 .calendar-today-row {
   text-align: center;
   margin-bottom: 0.5rem;
@@ -236,6 +281,50 @@ body {
   line-height: 1.4;
 }
 .today-btn:hover { color: var(--text); border-color: var(--text-muted); }
+.calendar-entry-month-select {
+  width: 100%;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  margin-bottom: 0.35rem;
+  padding: 0.25rem 0.35rem;
+}
+.calendar-entry-month-select:hover,
+.calendar-entry-month-select:focus {
+  border-color: var(--text-muted);
+  color: var(--text);
+  outline: none;
+}
+.calendar-entry-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+.calendar-entry-nav button {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.35rem;
+}
+.calendar-entry-nav button:not(:disabled):hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+.calendar-entry-nav button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
@@ -269,8 +358,19 @@ body {
 /* ── Entry list ── */
 .sidebar-status { padding: 0.4rem 1rem; font-size: 0.82rem; color: var(--text-muted); }
 .sidebar-status.error { color: var(--danger); }
+.entry-list-heading {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.75rem 1rem 0.1rem;
+  text-transform: uppercase;
+}
 .entry-list { list-style: none; padding: 0.4rem 0; flex: 1; }
 .entry-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
   padding: 0.45rem 1rem;
   font-size: 0.85rem;
   cursor: pointer;
@@ -280,6 +380,27 @@ body {
 .entry-list li.active {
   border-left-color: var(--accent);
   background: var(--selected-bg);
+}
+.entry-list-date {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+.entry-list-weekday {
+  color: var(--text-muted);
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+}
+.entry-list-preview {
+  color: var(--text-muted);
+  display: block;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* -- Session restore -- */
@@ -343,6 +464,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1rem;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.75rem;
@@ -370,8 +492,16 @@ body {
   outline-offset: 2px;
 }
 .editor-actions { display: flex; align-items: center; gap: 0.7rem; }
-.editor-status { font-size: 0.82rem; color: var(--text-muted); }
+.editor-status {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  min-width: 4.8rem;
+  text-align: right;
+}
+.editor-status.unsaved-status { color: #8a5f00; }
+.editor-status.saving-status { color: var(--accent); }
 .editor-status.saved-status {
+  color: var(--accent);
   animation: saved-status-in 160ms ease-out;
 }
 .editor-status.saved-status.is-exiting {
@@ -564,6 +694,8 @@ body {
 
   .btn-menu { display: block; }
 
+  .btn-close-sidebar { display: inline-block; }
+
   .sidebar {
     position: fixed;
     top: 0;
@@ -587,6 +719,10 @@ body {
 
   .editor { padding: 1rem 1rem; }
 
+  .editor-header {
+    align-items: flex-start;
+  }
+
   .editor-header h2 { font-size: 1.1rem; }
 
   .entry-date-text { display: none; }
@@ -596,6 +732,17 @@ body {
   .editor-actions button {
     padding: 0.5rem 0.8rem;
     font-size: 0.82rem;
+  }
+
+  .editor-actions {
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: flex-end;
+  }
+
+  .editor-status {
+    flex-basis: 100%;
+    min-width: 0;
   }
 
   .conflict-panel {

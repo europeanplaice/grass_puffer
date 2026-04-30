@@ -7,6 +7,11 @@ import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
 import { AppIcon } from './components/AppIcon'
 
+type RecentPreview = {
+  snippet: string
+  hasContent: boolean
+}
+
 function todayYMD(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -36,6 +41,25 @@ function currentPathWithoutHash(): string {
 
 function entryPath(date: string): string {
   return `${currentPathWithoutHash()}#${date}`
+}
+
+function parseYMD(date: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (!match) return null
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+}
+
+function weekdayLabel(date: string): string {
+  const parsed = parseYMD(date)
+  if (!parsed) return ''
+
+  return parsed.toLocaleDateString(undefined, { weekday: 'short' })
+}
+
+function firstLinePreview(content: string): string {
+  const firstLine = content.split(/\r?\n/).find(line => line.trim())?.trim() ?? ''
+  return firstLine.length > 72 ? `${firstLine.slice(0, 69)}...` : firstLine
 }
 
 function appHistoryState(view: AppHistoryState['view'], date: string): AppHistoryState {
@@ -112,12 +136,19 @@ export default function App() {
   const [sessionExpired, setSessionExpired] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYMD)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [editorDirty, setEditorDirty] = useState(false)
+  const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const selectedDateRef = useRef(selectedDate)
+  const editorDirtyRef = useRef(editorDirty)
   const seededMobileHistoryRef = useRef(false)
 
   useEffect(() => {
     selectedDateRef.current = selectedDate
   }, [selectedDate])
+
+  useEffect(() => {
+    editorDirtyRef.current = editorDirty
+  }, [editorDirty])
 
   const onExpired = useCallback(() => {
     handleExpired()
@@ -165,6 +196,18 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!editorDirtyRef.current) return
+
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [])
+
   useLayoutEffect(() => {
     if (!sidebarOpen || !isMobileLayout()) return
 
@@ -180,6 +223,11 @@ export default function App() {
   }, [])
 
   const selectDate = useCallback((d: string) => {
+    if (d !== selectedDateRef.current && editorDirtyRef.current) {
+      const shouldLeave = window.confirm('You have unsaved changes. Leave this entry without saving?')
+      if (!shouldLeave) return
+    }
+
     if (isMobileLayout()) {
       history.replaceState(appHistoryState('calendar', d), '', currentPathWithoutHash())
       history.pushState(appHistoryState('entry', d), '', entryPath(d))
@@ -197,6 +245,40 @@ export default function App() {
     signOut()
   }, [signOut])
 
+  const datesSet = new Set(diary.dates)
+  const recentDates = diary.dates.slice(0, 5)
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!accessToken || recentDates.length === 0) {
+      setRecentPreviews(new Map())
+      return
+    }
+
+    Promise.all(
+      recentDates.map(async date => {
+        const loaded = await diary.getContent(date)
+        return [
+          date,
+          {
+            snippet: firstLinePreview(loaded?.entry.content ?? ''),
+            hasContent: Boolean(loaded?.entry.content.trim()),
+          },
+        ] as const
+      }),
+    ).then(previews => {
+      if (cancelled) return
+      setRecentPreviews(new Map(previews))
+    }).catch(() => {
+      if (!cancelled) setRecentPreviews(new Map())
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [accessToken, diary.getContent, recentDates.join('|')])
+
   if (status === 'initializing') {
     return <RestoringScreen selectedDate={selectedDate} />
   }
@@ -204,9 +286,6 @@ export default function App() {
   if (!accessToken) {
     return <LoginScreen onSignIn={signIn} sessionExpired={sessionExpired} />
   }
-
-  const datesSet = new Set(diary.dates)
-  const recentDates = diary.dates.slice(0, 5)
 
   return (
     <div className="app">
@@ -217,22 +296,34 @@ export default function App() {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-top">
           <h1 className="app-title"><AppIcon className="app-title-icon" /> Diary</h1>
-          <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
+          <div className="sidebar-actions">
+            <button className="btn-close-sidebar" onClick={closeSidebar} title="Close menu" aria-label="Close menu">×</button>
+            <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
+          </div>
         </div>
         <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         {diary.loading && <div className="sidebar-status">Loading entries…</div>}
         {diary.error && <div className="sidebar-status error">{diary.error}</div>}
+        {recentDates.length > 0 && <h2 className="entry-list-heading">Recent</h2>}
         <ul className="entry-list">
-          {recentDates.map(d => (
+          {recentDates.map(d => {
+            const preview = recentPreviews.get(d)
+            return (
             <li
               key={d}
               className={d === selectedDate ? 'active' : ''}
               onClick={() => selectDate(d)}
             >
-              {d}
+              <span className="entry-list-date">
+                <span>{d}</span>
+                {weekdayLabel(d) && <span className="entry-list-weekday">{weekdayLabel(d)}</span>}
+              </span>
+              <span className="entry-list-preview">
+                {preview?.hasContent ? preview.snippet : 'No text yet'}
+              </span>
             </li>
-          ))}
+          )})}
         </ul>
       </aside>
       <main className="main">
@@ -244,6 +335,7 @@ export default function App() {
           onMenuClick={() => {
             if (isMobileLayout()) setSidebarOpen(true)
           }}
+          onDirtyChange={setEditorDirty}
         />
       </main>
     </div>

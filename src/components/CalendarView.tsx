@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Props {
   dates: Set<string>
@@ -10,17 +10,52 @@ function toYMD(y: number, m: number, d: number): string {
   return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
 }
 
+function dateParts(ymd: string): { year: number; month: number } | null {
+  const match = /^(\d{4})-(\d{2})-\d{2}$/.exec(ymd)
+  if (!match) return null
+
+  const year = Number(match[1])
+  const month = Number(match[2]) - 1
+  if (month < 0 || month > 11) return null
+
+  return { year, month }
+}
+
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December']
 
 export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   const today = new Date()
-  const [year, setYear] = useState(today.getFullYear())
-  const [month, setMonth] = useState(today.getMonth())
+  const selectedParts = dateParts(selectedDate)
+  const todayYear = today.getFullYear()
+  const [year, setYear] = useState(selectedParts?.year ?? todayYear)
+  const [month, setMonth] = useState(selectedParts?.month ?? today.getMonth())
+
+  useEffect(() => {
+    if (!selectedParts) return
+    setYear(selectedParts.year)
+    setMonth(selectedParts.month)
+  }, [selectedParts?.year, selectedParts?.month])
 
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const entryDates = [...dates]
+    .filter(date => dateParts(date))
+    .sort((a, b) => a.localeCompare(b))
+  const previousEntryDate = [...entryDates].reverse().find(date => date < selectedDate)
+  const nextEntryDate = entryDates.find(date => date > selectedDate)
+  const entryMonths = Array.from(new Set(entryDates.map(date => date.slice(0, 7))))
+    .sort((a, b) => b.localeCompare(a))
+  const yearOptions = (() => {
+    const entryYears = entryDates
+      .map(date => dateParts(date)?.year)
+      .filter((entryYear): entryYear is number => entryYear !== undefined)
+    const minYear = Math.min(todayYear - 100, selectedParts?.year ?? todayYear, ...entryYears)
+    const maxYear = Math.max(todayYear + 10, selectedParts?.year ?? todayYear, ...entryYears)
+
+    return Array.from({ length: maxYear - minYear + 1 }, (_, index) => minYear + index)
+  })()
 
   const prev = () => {
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
@@ -35,6 +70,11 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
     setMonth(today.getMonth())
     onSelect(toYMD(today.getFullYear(), today.getMonth(), today.getDate()))
   }
+  const jumpToEntryMonth = (entryMonth: string) => {
+    const [entryYear, entryMonthNumber] = entryMonth.split('-').map(Number)
+    setYear(entryYear)
+    setMonth(entryMonthNumber - 1)
+  }
 
   const cells: (number | null)[] = [...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
@@ -42,13 +82,72 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   return (
     <div className="calendar">
       <div className="calendar-nav">
-        <button onClick={prev}>‹</button>
-        <span>{MONTHS[month]} {year}</span>
-        <button onClick={next}>›</button>
+        <button type="button" onClick={prev} aria-label="Previous month">‹</button>
+        <div className="calendar-title">
+          <select
+            className="calendar-month-select"
+            aria-label="Select month"
+            value={month}
+            onChange={event => setMonth(Number(event.target.value))}
+          >
+            {MONTHS.map((monthName, index) => (
+              <option key={monthName} value={index}>{monthName}</option>
+            ))}
+          </select>
+          <select
+            className="calendar-year-select"
+            aria-label="Select year"
+            value={year}
+            onChange={event => setYear(Number(event.target.value))}
+          >
+            {yearOptions.map(optionYear => (
+              <option key={optionYear} value={optionYear}>{optionYear}</option>
+            ))}
+          </select>
+        </div>
+        <button type="button" onClick={next} aria-label="Next month">›</button>
       </div>
       <div className="calendar-today-row">
-        <button className="today-btn" onClick={goToToday}>Today</button>
+        <button type="button" className="today-btn" onClick={goToToday}>Today</button>
       </div>
+      {entryDates.length > 0 && (
+        <>
+          <select
+            className="calendar-entry-month-select"
+            aria-label="Jump to entry month"
+            value=""
+            onChange={event => {
+              if (event.target.value) jumpToEntryMonth(event.target.value)
+            }}
+          >
+            <option value="">Entry months</option>
+            {entryMonths.map(entryMonth => {
+              const [entryYear, entryMonthNumber] = entryMonth.split('-').map(Number)
+              return (
+                <option key={entryMonth} value={entryMonth}>
+                  {MONTHS[entryMonthNumber - 1]} {entryYear}
+                </option>
+              )
+            })}
+          </select>
+          <div className="calendar-entry-nav">
+            <button
+              type="button"
+              onClick={() => previousEntryDate && onSelect(previousEntryDate)}
+              disabled={!previousEntryDate}
+            >
+              Previous entry
+            </button>
+            <button
+              type="button"
+              onClick={() => nextEntryDate && onSelect(nextEntryDate)}
+              disabled={!nextEntryDate}
+            >
+              Next entry
+            </button>
+          </div>
+        </>
+      )}
       <div className="calendar-grid">
         {DAYS.map(d => <div key={d} className="cal-day-label">{d}</div>)}
         {cells.map((day, i) => {
@@ -60,8 +159,17 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
           return (
             <div
               key={ymd}
+              role="button"
+              tabIndex={0}
+              aria-label={ymd}
               className={['cal-day', hasEntry ? 'has-entry' : '', isSelected ? 'selected' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
               onClick={() => onSelect(ymd)}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  onSelect(ymd)
+                }
+              }}
             >
               {day}
               {hasEntry && <span className="dot" />}

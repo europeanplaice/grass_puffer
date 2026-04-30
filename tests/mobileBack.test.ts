@@ -4,6 +4,15 @@ import { createServer, type ViteDevServer } from 'vite'
 let server: ViteDevServer
 let baseUrl: string
 
+function adjacentDate(date: string): string {
+  const [year, month, day] = date.split('-').map(Number)
+  const currentMonth = month - 1
+  let next = new Date(year, currentMonth, day + 1)
+  if (next.getMonth() !== currentMonth) next = new Date(year, currentMonth, day - 1)
+
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`
+}
+
 test.beforeAll(async ({}, workerInfo) => {
   const port = 5400 + workerInfo.workerIndex
   server = await createServer({
@@ -106,4 +115,37 @@ test('entry date opens the calendar only on mobile', async ({ page }) => {
 
   await page.locator('.editor-header h2').click()
   await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
+})
+
+test('mobile date selection confirms before leaving unsaved edits', async ({ page }) => {
+  await page.goto(baseUrl)
+  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
+  await page.getByRole('button', { name: 'Sign in with Google' }).click()
+
+  const editor = page.locator('.editor-textarea')
+  await expect(editor).toBeVisible()
+  await editor.fill('unsaved draft')
+
+  const currentHash = await page.evaluate(() => window.location.hash)
+  const currentDate = currentHash.slice(1)
+  const nextDate = adjacentDate(currentDate)
+
+  await page.locator('.entry-date-button').click()
+  await expect(page.locator('.calendar')).toBeVisible()
+
+  page.once('dialog', async dialog => {
+    expect(dialog.message()).toContain('unsaved changes')
+    await dialog.dismiss()
+  })
+  await page.getByRole('button', { name: nextDate }).click()
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(currentHash)
+  await expect(editor).toHaveValue('unsaved draft')
+  await expect(page.locator('.sidebar')).toHaveClass(/open/)
+
+  page.once('dialog', async dialog => {
+    await dialog.accept()
+  })
+  await page.getByRole('button', { name: nextDate }).click()
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#${nextDate}`)
+  await expect(editor).toHaveValue('')
 })

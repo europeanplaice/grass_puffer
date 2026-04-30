@@ -8,13 +8,14 @@ interface Props {
   onSave: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
   onDelete: (date: string) => Promise<void>
   onMenuClick: () => void
+  onDirtyChange: (isDirty: boolean) => void
 }
 
 const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -52,6 +53,10 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
   }, [date, getContent])
 
   const isDirty = text !== savedText
+
+  useEffect(() => {
+    onDirtyChange(isDirty)
+  }, [isDirty, onDirtyChange])
 
   const save = useCallback(async () => {
     setSaving(true)
@@ -156,9 +161,22 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
 
   const statusClassName = [
     'editor-status',
+    loading ? 'loading-status' : '',
+    saving ? 'saving-status' : '',
+    isDirty ? 'unsaved-status' : '',
+    !loading && !saving && !isDirty && !status ? 'saved-status' : '',
     status === SAVED_STATUS ? 'saved-status' : '',
     savedStatusExiting ? 'is-exiting' : '',
   ].filter(Boolean).join(' ')
+  const visibleStatus = loading
+    ? 'Loading...'
+    : saving
+      ? 'Saving...'
+      : status && status !== SAVED_STATUS
+        ? status
+        : isDirty
+          ? 'Unsaved'
+          : 'Saved'
 
   return (
     <>
@@ -203,7 +221,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
           </h2>
         </div>
         <div className="editor-actions">
-          {status && <span className={statusClassName}>{status}</span>}
+          <span className={statusClassName}>{visibleStatus}</span>
           <button
             className={`btn-save${saving ? ' btn-saving' : ''}`}
             onClick={save}
@@ -242,7 +260,10 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
         <textarea
           className="editor-textarea"
           value={text}
-          onChange={e => setText(e.target.value)}
+          onChange={e => {
+            setText(e.target.value)
+            if (status && status !== SAVED_STATUS) setStatus('')
+          }}
           placeholder="Write your thoughts…"
           autoFocus
         />
