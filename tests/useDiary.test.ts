@@ -11,8 +11,6 @@ function fileMeta(version: string, id = 'file-1') {
   return { id, name: 'diary-2026-05-01.json', version }
 }
 
-function ok(body: unknown) { return { status: 200, body } }
-
 test.beforeAll(async ({}, workerInfo) => {
   const port = 5400 + workerInfo.workerIndex
   server = await createServer({
@@ -32,31 +30,24 @@ async function loadHarness(page: import('@playwright/test').Page) {
   await page.goto(`${baseUrl}/tests/useDiaryHarness.html`)
 }
 
-/**
- * Start the hook, providing the two initialization responses
- * (ensureFolder + listEntries) and wait until loading completes.
- */
 async function startHarness(page: import('@playwright/test').Page, extraEntries = ENTRIES_EMPTY) {
   await page.evaluate(({ folder, entries }) => {
     window.diaryHarness.q({ status: 200, body: folder }, { status: 200, body: entries })
     window.diaryHarness.start()
   }, { folder: FOLDER_INIT, entries: extraEntries })
-
   await page.waitForSelector('#harness-ready')
 }
 
 test.describe('useDiary save — conflict detection', () => {
-  test('first save uses findEntryMeta (list query) when no cache exists', async ({ page }) => {
+  test('first save of a new entry uses findEntryMeta (list query) and POST', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)
-
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
-    // Queue: findEntryMeta (null = new file), saveEntry (POST)
     await page.evaluate(({ meta }) => {
       window.diaryHarness.q(
-        { status: 200, body: { files: [] } },              // findEntryMeta → not found
-        { status: 200, body: meta },                        // saveEntry POST → returns meta
+        { status: 200, body: { files: [] } },  // findEntryMeta → not found
+        { status: 200, body: meta },            // saveEntry POST
       )
     }, { meta: fileMeta('1') })
 
@@ -67,40 +58,34 @@ test.describe('useDiary save — conflict detection', () => {
     expect(result).toMatchObject({ ok: true, result: { meta: { version: '1' } } })
 
     const calls = await page.evaluate(() => window.diaryHarness.calls())
-    // findEntryMeta uses the files list endpoint
     expect(calls[0].url).toContain('/drive/v3/files?q=')
-    expect(calls[0].method).toBe('GET')
-    // saveEntry uses POST multipart upload
     expect(calls[1].url).toContain('/upload/drive/v3/files?uploadType=multipart')
     expect(calls[1].method).toBe('POST')
+    expect(calls).toHaveLength(2)
   })
 
-  test('second save uses getEntryMeta (direct file fetch) when cache exists', async ({ page }) => {
+  test('second save skips Drive API entirely and uses PATCH directly', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)
 
-    // First save — seeds the cache
+    // First save — seeds the cache with file-1 at version 1
     await page.evaluate(({ meta }) => {
       window.diaryHarness.q(
-        { status: 200, body: { files: [] } },              // findEntryMeta
-        { status: 200, body: meta },                        // saveEntry POST → version 1
+        { status: 200, body: { files: [] } },
+        { status: 200, body: meta },
       )
     }, { meta: fileMeta('1') })
 
-    const first = await page.evaluate(() =>
-      window.diaryHarness.save('2026-05-01', 'hello', null)
-    )
-    expect(first).toMatchObject({ ok: true })
+    await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'hello', null))
 
-    // Second save — cache now has file-1 at version 1
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
-    await page.evaluate(({ getMeta, saveMeta }) => {
+    // Second save: only saveEntry PATCH should be called — no Drive version check
+    await page.evaluate(({ saveMeta }) => {
       window.diaryHarness.q(
-        { status: 200, body: getMeta },   // getEntryMeta → returns same version → no conflict
-        { status: 200, body: saveMeta },  // saveEntry PATCH → version 2
+        { status: 200, body: saveMeta },  // saveEntry PATCH only
       )
-    }, { getMeta: fileMeta('1'), saveMeta: fileMeta('2') })
+    }, { saveMeta: fileMeta('2') })
 
     const second = await page.evaluate(() =>
       window.diaryHarness.save('2026-05-01', 'hello world', '1')
@@ -109,20 +94,16 @@ test.describe('useDiary save — conflict detection', () => {
     expect(second).toMatchObject({ ok: true, result: { meta: { version: '2' } } })
 
     const calls = await page.evaluate(() => window.diaryHarness.calls())
-    // getEntryMeta uses direct file ID endpoint — NOT a list query
-    expect(calls[0].url).toMatch(/\/drive\/v3\/files\/file-1\?fields=/)
-    expect(calls[0].method).toBe('GET')
-    // saveEntry uses PATCH
-    expect(calls[1].url).toContain('/upload/drive/v3/files/file-1?uploadType=multipart')
-    expect(calls[1].method).toBe('PATCH')
-    expect(calls).toHaveLength(2)
+    expect(calls[0].url).toContain('/upload/drive/v3/files/file-1?uploadType=multipart')
+    expect(calls[0].method).toBe('PATCH')
+    expect(calls).toHaveLength(1)
   })
 
-  test('no false conflict on consecutive saves when Drive list API would return stale version', async ({ page }) => {
+  test('no false conflict even if Drive API would have returned stale version', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)
 
-    // First save
+    // First save → version 5 in cache
     await page.evaluate(({ meta }) => {
       window.diaryHarness.q(
         { status: 200, body: { files: [] } },
@@ -130,34 +111,31 @@ test.describe('useDiary save — conflict detection', () => {
       )
     }, { meta: fileMeta('5') })
 
-    const first = await page.evaluate(() =>
-      window.diaryHarness.save('2026-05-01', 'draft', null)
-    )
-    expect(first).toMatchObject({ ok: true })
+    await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'draft', null))
 
-    // Second save: getEntryMeta returns version 5 (same as baseVersion) → no conflict.
-    // If the old code path (findEntryMeta) were used and returned stale version 4,
-    // it would falsely conflict. Here we return version 5 — simulating what
-    // getEntryMeta (direct fetch) correctly returns.
-    await page.evaluate(({ getMeta, saveMeta }) => {
-      window.diaryHarness.q(
-        { status: 200, body: getMeta },
-        { status: 200, body: saveMeta },
-      )
-    }, { getMeta: fileMeta('5'), saveMeta: fileMeta('6') })
+    await page.evaluate(() => window.diaryHarness.clearCalls())
+
+    // Second save: no Drive check — if we had called findEntryMeta it might have
+    // returned stale version 4 and falsely conflicted
+    await page.evaluate(({ saveMeta }) => {
+      window.diaryHarness.q({ status: 200, body: saveMeta })
+    }, { saveMeta: fileMeta('6') })
 
     const second = await page.evaluate(() =>
-      window.diaryHarness.save('2026-05-01', 'draft with more text', '5')
+      window.diaryHarness.save('2026-05-01', 'draft with more', '5')
     )
 
     expect(second).toMatchObject({ ok: true, result: { meta: { version: '6' } } })
+    const calls = await page.evaluate(() => window.diaryHarness.calls())
+    expect(calls).toHaveLength(1)
+    expect(calls[0].method).toBe('PATCH')
   })
 
-  test('real conflict from another device is still detected', async ({ page }) => {
+  test('real conflict is detected when cached version differs from baseVersion', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)
 
-    // First save → version 2
+    // First save → cache has version 2
     await page.evaluate(({ meta }) => {
       window.diaryHarness.q(
         { status: 200, body: { files: [] } },
@@ -165,22 +143,28 @@ test.describe('useDiary save — conflict detection', () => {
       )
     }, { meta: fileMeta('2') })
 
-    await page.evaluate(() =>
-      window.diaryHarness.save('2026-05-01', 'my text', null)
-    )
+    await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'my text', null))
 
-    // Another device updated the file → Drive now has version 3.
-    // getEntryMeta returns 3, but our baseVersion is 2 → conflict.
+    // Simulate: getContent ran (e.g. from App's recentPreviews effect) and updated
+    // the cache with version 3 from another device
     const remoteEntry = { date: '2026-05-01', content: 'remote text', updated_at: '2026-05-01T10:00:00Z' }
-    await page.evaluate(({ getMeta, entry }) => {
+    await page.evaluate(({ meta3, entry }) => {
       window.diaryHarness.q(
-        { status: 200, body: getMeta },     // getEntryMeta → version 3
-        { status: 200, body: entry },        // getEntry (to populate conflict remote)
+        { status: 200, body: meta3 },   // getEntryMeta (called by getContent)
+        { status: 200, body: entry },    // getEntry (called by getContent)
       )
-    }, { getMeta: fileMeta('3'), entry: remoteEntry })
+      // Simulate what getContent does: update cache with fresher version from Drive
+      return window.diaryHarness.triggerGetContent('2026-05-01')
+    }, { meta3: fileMeta('3'), entry: remoteEntry })
+
+    // Now cache has version 3, but our baseVersion is still 2 → should conflict
+    // getEntry is queued for conflict panel display
+    await page.evaluate(({ entry }) => {
+      window.diaryHarness.q({ status: 200, body: entry })
+    }, { entry: remoteEntry })
 
     const result = await page.evaluate(() =>
-      window.diaryHarness.save('2026-05-01', 'my local changes', '2')
+      window.diaryHarness.save('2026-05-01', 'my local edits', '2')
     )
 
     expect(result).toMatchObject({ ok: false, error: 'conflict' })

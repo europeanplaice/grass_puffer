@@ -123,7 +123,15 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
       updateCache(prev => {
         const next = new Map(prev)
         const existing = next.get(date)
-        if (existing) next.set(date, { ...existing, meta, content })
+        if (existing) {
+          // Don't let a stale Drive response downgrade the cached version.
+          // Drive has no read-your-writes guarantee, so getEntryMeta can return
+          // an older version immediately after a save.
+          const existingV = Number(existing.meta.version ?? 0)
+          const fetchedV = Number(meta.version ?? 0)
+          const safeMeta = fetchedV >= existingV ? meta : existing.meta
+          next.set(date, { ...existing, meta: safeMeta, content })
+        }
         return next
       })
       return { entry: content, meta }
@@ -138,17 +146,32 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
     if (!accessToken || !folderId) throw new Error('Not signed in')
     const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
     try {
-      // Use getEntryMeta (direct file fetch) when we have a cached ID to avoid Drive
-      // list API eventual-consistency lag causing false conflict errors on consecutive saves.
       const cachedMeta = cacheRef.current.get(date)?.meta ?? null
-      const currentMeta = cachedMeta
-        ? await getEntryMeta(accessToken, cachedMeta.id)
-        : await findEntryMeta(accessToken, folderId, date)
+      if (cachedMeta) {
+        // Entry exists in cache: skip the Drive version check entirely.
+        // Drive's API has no read-your-writes guarantee, so querying version
+        // after a recent save can return stale data and produce false conflicts.
+        // Instead we trust the cache, which is updated from PATCH responses and
+        // getContent calls — those are the correct sources of truth for conflict detection.
+        if (!force && cachedMeta.version !== baseVersion) {
+          const remote = { entry: await getEntry(accessToken, cachedMeta.id), meta: cachedMeta }
+          throw new EntryConflictError(remote)
+        }
+        const meta = await saveEntry(accessToken, entry, folderId, cachedMeta.id)
+        updateCache(prev => {
+          const next = new Map(prev)
+          next.set(date, { meta, content: entry })
+          return next
+        })
+        return { entry, meta }
+      }
+
+      // New entry (not in cache): check Drive in case another device created it first.
+      const currentMeta = await findEntryMeta(accessToken, folderId, date)
       if (!force && ((currentMeta?.version ?? null) !== baseVersion)) {
         const remote = currentMeta ? { entry: await getEntry(accessToken, currentMeta.id), meta: currentMeta } : null
         throw new EntryConflictError(remote)
       }
-
       const meta = await saveEntry(accessToken, entry, folderId, currentMeta?.id)
       updateCache(prev => {
         const next = new Map(prev)

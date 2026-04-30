@@ -11,14 +11,12 @@ type SaveResult = { ok: true; result: LoadedDiaryEntry } | { ok: false; conflict
 declare global {
   interface Window {
     diaryHarness: {
-      /** Queue a response to be consumed by the next fetch call. */
       q: (...responses: QueuedResponse[]) => void
-      /** All fetch calls made since last clearCalls(). */
       calls: () => FetchCall[]
       clearCalls: () => void
-      /** Mount the component and start the useDiary hook. */
       start: () => void
       save: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<SaveResult>
+      triggerGetContent: (date: string) => Promise<void>
     }
   }
 }
@@ -41,12 +39,17 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 clearFolderCache()
 
 type SaveFn = (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
+type GetContentFn = (date: string) => Promise<LoadedDiaryEntry | null>
 let _save: SaveFn | null = null
+let _getContent: GetContentFn | null = null
 
 function Harness() {
   const diary = useDiary('test-token', () => {})
 
-  useEffect(() => { _save = diary.save })
+  useEffect(() => {
+    _save = diary.save
+    _getContent = diary.getContent
+  })
 
   return (
     <div
@@ -76,5 +79,9 @@ window.diaryHarness = {
       }
       return { ok: false, conflict: null, error: String(e) }
     }
+  },
+  triggerGetContent: async (date) => {
+    if (!_getContent) throw new Error('harness not started')
+    await _getContent(date)
   },
 }
