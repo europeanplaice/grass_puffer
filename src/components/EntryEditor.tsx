@@ -191,7 +191,15 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
       <div className="editor-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
-          <h2>{date}</h2>
+          <h2>
+            <button
+              className="entry-date-button"
+              onClick={onMenuClick}
+              aria-label={`Open calendar for ${date}`}
+            >
+              {date}
+            </button>
+          </h2>
         </div>
         <div className="editor-actions">
           {status && <span className={statusClassName}>{status}</span>}

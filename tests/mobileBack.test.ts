@@ -61,6 +61,14 @@ test('mobile back from the initial entry opens the calendar instead of leaving t
   const entryHash = await page.evaluate(() => window.location.hash)
   expect(entryHash).toMatch(/^#\d{4}-\d{2}-\d{2}$/)
 
+  await page.locator('.entry-date-button').click()
+  await expect(page.locator('.sidebar')).toHaveClass(/open/)
+  await expect(page.locator('.calendar')).toBeVisible()
+
+  await page.locator('.sidebar-overlay').click()
+  await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(entryHash)
+
   await page.locator('.editor-textarea').focus()
   await expect.poll(() => page.evaluate(() => document.activeElement?.classList.contains('editor-textarea'))).toBe(true)
 
