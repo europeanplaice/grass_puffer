@@ -561,6 +561,9 @@ body {
   font-size: 0.85rem;
   cursor: pointer;
   font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 .editor-actions button:disabled { opacity: 0.5; cursor: default; }
 .editor-actions button:not(:disabled):hover { background: var(--accent-hover); }
