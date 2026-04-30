@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { LoginScreen } from './components/LoginScreen'
@@ -10,6 +10,45 @@ import { AppIcon } from './components/AppIcon'
 function todayYMD(): string {
   const d = new Date()
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const DATE_HASH_RE = /^\d{4}-\d{2}-\d{2}$/
+const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
+
+type AppHistoryState = {
+  grassPuffer: true
+  view: 'calendar' | 'entry'
+  date: string
+}
+
+function dateFromHash(): string | null {
+  const hash = window.location.hash.slice(1)
+  return DATE_HASH_RE.test(hash) ? hash : null
+}
+
+function isMobileLayout(): boolean {
+  return window.matchMedia(MOBILE_MEDIA_QUERY).matches
+}
+
+function currentPathWithoutHash(): string {
+  return `${window.location.pathname}${window.location.search}`
+}
+
+function entryPath(date: string): string {
+  return `${currentPathWithoutHash()}#${date}`
+}
+
+function appHistoryState(view: AppHistoryState['view'], date: string): AppHistoryState {
+  return { grassPuffer: true, view, date }
+}
+
+function isCalendarHistoryState(state: unknown): state is AppHistoryState {
+  return Boolean(
+    state &&
+    typeof state === 'object' &&
+    (state as Partial<AppHistoryState>).grassPuffer === true &&
+    (state as Partial<AppHistoryState>).view === 'calendar',
+  )
 }
 
 function RestoringScreen({ selectedDate }: { selectedDate: string }) {
@@ -50,6 +89,12 @@ export default function App() {
   const [sessionExpired, setSessionExpired] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYMD)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const selectedDateRef = useRef(selectedDate)
+  const seededMobileHistoryRef = useRef(false)
+
+  useEffect(() => {
+    selectedDateRef.current = selectedDate
+  }, [selectedDate])
 
   const onExpired = useCallback(() => {
     handleExpired()
@@ -59,20 +104,35 @@ export default function App() {
   const diary = useDiary(accessToken, onExpired)
 
   useEffect(() => {
-    if (accessToken) {
-      setSessionExpired(false)
-      const hash = window.location.hash.slice(1)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(hash)) {
-        setSelectedDate(hash)
-      }
+    if (!accessToken) {
+      seededMobileHistoryRef.current = false
+      return
+    }
+
+    setSessionExpired(false)
+    const nextDate = dateFromHash() ?? selectedDateRef.current
+    setSelectedDate(nextDate)
+    selectedDateRef.current = nextDate
+
+    if (isMobileLayout() && !seededMobileHistoryRef.current) {
+      history.replaceState(appHistoryState('calendar', nextDate), '', currentPathWithoutHash())
+      history.pushState(appHistoryState('entry', nextDate), '', entryPath(nextDate))
+      seededMobileHistoryRef.current = true
+      setSidebarOpen(false)
     }
   }, [accessToken])
 
   useEffect(() => {
-    const handlePopState = () => {
-      const hash = window.location.hash.slice(1)
-      if (/^\d{4}-\d{2}-\d{2}$/.test(hash)) {
-        setSelectedDate(hash)
+    const handlePopState = (event: PopStateEvent) => {
+      const hashDate = dateFromHash()
+      if (isMobileLayout() && (isCalendarHistoryState(event.state) || !hashDate)) {
+        setSidebarOpen(true)
+        return
+      }
+
+      if (hashDate) {
+        setSelectedDate(hashDate)
+        selectedDateRef.current = hashDate
         setSidebarOpen(false)
       } else {
         setSidebarOpen(true)
@@ -82,14 +142,28 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
-  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
+  const closeSidebar = useCallback(() => {
+    if (isMobileLayout() && !dateFromHash()) {
+      const date = selectedDateRef.current
+      history.pushState(appHistoryState('entry', date), '', entryPath(date))
+    }
+    setSidebarOpen(false)
+  }, [])
+
   const selectDate = useCallback((d: string) => {
-    history.pushState(null, '', '#' + d)
+    if (isMobileLayout()) {
+      history.replaceState(appHistoryState('calendar', d), '', currentPathWithoutHash())
+      history.pushState(appHistoryState('entry', d), '', entryPath(d))
+    } else {
+      history.pushState(null, '', '#' + d)
+    }
     setSelectedDate(d)
+    selectedDateRef.current = d
     setSidebarOpen(false)
   }, [])
 
   const handleSignOut = useCallback(() => {
+    seededMobileHistoryRef.current = false
     history.replaceState(null, '', '#')
     signOut()
   }, [signOut])
