@@ -181,6 +181,7 @@ body {
 }
 .search-bar input:focus { border-color: var(--accent); }
 .search-status { font-size: 0.8rem; color: var(--text-muted); padding: 0.3rem 0; }
+.search-status.error { color: var(--danger); }
 .search-results {
   list-style: none;
   background: #fff;

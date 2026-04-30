@@ -115,7 +115,7 @@ export default function App() {
           <h1 className="app-title"><AppIcon className="app-title-icon" /> Diary</h1>
           <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
         </div>
-        <SearchBar onSearch={diary.search} onSelect={selectDate} />
+        <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         {diary.loading && <div className="sidebar-status">Loading entries…</div>}
         {diary.error && <div className="sidebar-status error">{diary.error}</div>}
