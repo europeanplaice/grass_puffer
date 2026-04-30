@@ -398,8 +398,8 @@ export default function App() {
       </main>
       {updateAvailable && (
         <div className="update-banner">
-          <span>新しいバージョンがあります</span>
-          <button onClick={() => window.location.reload()}>更新</button>
+          <span>A new version is available</span>
+          <button onClick={() => window.location.reload()}>Update</button>
         </div>
       )}
     </div>
