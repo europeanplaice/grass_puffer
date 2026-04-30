@@ -10,6 +10,10 @@ interface Props {
   onMenuClick: () => void
 }
 
+const SAVED_STATUS = 'Saved.'
+const SAVED_STATUS_VISIBLE_MS = 1600
+const SAVED_STATUS_EXIT_MS = 220
+
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
@@ -17,6 +21,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState('')
+  const [savedStatusExiting, setSavedStatusExiting] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [hasConflict, setHasConflict] = useState(false)
@@ -29,6 +34,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
     setSavedText('')
     setBaseVersion(null)
     setStatus('')
+    setSavedStatusExiting(false)
     setHasConflict(false)
     setConflictRemote(null)
     getContent(date).then(entry => {
@@ -50,13 +56,14 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
   const save = useCallback(async () => {
     setSaving(true)
     setStatus('')
+    setSavedStatusExiting(false)
     setHasConflict(false)
     setConflictRemote(null)
     try {
       const saved = await onSave(date, text, baseVersion)
       setSavedText(text)
       setBaseVersion(saved.meta.version ?? null)
-      setStatus('Saved.')
+      setStatus(SAVED_STATUS)
     } catch (e) {
       if (e instanceof EntryConflictError) {
         setHasConflict(true)
@@ -89,13 +96,14 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
   const overwriteRemote = async () => {
     setSaving(true)
     setStatus('')
+    setSavedStatusExiting(false)
     try {
       const saved = await onSave(date, text, conflictRemote?.meta.version ?? baseVersion, true)
       setSavedText(text)
       setBaseVersion(saved.meta.version ?? null)
       setHasConflict(false)
       setConflictRemote(null)
-      setStatus('Saved.')
+      setStatus(SAVED_STATUS)
     } catch {
       setStatus('Save failed.')
     } finally {
@@ -124,6 +132,33 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [isDirty, save])
+
+  useEffect(() => {
+    if (status !== SAVED_STATUS) {
+      setSavedStatusExiting(false)
+      return
+    }
+
+    setSavedStatusExiting(false)
+    const exitTimeout = window.setTimeout(() => {
+      setSavedStatusExiting(true)
+    }, SAVED_STATUS_VISIBLE_MS)
+    const clearTimeout = window.setTimeout(() => {
+      setStatus(current => current === SAVED_STATUS ? '' : current)
+      setSavedStatusExiting(false)
+    }, SAVED_STATUS_VISIBLE_MS + SAVED_STATUS_EXIT_MS)
+
+    return () => {
+      window.clearTimeout(exitTimeout)
+      window.clearTimeout(clearTimeout)
+    }
+  }, [status])
+
+  const statusClassName = [
+    'editor-status',
+    status === SAVED_STATUS ? 'saved-status' : '',
+    savedStatusExiting ? 'is-exiting' : '',
+  ].filter(Boolean).join(' ')
 
   return (
     <>
@@ -159,7 +194,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
           <h2>{date}</h2>
         </div>
         <div className="editor-actions">
-          {status && <span className="editor-status">{status}</span>}
+          {status && <span className={statusClassName}>{status}</span>}
           <button
             className={`btn-save${saving ? ' btn-saving' : ''}`}
             onClick={save}
