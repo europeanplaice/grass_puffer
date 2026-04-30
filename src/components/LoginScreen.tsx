@@ -28,7 +28,7 @@ export function LoginScreen({ onSignIn, sessionExpired }: Props) {
           Sign in with Google
         </button>
         <p className="login-footer">
-          <a href="/grass_puffer/privacy.html" target="_blank" rel="noopener noreferrer">
+          <a href="/privacy.html" target="_blank" rel="noopener noreferrer">
             Privacy Policy
           </a>
         </p>
