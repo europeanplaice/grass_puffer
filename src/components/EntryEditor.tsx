@@ -22,7 +22,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState('')
-  const [savedStatusExiting, setSavedStatusExiting] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [hasConflict, setHasConflict] = useState(false)
@@ -35,7 +34,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setSavedText('')
     setBaseVersion(null)
     setStatus('')
-    setSavedStatusExiting(false)
     setHasConflict(false)
     setConflictRemote(null)
     getContent(date).then(entry => {
@@ -61,7 +59,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const save = useCallback(async () => {
     setSaving(true)
     setStatus('')
-    setSavedStatusExiting(false)
     setHasConflict(false)
     setConflictRemote(null)
     try {
@@ -101,7 +98,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const overwriteRemote = async () => {
     setSaving(true)
     setStatus('')
-    setSavedStatusExiting(false)
     try {
       const saved = await onSave(date, text, conflictRemote?.meta.version ?? baseVersion, true)
       setSavedText(text)
@@ -139,44 +135,17 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   }, [isDirty, save])
 
   useEffect(() => {
-    if (status !== SAVED_STATUS) {
-      setSavedStatusExiting(false)
-      return
-    }
+    if (status !== SAVED_STATUS) return
 
-    setSavedStatusExiting(false)
-    const exitTimeout = window.setTimeout(() => {
-      setSavedStatusExiting(true)
-    }, SAVED_STATUS_VISIBLE_MS)
     const clearTimeout = window.setTimeout(() => {
       setStatus(current => current === SAVED_STATUS ? '' : current)
-      setSavedStatusExiting(false)
     }, SAVED_STATUS_VISIBLE_MS + SAVED_STATUS_EXIT_MS)
 
     return () => {
-      window.clearTimeout(exitTimeout)
       window.clearTimeout(clearTimeout)
     }
   }, [status])
 
-  const statusClassName = [
-    'editor-status',
-    loading ? 'loading-status' : '',
-    saving ? 'saving-status' : '',
-    isDirty ? 'unsaved-status' : '',
-    !loading && !saving && !isDirty && !status ? 'saved-status' : '',
-    status === SAVED_STATUS ? 'saved-status' : '',
-    savedStatusExiting ? 'is-exiting' : '',
-  ].filter(Boolean).join(' ')
-  const visibleStatus = loading
-    ? 'Loading...'
-    : saving
-      ? 'Saving...'
-      : status && status !== SAVED_STATUS
-        ? status
-        : isDirty
-          ? 'Unsaved'
-          : 'Saved'
 
   return (
     <>
