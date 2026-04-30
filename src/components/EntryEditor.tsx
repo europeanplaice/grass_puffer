@@ -45,6 +45,20 @@ const SAVED_STATUS_EXIT_MS = 220
 const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
 
+function parseYMD(date: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
+  if (!match) return null
+
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+}
+
+function weekdayLabel(date: string): string {
+  const parsed = parseYMD(date)
+  if (!parsed) return ''
+
+  return parsed.toLocaleDateString(undefined, { weekday: 'short' })
+}
+
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
@@ -58,6 +72,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
   const [showDraftBanner, setShowDraftBanner] = useState(false)
   const [pendingDraft, setPendingDraft] = useState<string | null>(null)
+  const weekday = weekdayLabel(date)
 
   // Use a ref to track the latest onSave without restarting debounce timers
   const onSaveRef = useRef(onSave)
@@ -284,13 +299,17 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
           <button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day">‹</button>
           <h2>
-            <span className="entry-date-text">{date}</span>
+            <span className="entry-date-text">
+              {date}
+              {weekday && <span className="entry-date-weekday">{weekday}</span>}
+            </span>
             <button
               className="entry-date-button"
               onClick={onMenuClick}
               aria-label={`Open calendar for ${date}`}
             >
               {date}
+              {weekday && <span className="entry-date-weekday">{weekday}</span>}
             </button>
           </h2>
           <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>

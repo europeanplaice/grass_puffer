@@ -508,6 +508,14 @@ body {
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+.entry-date-text,
+.entry-date-button {
+  align-items: baseline;
+  gap: 0.4rem;
+}
+.entry-date-text {
+  display: inline-flex;
+}
 .entry-date-button {
   display: none;
   appearance: none;
@@ -521,6 +529,12 @@ body {
   margin: -0.15rem -0.25rem;
   border-radius: 4px;
   white-space: nowrap;
+}
+.entry-date-weekday {
+  color: var(--text-muted);
+  font-size: 0.62em;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 .entry-date-button:hover,
 .entry-date-button:focus-visible {
@@ -846,7 +860,7 @@ body {
 
   .entry-date-text { display: none; }
 
-  .entry-date-button { display: inline-block; }
+  .entry-date-button { display: inline-flex; }
 
   .editor-actions button {
     padding: 0.5rem 0.8rem;

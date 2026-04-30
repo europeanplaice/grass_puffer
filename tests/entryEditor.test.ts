@@ -45,6 +45,19 @@ async function renderEditor(
   await page.waitForSelector('textarea.editor-textarea')
 }
 
+test.describe('EntryEditor — date header', () => {
+  test('shows the weekday next to the entry date', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: '' })
+
+    const expectedWeekday = await page.evaluate(() =>
+      new Date(2026, 4, 1).toLocaleDateString(undefined, { weekday: 'short' })
+    )
+
+    await expect(page.locator('.entry-date-text .entry-date-weekday')).toHaveText(expectedWeekday)
+  })
+})
+
 test.describe('EntryEditor — draft storage', () => {
   test('typing triggers localStorage draft write after 300ms debounce', async ({ page }) => {
     await page.clock.install()
