@@ -1,15 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Grass Puffer Diary">
-  <rect width="512" height="512" rx="104" fill="#f7f1df"/>
-  <path d="M112 354c46 52 166 58 252 20 69-31 82-86 48-130-32-42-96-57-163-52-86 6-151 46-169 94-9 24 7 50 32 68Z" fill="#7aa95c"/>
-  <path d="M132 335c39 35 135 39 203 11 51-21 63-56 36-84-26-28-78-38-132-34-66 5-116 31-132 65-8 16 5 31 25 42Z" fill="#9ccf72"/>
-  <path d="M146 171c30-49 92-68 142-42 51 26 69 87 41 138-22 41-80 56-129 31-50-25-78-81-54-127Z" fill="#5e9b58"/>
-  <path d="M180 191c17-26 52-36 80-23 29 14 39 47 23 75-13 24-46 33-74 20-28-14-43-46-29-72Z" fill="#c9e89b"/>
-  <circle cx="257" cy="184" r="17" fill="#2d332a"/>
-  <circle cx="264" cy="178" r="5" fill="#ffffff"/>
-  <path d="M320 178c26-20 58-20 80 1 10 10 4 28-10 35-24 12-52 4-72-20-5-6-4-12 2-16Z" fill="#5e9b58"/>
-  <path d="M95 269c-34 0-59-14-68-35-5-13 7-25 20-19 28 11 49 24 62 40 6 7-4 14-14 14Z" fill="#5e9b58"/>
-  <path d="M292 356c16 24 17 50 2 73-7 11-25 8-31-3-12-23-10-46 7-70 6-9 16-9 22 0Z" fill="#5e9b58"/>
-  <path d="M136 372c-17 18-36 26-58 23-13-2-17-19-8-28 18-18 39-23 63-12 8 4 9 11 3 17Z" fill="#5e9b58"/>
-  <path d="M137 302c43 25 123 28 184 5" fill="none" stroke="#467a42" stroke-width="18" stroke-linecap="round"/>
-  <path d="M156 424h200" fill="none" stroke="#2d332a" stroke-width="20" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="body" x1="112" x2="427" y1="150" y2="334" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#c7ada0"/>
+      <stop offset=".58" stop-color="#aa958f"/>
+      <stop offset="1" stop-color="#c3a57b"/>
+    </linearGradient>
+    <linearGradient id="belly" x1="112" x2="405" y1="284" y2="392" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff8e5"/>
+      <stop offset="1" stop-color="#e8ddbd"/>
+    </linearGradient>
+    <linearGradient id="fin" x1="378" x2="493" y1="224" y2="319" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#eee48c"/>
+      <stop offset="1" stop-color="#c9a742"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="104" fill="#f4f0df"/>
+  <path d="M391 231l99-45v126l-99-39Z" fill="url(#fin)"/>
+  <path d="M408 243h67M408 268h73M408 292h61" fill="none" stroke="#927b36" stroke-width="8" stroke-linecap="round" opacity=".45"/>
+  <path d="M54 275c0-70 77-129 195-129 95 0 172 48 184 117 13 78-60 134-186 141C128 411 54 355 54 275Z" fill="url(#body)"/>
+  <path d="M57 296c47 70 132 97 243 85 72-8 119-43 132-95-44 31-113 49-203 49-76 0-134-14-172-39Z" fill="url(#belly)"/>
+  <path d="M68 266c-20 0-34-9-34-22 0-12 15-20 34-18" fill="none" stroke="#fff8e5" stroke-width="23" stroke-linecap="round"/>
+  <circle cx="132" cy="244" r="25" fill="#18202a"/>
+  <circle cx="139" cy="237" r="8" fill="#ffffff"/>
+  <path d="M210 274c28-22 68-23 103-1-24 29-76 29-103 1Z" fill="#1d2027"/>
+  <path d="M344 220c26 0 52 9 74 26" fill="none" stroke="#1d2027" stroke-width="20" stroke-linecap="round"/>
+  <path d="M214 345c34 9 62 30 80 61-49 12-91-8-111-45Z" fill="#d6bd58"/>
+  <path d="M277 200c29-24 61-34 99-29-16 43-47 64-87 61Z" fill="#efe9ca"/>
+  <circle cx="180" cy="199" r="11" fill="#fff7e9"/>
+  <circle cx="215" cy="188" r="8" fill="#fff7e9"/>
+  <circle cx="252" cy="197" r="9" fill="#fff7e9"/>
+  <circle cx="294" cy="214" r="10" fill="#fff7e9"/>
+  <circle cx="341" cy="236" r="8" fill="#fff7e9"/>
+  <circle cx="174" cy="248" r="8" fill="#fff7e9"/>
+  <circle cx="232" cy="243" r="7" fill="#fff7e9"/>
+  <circle cx="280" cy="251" r="8" fill="#fff7e9"/>
+  <circle cx="332" cy="278" r="7" fill="#fff7e9"/>
+  <path d="M110 395h285" fill="none" stroke="#18202a" stroke-width="17" stroke-linecap="round" opacity=".13"/>
 </svg>
