@@ -238,6 +238,11 @@ body {
   line-height: 1;
 }
 .calendar-nav button:hover { color: var(--text); }
+.calendar-nav button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+.calendar-nav button:disabled:hover { color: var(--text-muted); }
 .calendar-title {
   display: inline-flex;
   align-items: center;
@@ -281,49 +286,25 @@ body {
   line-height: 1.4;
 }
 .today-btn:hover { color: var(--text); border-color: var(--text-muted); }
-.calendar-entry-month-select {
-  width: 100%;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+.calendar-entry-toggle {
+  align-items: center;
   color: var(--text-muted);
   cursor: pointer;
-  font: inherit;
+  display: flex;
   font-size: 0.75rem;
-  margin-bottom: 0.35rem;
-  padding: 0.25rem 0.35rem;
-}
-.calendar-entry-month-select:hover,
-.calendar-entry-month-select:focus {
-  border-color: var(--text-muted);
-  color: var(--text);
-  outline: none;
-}
-.calendar-entry-nav {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem;
+  gap: 0.4rem;
+  justify-content: center;
   margin-bottom: 0.55rem;
-}
-.calendar-entry-nav button {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 0.72rem;
-  line-height: 1.2;
   min-height: 1.75rem;
-  padding: 0.25rem 0.35rem;
+  user-select: none;
 }
-.calendar-entry-nav button:not(:disabled):hover {
-  border-color: var(--text-muted);
+.calendar-entry-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.calendar-entry-toggle:hover,
+.calendar-entry-toggle:focus-within {
   color: var(--text);
-}
-.calendar-entry-nav button:disabled {
-  cursor: default;
-  opacity: 0.45;
 }
 .calendar-grid {
   display: grid;

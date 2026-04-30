@@ -31,6 +31,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   const todayYear = today.getFullYear()
   const [year, setYear] = useState(selectedParts?.year ?? todayYear)
   const [month, setMonth] = useState(selectedParts?.month ?? today.getMonth())
+  const [entryMonthsOnly, setEntryMonthsOnly] = useState(false)
 
   useEffect(() => {
     if (!selectedParts) return
@@ -43,10 +44,11 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   const entryDates = [...dates]
     .filter(date => dateParts(date))
     .sort((a, b) => a.localeCompare(b))
-  const previousEntryDate = [...entryDates].reverse().find(date => date < selectedDate)
-  const nextEntryDate = entryDates.find(date => date > selectedDate)
   const entryMonths = Array.from(new Set(entryDates.map(date => date.slice(0, 7))))
-    .sort((a, b) => b.localeCompare(a))
+    .sort((a, b) => a.localeCompare(b))
+  const currentEntryMonth = `${year}-${String(month + 1).padStart(2, '0')}`
+  const previousEntryMonth = [...entryMonths].reverse().find(entryMonth => entryMonth < currentEntryMonth)
+  const nextEntryMonth = entryMonths.find(entryMonth => entryMonth > currentEntryMonth)
   const yearOptions = (() => {
     const entryYears = entryDates
       .map(date => dateParts(date)?.year)
@@ -57,11 +59,26 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
     return Array.from({ length: maxYear - minYear + 1 }, (_, index) => minYear + index)
   })()
 
+  const jumpToEntryMonth = (entryMonth: string) => {
+    const [entryYear, entryMonthNumber] = entryMonth.split('-').map(Number)
+    setYear(entryYear)
+    setMonth(entryMonthNumber - 1)
+  }
   const prev = () => {
+    if (entryMonthsOnly) {
+      if (previousEntryMonth) jumpToEntryMonth(previousEntryMonth)
+      return
+    }
+
     if (month === 0) { setYear(y => y - 1); setMonth(11) }
     else setMonth(m => m - 1)
   }
   const next = () => {
+    if (entryMonthsOnly) {
+      if (nextEntryMonth) jumpToEntryMonth(nextEntryMonth)
+      return
+    }
+
     if (month === 11) { setYear(y => y + 1); setMonth(0) }
     else setMonth(m => m + 1)
   }
@@ -70,11 +87,8 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
     setMonth(today.getMonth())
     onSelect(toYMD(today.getFullYear(), today.getMonth(), today.getDate()))
   }
-  const jumpToEntryMonth = (entryMonth: string) => {
-    const [entryYear, entryMonthNumber] = entryMonth.split('-').map(Number)
-    setYear(entryYear)
-    setMonth(entryMonthNumber - 1)
-  }
+  const disablePreviousMonth = entryMonthsOnly && !previousEntryMonth
+  const disableNextMonth = entryMonthsOnly && !nextEntryMonth
 
   const cells: (number | null)[] = [...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
@@ -82,7 +96,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   return (
     <div className="calendar">
       <div className="calendar-nav">
-        <button type="button" onClick={prev} aria-label="Previous month">‹</button>
+        <button type="button" onClick={prev} aria-label="Previous month" disabled={disablePreviousMonth}>‹</button>
         <div className="calendar-title">
           <select
             className="calendar-month-select"
@@ -105,48 +119,20 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
             ))}
           </select>
         </div>
-        <button type="button" onClick={next} aria-label="Next month">›</button>
+        <button type="button" onClick={next} aria-label="Next month" disabled={disableNextMonth}>›</button>
       </div>
       <div className="calendar-today-row">
         <button type="button" className="today-btn" onClick={goToToday}>Today</button>
       </div>
       {entryDates.length > 0 && (
-        <>
-          <select
-            className="calendar-entry-month-select"
-            aria-label="Jump to entry month"
-            value=""
-            onChange={event => {
-              if (event.target.value) jumpToEntryMonth(event.target.value)
-            }}
-          >
-            <option value="">Entry months</option>
-            {entryMonths.map(entryMonth => {
-              const [entryYear, entryMonthNumber] = entryMonth.split('-').map(Number)
-              return (
-                <option key={entryMonth} value={entryMonth}>
-                  {MONTHS[entryMonthNumber - 1]} {entryYear}
-                </option>
-              )
-            })}
-          </select>
-          <div className="calendar-entry-nav">
-            <button
-              type="button"
-              onClick={() => previousEntryDate && onSelect(previousEntryDate)}
-              disabled={!previousEntryDate}
-            >
-              Previous entry
-            </button>
-            <button
-              type="button"
-              onClick={() => nextEntryDate && onSelect(nextEntryDate)}
-              disabled={!nextEntryDate}
-            >
-              Next entry
-            </button>
-          </div>
-        </>
+        <label className="calendar-entry-toggle">
+          <input
+            type="checkbox"
+            checked={entryMonthsOnly}
+            onChange={event => setEntryMonthsOnly(event.target.checked)}
+          />
+          <span>Entry exists</span>
+        </label>
       )}
       <div className="calendar-grid">
         {DAYS.map(d => <div key={d} className="cal-day-label">{d}</div>)}
