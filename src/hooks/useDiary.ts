@@ -138,7 +138,12 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
     if (!accessToken || !folderId) throw new Error('Not signed in')
     const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
     try {
-      const currentMeta = await findEntryMeta(accessToken, folderId, date)
+      // Use getEntryMeta (direct file fetch) when we have a cached ID to avoid Drive
+      // list API eventual-consistency lag causing false conflict errors on consecutive saves.
+      const cachedMeta = cacheRef.current.get(date)?.meta ?? null
+      const currentMeta = cachedMeta
+        ? await getEntryMeta(accessToken, cachedMeta.id)
+        : await findEntryMeta(accessToken, folderId, date)
       if (!force && ((currentMeta?.version ?? null) !== baseVersion)) {
         const remote = currentMeta ? { entry: await getEntry(accessToken, currentMeta.id), meta: currentMeta } : null
         throw new EntryConflictError(remote)
