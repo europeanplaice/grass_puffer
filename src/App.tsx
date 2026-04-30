@@ -25,14 +25,40 @@ export default function App() {
   const diary = useDiary(accessToken, onExpired)
 
   useEffect(() => {
-    if (accessToken) setSessionExpired(false)
+    if (accessToken) {
+      setSessionExpired(false)
+      const hash = window.location.hash.slice(1)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(hash)) {
+        setSelectedDate(hash)
+      }
+    }
   }, [accessToken])
+
+  useEffect(() => {
+    const handlePopState = () => {
+      const hash = window.location.hash.slice(1)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(hash)) {
+        setSelectedDate(hash)
+        setSidebarOpen(false)
+      } else {
+        setSidebarOpen(true)
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), [])
   const selectDate = useCallback((d: string) => {
+    history.pushState(null, '', '#' + d)
     setSelectedDate(d)
     setSidebarOpen(false)
   }, [])
+
+  const handleSignOut = useCallback(() => {
+    history.replaceState(null, '', '#')
+    signOut()
+  }, [signOut])
 
   if (!accessToken) {
     return <LoginScreen onSignIn={signIn} sessionExpired={sessionExpired} />
@@ -49,7 +75,7 @@ export default function App() {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-top">
           <h1 className="app-title">📔 Diary</h1>
-          <button className="btn-signout" onClick={signOut} title="Sign out">↩</button>
+          <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
         </div>
         <SearchBar onSearch={diary.search} onSelect={selectDate} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
