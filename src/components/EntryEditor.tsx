@@ -180,7 +180,14 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
         </div>
       )}
       {loading ? (
-        <div className="editor-loading">Loading…</div>
+        <div className="entry-skeleton" aria-label="Loading entry" aria-live="polite">
+          <div className="entry-skeleton-row short" />
+          <div className="entry-skeleton-row" />
+          <div className="entry-skeleton-row medium" />
+          <div className="entry-skeleton-row" />
+          <div className="entry-skeleton-row long" />
+          <div className="entry-skeleton-row medium" />
+        </div>
       ) : (
         <textarea
           className="editor-textarea"

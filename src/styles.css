@@ -440,7 +440,29 @@ body {
 }
 .delete-modal-actions button:not(:disabled):hover { background: var(--sidebar-bg); }
 .delete-modal-actions button:disabled { opacity: 0.45; cursor: default; }
-.editor-loading { color: var(--text-muted); font-size: 0.9rem; }
+.entry-skeleton {
+  flex: 1;
+  padding-top: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.entry-skeleton-row {
+  height: 1.1rem;
+  width: 78%;
+  border-radius: 999px;
+  background-color: var(--sidebar-bg);
+  background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent);
+  background-size: 220% 100%;
+  animation: entry-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.entry-skeleton-row.short { width: 34%; }
+.entry-skeleton-row.medium { width: 62%; }
+.entry-skeleton-row.long { width: 88%; }
+@keyframes entry-skeleton-shimmer {
+  0% { background-position: 120% 0; }
+  100% { background-position: -120% 0; }
+}
 .editor-textarea {
   flex: 1;
   resize: none;
