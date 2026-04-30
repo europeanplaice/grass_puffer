@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
+import { saveDraft, loadDraft, clearDraft } from '../utils/draftStorage'
 import type { LoadedDiaryEntry } from '../types'
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
 const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
+const DRAFT_DEBOUNCE_MS = 300
+const AUTO_SAVE_MS = 3000
 
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange }: Props) {
   const [text, setText] = useState('')
@@ -26,6 +29,26 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [deleteInput, setDeleteInput] = useState('')
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
+  const [showDraftBanner, setShowDraftBanner] = useState(false)
+  const [pendingDraft, setPendingDraft] = useState<string | null>(null)
+
+  // Use a ref to track the latest onSave without restarting debounce timers
+  const onSaveRef = useRef(onSave)
+  useEffect(() => { onSaveRef.current = onSave }, [onSave])
+
+  const textRef = useRef(text)
+  const savedTextRef = useRef(savedText)
+  const baseVersionRef = useRef(baseVersion)
+  const savingRef = useRef(saving)
+  const hasConflictRef = useRef(hasConflict)
+  const loadingRef = useRef(loading)
+
+  useEffect(() => { textRef.current = text }, [text])
+  useEffect(() => { savedTextRef.current = savedText }, [savedText])
+  useEffect(() => { baseVersionRef.current = baseVersion }, [baseVersion])
+  useEffect(() => { savingRef.current = saving }, [saving])
+  useEffect(() => { hasConflictRef.current = hasConflict }, [hasConflict])
+  useEffect(() => { loadingRef.current = loading }, [loading])
 
   useEffect(() => {
     let cancelled = false
@@ -36,11 +59,21 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setStatus('')
     setHasConflict(false)
     setConflictRemote(null)
+    setShowDraftBanner(false)
+    setPendingDraft(null)
     getContent(date).then(entry => {
       if (cancelled) return
-      const t = entry?.entry.content ?? ''
-      setText(t)
-      setSavedText(t)
+      const driveText = entry?.entry.content ?? ''
+      const draft = loadDraft(date)
+      if (draft !== null && draft !== driveText) {
+        setPendingDraft(draft)
+        setShowDraftBanner(true)
+        setText(driveText)
+        setSavedText(driveText)
+      } else {
+        setText(driveText)
+        setSavedText(driveText)
+      }
       setBaseVersion(entry?.meta.version ?? null)
     }).catch(() => {
       if (!cancelled) setStatus('Failed to load entry.')
@@ -56,17 +89,27 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     onDirtyChange(isDirty)
   }, [isDirty, onDirtyChange])
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (explicit = true) => {
+    if (savingRef.current) return
     setSaving(true)
-    setStatus('')
-    setHasConflict(false)
-    setConflictRemote(null)
+    if (explicit) {
+      setStatus('')
+      setHasConflict(false)
+      setConflictRemote(null)
+    }
     try {
-      const saved = await onSave(date, text, baseVersion)
-      setSavedText(text)
+      const currentText = textRef.current
+      const saved = await onSaveRef.current(date, currentText, baseVersionRef.current)
+      setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
-      setStatus(SAVED_STATUS)
+      clearDraft(date)
+      if (explicit) setStatus(SAVED_STATUS)
     } catch (e) {
+      if (!explicit) {
+        // Auto-save silently swallows errors; conflicts surface on next manual save
+        console.error('Auto-save failed:', e)
+        return
+      }
       if (e instanceof EntryConflictError) {
         setHasConflict(true)
         setConflictRemote(e.remote)
@@ -77,7 +120,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     } finally {
       setSaving(false)
     }
-  }, [date, text, baseVersion, onSave])
+  }, [date])
 
   const loadRemote = () => {
     const remoteText = conflictRemote?.entry.content ?? ''
@@ -99,9 +142,11 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setSaving(true)
     setStatus('')
     try {
-      const saved = await onSave(date, text, conflictRemote?.meta.version ?? baseVersion, true)
-      setSavedText(text)
+      const currentText = textRef.current
+      const saved = await onSaveRef.current(date, currentText, conflictRemote?.meta.version ?? baseVersionRef.current, true)
+      setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
+      clearDraft(date)
       setHasConflict(false)
       setConflictRemote(null)
       setStatus(SAVED_STATUS)
@@ -122,12 +167,44 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     await onDelete(date)
   }
 
-  // Auto-save on Ctrl+S / Cmd+S
+  // Draft restore actions
+  const restoreDraft = () => {
+    if (pendingDraft === null) return
+    setText(pendingDraft)
+    setShowDraftBanner(false)
+    setPendingDraft(null)
+  }
+
+  const discardDraft = () => {
+    clearDraft(date)
+    setShowDraftBanner(false)
+    setPendingDraft(null)
+  }
+
+  // Debounced local draft save
+  useEffect(() => {
+    if (!isDirty) return
+    const id = window.setTimeout(() => saveDraft(date, textRef.current), DRAFT_DEBOUNCE_MS)
+    return () => window.clearTimeout(id)
+  }, [text, isDirty, date])
+
+  // Drive auto-save after 3s of being dirty
+  useEffect(() => {
+    if (!isDirty) return
+    const id = window.setTimeout(() => {
+      if (savingRef.current || hasConflictRef.current || loadingRef.current) return
+      if (textRef.current === savedTextRef.current) return
+      save(false)
+    }, AUTO_SAVE_MS)
+    return () => window.clearTimeout(id)
+  }, [text, isDirty, save])
+
+  // Ctrl+S / Cmd+S explicit save
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (isDirty) save()
+        if (isDirty) save(true)
       }
     }
     window.addEventListener('keydown', handler)
@@ -192,7 +269,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
         <div className="editor-actions">
           <button
             className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
-            onClick={save}
+            onClick={() => save(true)}
             disabled={saving || !isDirty}
             aria-busy={saving}
           >
@@ -202,6 +279,15 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           {savedText && <button className="btn-delete" onClick={del}>Delete</button>}
         </div>
       </div>
+      {showDraftBanner && (
+        <div className="restored-banner">
+          <span>You have an unsaved draft for this entry.</span>
+          <div className="restored-banner-actions">
+            <button onClick={restoreDraft}>Restore</button>
+            <button onClick={discardDraft}>Discard</button>
+          </div>
+        </div>
+      )}
       {hasConflict && (
         <div className="conflict-panel">
           <div>

@@ -13,15 +13,51 @@ export class TokenExpiredError extends Error {
   }
 }
 
+export class DriveHttpError extends Error {
+  status: number
+  constructor(status: number, body: string) {
+    super(`Drive API ${status}: ${body}`)
+    this.name = 'DriveHttpError'
+    this.status = status
+  }
+}
+
 function headers(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` }
 }
 
+function shouldRetry(status: number): boolean {
+  return status === 429 || status >= 500
+}
+
+async function withRetry<T>(fetcher: () => Promise<{ res: Response; parse: () => Promise<T> }>): Promise<T> {
+  const delays = [250, 500, 1000]
+  for (let attempt = 0; ; attempt++) {
+    const { res, parse } = await fetcher()
+    if (res.ok) return parse()
+    if (res.status === 401) throw new TokenExpiredError()
+
+    const body = await res.text()
+    if (!shouldRetry(res.status) || attempt >= delays.length) {
+      throw new DriveHttpError(res.status, body)
+    }
+
+    let delay = delays[attempt]
+    const retryAfter = res.headers.get('Retry-After')
+    if (retryAfter) {
+      const secs = parseFloat(retryAfter)
+      if (!isNaN(secs)) delay = secs * 1000
+    }
+    const jitter = delay * 0.2 * (Math.random() * 2 - 1)
+    await new Promise(resolve => setTimeout(resolve, delay + jitter))
+  }
+}
+
 async function driveJson<T>(token: string, url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, { ...init, headers: { ...headers(token), ...((init?.headers as Record<string, string>) ?? {}) } })
-  if (res.status === 401) throw new TokenExpiredError()
-  if (!res.ok) throw new Error(`Drive API ${res.status}: ${await res.text()}`)
-  return res.json() as Promise<T>
+  return withRetry(() => {
+    const p = fetch(url, { ...init, headers: { ...headers(token), ...((init?.headers as Record<string, string>) ?? {}) } })
+    return p.then(res => ({ res, parse: () => res.json() as Promise<T> }))
+  })
 }
 
 export async function ensureFolder(token: string): Promise<string> {
@@ -65,10 +101,10 @@ export async function getEntryMeta(token: string, fileId: string): Promise<Drive
 }
 
 export async function getEntry(token: string, fileId: string): Promise<DiaryEntry> {
-  const res = await fetch(`${BASE}/files/${fileId}?alt=media`, { headers: headers(token) })
-  if (res.status === 401) throw new TokenExpiredError()
-  if (!res.ok) throw new Error(`Drive API ${res.status}: ${await res.text()}`)
-  return res.json() as Promise<DiaryEntry>
+  return withRetry(() => {
+    const p = fetch(`${BASE}/files/${fileId}?alt=media`, { headers: headers(token) })
+    return p.then(res => ({ res, parse: () => res.json() as Promise<DiaryEntry> }))
+  })
 }
 
 function buildMultipart(meta: object, body: string): { contentType: string; data: string } {
@@ -116,9 +152,13 @@ export async function saveEntry(
 }
 
 export async function deleteEntry(token: string, fileId: string): Promise<void> {
-  const res = await fetch(`${BASE}/files/${fileId}`, { method: 'DELETE', headers: headers(token) })
-  if (res.status === 401) throw new TokenExpiredError()
-  if (!res.ok && res.status !== 204) throw new Error(`Drive API ${res.status}: ${await res.text()}`)
+  await withRetry(() => {
+    const p = fetch(`${BASE}/files/${fileId}`, { method: 'DELETE', headers: headers(token) })
+    return p.then(res => ({
+      res: res.status === 204 ? new Response(null, { status: 200 }) : res,
+      parse: () => Promise.resolve(undefined as void),
+    }))
+  })
 }
 
 export function clearFolderCache(): void {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { DiaryEntry, DriveFileMeta, LoadedDiaryEntry } from '../types'
-import { ensureFolder, listEntries, findEntryMeta, getEntry, getEntryMeta, saveEntry, deleteEntry, TokenExpiredError } from '../api/driveEntries'
+import { ensureFolder, listEntries, findEntryMeta, getEntry, getEntryMeta, saveEntry, deleteEntry, TokenExpiredError, DriveHttpError, clearFolderCache } from '../api/driveEntries'
 
 interface EntryCache {
   meta: DriveFileMeta
@@ -64,6 +64,24 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
 
     return folderLoadPromiseRef.current
   }, [accessToken])
+
+  const withFolderRetry = useCallback(async <T>(op: (folderId: string) => Promise<T>): Promise<T> => {
+    const folderId = await ensureFolderId()
+    if (!folderId) throw new Error('Not signed in')
+    try {
+      return await op(folderId)
+    } catch (e) {
+      if (e instanceof DriveHttpError && e.status === 404) {
+        clearFolderCache()
+        folderIdRef.current = null
+        folderLoadPromiseRef.current = null
+        const fresh = await ensureFolderId()
+        if (!fresh) throw e
+        return op(fresh)
+      }
+      throw e
+    }
+  }, [ensureFolderId])
 
   // Load entry list when token becomes available
   useEffect(() => {
@@ -142,48 +160,49 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
   }, [accessToken, ensureFolderId, updateCache])
 
   const save = useCallback(async (date: string, content: string, baseVersion: string | null, force = false): Promise<LoadedDiaryEntry> => {
-    const folderId = await ensureFolderId()
-    if (!accessToken || !folderId) throw new Error('Not signed in')
+    if (!accessToken) throw new Error('Not signed in')
     const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
     try {
-      const cachedMeta = cacheRef.current.get(date)?.meta ?? null
-      if (cachedMeta) {
-        // Entry exists in cache: skip the Drive version check entirely.
-        // Drive's API has no read-your-writes guarantee, so querying version
-        // after a recent save can return stale data and produce false conflicts.
-        // Instead we trust the cache, which is updated from PATCH responses and
-        // getContent calls — those are the correct sources of truth for conflict detection.
-        if (!force && cachedMeta.version !== baseVersion) {
-          const remote = { entry: await getEntry(accessToken, cachedMeta.id), meta: cachedMeta }
+      return await withFolderRetry(async folderId => {
+        const cachedMeta = cacheRef.current.get(date)?.meta ?? null
+        if (cachedMeta) {
+          // Entry exists in cache: skip the Drive version check entirely.
+          // Drive's API has no read-your-writes guarantee, so querying version
+          // after a recent save can return stale data and produce false conflicts.
+          // Instead we trust the cache, which is updated from PATCH responses and
+          // getContent calls — those are the correct sources of truth for conflict detection.
+          if (!force && cachedMeta.version !== baseVersion) {
+            const remote = { entry: await getEntry(accessToken, cachedMeta.id), meta: cachedMeta }
+            throw new EntryConflictError(remote)
+          }
+          const meta = await saveEntry(accessToken, entry, folderId, cachedMeta.id)
+          updateCache(prev => {
+            const next = new Map(prev)
+            next.set(date, { meta, content: entry })
+            return next
+          })
+          return { entry, meta }
+        }
+
+        // New entry (not in cache): check Drive in case another device created it first.
+        const currentMeta = await findEntryMeta(accessToken, folderId, date)
+        if (!force && ((currentMeta?.version ?? null) !== baseVersion)) {
+          const remote = currentMeta ? { entry: await getEntry(accessToken, currentMeta.id), meta: currentMeta } : null
           throw new EntryConflictError(remote)
         }
-        const meta = await saveEntry(accessToken, entry, folderId, cachedMeta.id)
+        const meta = await saveEntry(accessToken, entry, folderId, currentMeta?.id)
         updateCache(prev => {
           const next = new Map(prev)
           next.set(date, { meta, content: entry })
           return next
         })
         return { entry, meta }
-      }
-
-      // New entry (not in cache): check Drive in case another device created it first.
-      const currentMeta = await findEntryMeta(accessToken, folderId, date)
-      if (!force && ((currentMeta?.version ?? null) !== baseVersion)) {
-        const remote = currentMeta ? { entry: await getEntry(accessToken, currentMeta.id), meta: currentMeta } : null
-        throw new EntryConflictError(remote)
-      }
-      const meta = await saveEntry(accessToken, entry, folderId, currentMeta?.id)
-      updateCache(prev => {
-        const next = new Map(prev)
-        next.set(date, { meta, content: entry })
-        return next
       })
-      return { entry, meta }
     } catch (e) {
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); throw e }
       throw e
     }
-  }, [accessToken, ensureFolderId, updateCache])
+  }, [accessToken, withFolderRetry, updateCache])
 
   const remove = useCallback(async (date: string): Promise<void> => {
     if (!accessToken) throw new Error('Not signed in')

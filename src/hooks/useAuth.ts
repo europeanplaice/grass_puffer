@@ -1,13 +1,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { initTokenClient, requestToken, revokeToken } from '../api/gauth'
+import { clearAllDrafts } from '../utils/draftStorage'
 
 const RESTORE_FLAG = 'grass-puffer-auth-restorable'
+const GIS_TIMEOUT_MS = 10_000
+const GIS_POLL_MS = 100
 
 export type AuthStatus = 'initializing' | 'signedOut' | 'signedIn'
 
 export interface AuthState {
   accessToken: string | null
   status: AuthStatus
+  loadFailed: boolean
   signIn: () => void
   signOut: () => void
   handleExpired: () => void
@@ -42,10 +46,13 @@ export function useAuth(): AuthState {
   const [status, setStatus] = useState<AuthStatus>(() => (
     canRestoreSession() ? 'initializing' : 'signedOut'
   ))
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
     let initialized = false
+    let attempts = 0
+    const maxAttempts = GIS_TIMEOUT_MS / GIS_POLL_MS
 
     const acceptToken = (token: string) => {
       if (cancelled) return
@@ -76,7 +83,13 @@ export function useAuth(): AuthState {
           setStatus('signedOut')
         }
       } else {
-        setTimeout(waitForGis, 100)
+        attempts++
+        if (attempts >= maxAttempts) {
+          setLoadFailed(true)
+          rejectToken()
+          return
+        }
+        setTimeout(waitForGis, GIS_POLL_MS)
       }
     }
     waitForGis()
@@ -90,6 +103,7 @@ export function useAuth(): AuthState {
   const signOut = () => {
     if (accessToken) revokeToken(accessToken)
     forgetRestorableSession()
+    clearAllDrafts()
     setAccessToken(null)
     setStatus('signedOut')
   }
@@ -97,9 +111,10 @@ export function useAuth(): AuthState {
   // called when a Drive API call returns 401 (token expired without user action)
   const handleExpired = useCallback(() => {
     forgetRestorableSession()
+    clearAllDrafts()
     setAccessToken(null)
     setStatus('signedOut')
   }, [])
 
-  return { accessToken, status, signIn, signOut, handleExpired }
+  return { accessToken, status, loadFailed, signIn, signOut, handleExpired }
 }

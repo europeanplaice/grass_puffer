@@ -171,3 +171,69 @@ test.describe('useDiary save — conflict detection', () => {
     expect(result).toMatchObject({ conflict: { meta: { version: '3' } } })
   })
 })
+
+test.describe('useDiary withFolderRetry — folder cache invalidation', () => {
+  test('save 404 refetches folder and retries successfully with new folder id', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page)
+    await page.evaluate(() => {
+      window.diaryHarness.resetFolderState()
+    })
+
+    // Queue: ensureFolder (re-fetch after reset), then the op sequence:
+    // ensureFolder list → folder-1
+    // findEntryMeta → 404 (simulates folder gone)
+    // ensureFolder re-fetch after 404 → folder-2
+    // findEntryMeta on folder-2 → not found
+    // saveEntry → success
+    await page.evaluate(({ fileMeta }) => {
+      window.diaryHarness.q(
+        { status: 200, body: { files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] } }, // ensureFolder
+        { status: 404, body: { error: { message: 'File not found.' } } },                  // findEntryMeta → 404
+        { status: 200, body: { files: [{ id: 'folder-2', name: 'GrassPuffer Diary' }] } }, // ensureFolder retry
+        { status: 200, body: { files: [] } },                                               // findEntryMeta on folder-2
+        { status: 200, body: fileMeta },                                                    // saveEntry
+      )
+    }, { fileMeta: fileMeta('1') })
+
+    const result = await page.evaluate(() =>
+      window.diaryHarness.save('2026-05-01', 'hello', null)
+    )
+
+    expect(result).toMatchObject({ ok: true, result: { meta: { version: '1' } } })
+
+    const calls = await page.evaluate(() => window.diaryHarness.calls())
+    // Verify folder-2 is used for the final save
+    const saveCall = calls.find(c => c.url.includes('/upload/drive/v3/files?uploadType=multipart'))
+    expect(saveCall).toBeDefined()
+    expect(saveCall?.method).toBe('POST')
+  })
+
+  test('save 404 followed by folder refetch failure propagates original error', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page)
+    await page.evaluate(() => {
+      window.diaryHarness.resetFolderState()
+    })
+
+    // Queue: ensureFolder → folder-1, op → 404, ensureFolder retry → also fails (500)
+    await page.evaluate(() => {
+      window.diaryHarness.q(
+        { status: 200, body: { files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] } }, // ensureFolder
+        { status: 404, body: { error: { message: 'File not found.' } } },                  // findEntryMeta → 404
+        // ensureFolder retry: 4 × 500 to exhaust withRetry's 3 retries
+        { status: 500, body: 'err' },
+        { status: 500, body: 'err' },
+        { status: 500, body: 'err' },
+        { status: 500, body: 'err' },
+      )
+    })
+
+    const result = await page.evaluate(() =>
+      window.diaryHarness.save('2026-05-01', 'hello', null)
+    )
+
+    if (result.ok) throw new Error('expected save to fail')
+    expect(result.error).toContain('500')
+  })
+})

@@ -3,9 +3,10 @@ import { AppIcon } from './AppIcon'
 interface Props {
   onSignIn: () => void
   sessionExpired?: boolean
+  loadFailed?: boolean
 }
 
-export function LoginScreen({ onSignIn, sessionExpired }: Props) {
+export function LoginScreen({ onSignIn, sessionExpired, loadFailed }: Props) {
   return (
     <div className="login-screen">
       <div className="login-card">
@@ -14,6 +15,9 @@ export function LoginScreen({ onSignIn, sessionExpired }: Props) {
         <p>Your private diary, stored in your Google Drive.</p>
         {sessionExpired && (
           <p className="session-expired-msg">Session expired. Please sign in again.</p>
+        )}
+        {loadFailed && (
+          <p className="session-expired-msg">Google Sign-In could not be loaded. Check your network or browser extensions.</p>
         )}
         <button className="btn-signin-google" onClick={onSignIn}>
           <svg

@@ -131,8 +131,14 @@ function RestoringScreen({ selectedDate }: { selectedDate: string }) {
   )
 }
 
+function shiftDate(date: string, days: number): string {
+  const d = parseYMD(date) ?? new Date()
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export default function App() {
-  const { accessToken, status, signIn, signOut, handleExpired } = useAuth()
+  const { accessToken, status, loadFailed, signIn, signOut, handleExpired } = useAuth()
   const [sessionExpired, setSessionExpired] = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYMD)
@@ -252,6 +258,27 @@ export default function App() {
     signOut()
   }, [signOut])
 
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!e.altKey || e.repeat) return
+      // Don't fire when focused in a text input (e.g. delete-modal confirmation field)
+      if (document.activeElement instanceof HTMLInputElement) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        selectDate(shiftDate(selectedDateRef.current, -1))
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        selectDate(shiftDate(selectedDateRef.current, 1))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        selectDate(todayYMD())
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [selectDate])
+
   const datesSet = new Set(diary.dates)
   const recentDates = diary.dates.slice(0, 5)
 
@@ -291,7 +318,7 @@ export default function App() {
   }
 
   if (!accessToken) {
-    return <LoginScreen onSignIn={signIn} sessionExpired={sessionExpired} />
+    return <LoginScreen onSignIn={signIn} sessionExpired={sessionExpired} loadFailed={loadFailed} />
   }
 
   return (

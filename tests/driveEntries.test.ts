@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { DriveFileMeta } from '../src/types'
 import {
   TokenExpiredError,
+  DriveHttpError,
   clearFolderCache,
   deleteEntry,
   ensureFolder,
@@ -19,6 +20,7 @@ type FetchCall = {
 type MockResponse = {
   status: number
   ok: boolean
+  headers: Headers
   json: () => Promise<unknown>
   text: () => Promise<string>
 }
@@ -27,19 +29,21 @@ const originalFetch = globalThis.fetch
 let calls: FetchCall[]
 let responses: MockResponse[]
 
-function jsonResponse(body: unknown, status = 200): MockResponse {
+function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<string, string>): MockResponse {
   return {
     status,
     ok: status >= 200 && status < 300,
+    headers: new Headers(extraHeaders),
     json: async () => body,
     text: async () => JSON.stringify(body),
   }
 }
 
-function textResponse(body: string, status: number): MockResponse {
+function textResponse(body: string, status: number, extraHeaders?: Record<string, string>): MockResponse {
   return {
     status,
     ok: status >= 200 && status < 300,
+    headers: new Headers(extraHeaders),
     json: async () => JSON.parse(body),
     text: async () => body,
   }
@@ -152,7 +156,15 @@ test.describe('driveEntries API helpers', () => {
   })
 
   test('deletes entries and maps Drive errors', async () => {
-    mockFetch(textResponse('', 204), textResponse('expired', 401), textResponse('nope', 500))
+    // 500 triggers retries (4 total attempts needed before throwing)
+    mockFetch(
+      textResponse('', 204),
+      textResponse('expired', 401),
+      textResponse('nope', 500),
+      textResponse('nope', 500),
+      textResponse('nope', 500),
+      textResponse('nope', 500),
+    )
 
     await expect(deleteEntry('token-1', 'entry-1')).resolves.toBeUndefined()
     await expect(deleteEntry('token-1', 'entry-2')).rejects.toBeInstanceOf(TokenExpiredError)
@@ -165,5 +177,61 @@ test.describe('driveEntries API helpers', () => {
         headers: { Authorization: 'Bearer token-1' },
       },
     })
+  })
+})
+
+test.describe('withRetry behaviour', () => {
+  test('503 retries and succeeds on second attempt', async () => {
+    mockFetch(
+      textResponse('unavailable', 503, { 'Retry-After': '0.01' }),
+      jsonResponse({ files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] }),
+    )
+
+    await expect(ensureFolder('token-1')).resolves.toBe('folder-1')
+    expect(calls).toHaveLength(2)
+  })
+
+  test('429 with Retry-After: 0.1 completes faster than default 250ms backoff', async () => {
+    // Default first-attempt delay is 250ms; Retry-After: 0.1 sets it to 100ms.
+    // With jitter the total should still be well under 300ms.
+    mockFetch(
+      textResponse('rate limited', 429, { 'Retry-After': '0.1' }),
+      jsonResponse({ files: [{ id: 'folder-x', name: 'GrassPuffer Diary' }] }),
+    )
+
+    const t0 = Date.now()
+    await expect(ensureFolder('token-2')).resolves.toBe('folder-x')
+    const elapsed = Date.now() - t0
+
+    expect(elapsed).toBeLessThan(300)
+    expect(calls).toHaveLength(2)
+  })
+
+  test('401 throws TokenExpiredError immediately without retry', async () => {
+    mockFetch(textResponse('expired', 401))
+
+    await expect(ensureFolder('token-bad')).rejects.toBeInstanceOf(TokenExpiredError)
+    expect(calls).toHaveLength(1)
+  })
+
+  test('404 throws DriveHttpError with status 404 without retry', async () => {
+    mockFetch(textResponse('not found', 404))
+
+    const err = await ensureFolder('token-1').catch(e => e)
+    expect(err).toBeInstanceOf(DriveHttpError)
+    expect((err as DriveHttpError).status).toBe(404)
+    expect(calls).toHaveLength(1)
+  })
+
+  test('500 repeated 4 times throws DriveHttpError after exhausting retries', async () => {
+    // withRetry delays: [250,500,1000]; attempt 0,1,2 retry; attempt 3 throws.
+    // Use Retry-After: 0.01 on each response to keep the test fast (~120ms total).
+    const r500 = () => textResponse('server error', 500, { 'Retry-After': '0.01' })
+    mockFetch(r500(), r500(), r500(), r500())
+
+    const err = await ensureFolder('token-1').catch(e => e)
+    expect(err).toBeInstanceOf(DriveHttpError)
+    expect((err as DriveHttpError).status).toBe(500)
+    expect(calls).toHaveLength(4)
   })
 })

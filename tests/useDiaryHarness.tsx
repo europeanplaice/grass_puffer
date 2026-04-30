@@ -17,6 +17,7 @@ declare global {
       start: () => void
       save: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<SaveResult>
       triggerGetContent: (date: string) => Promise<void>
+      resetFolderState: () => void
     }
   }
 }
@@ -31,6 +32,7 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   return {
     status: resp.status,
     ok: resp.status >= 200 && resp.status < 300,
+    headers: new Headers(),
     json: async () => resp.body,
     text: async () => JSON.stringify(resp.body),
   } as Response
@@ -83,5 +85,10 @@ window.diaryHarness = {
   triggerGetContent: async (date) => {
     if (!_getContent) throw new Error('harness not started')
     await _getContent(date)
+  },
+  resetFolderState: () => {
+    clearFolderCache()
+    queue.splice(0)
+    fetchCalls.splice(0)
   },
 }
