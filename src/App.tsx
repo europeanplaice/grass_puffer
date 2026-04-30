@@ -206,6 +206,7 @@ export default function App() {
   }
 
   const datesSet = new Set(diary.dates)
+  const recentDates = diary.dates.slice(0, 5)
 
   return (
     <div className="app">
@@ -223,7 +224,7 @@ export default function App() {
         {diary.loading && <div className="sidebar-status">Loading entries…</div>}
         {diary.error && <div className="sidebar-status error">{diary.error}</div>}
         <ul className="entry-list">
-          {diary.dates.map(d => (
+          {recentDates.map(d => (
             <li
               key={d}
               className={d === selectedDate ? 'active' : ''}
