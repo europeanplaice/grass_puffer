@@ -14,6 +14,7 @@ declare global {
         initialContent: string
         version: string | null
         saveReject?: 'conflict' | 'error'
+        autoSave?: boolean
       }) => void
       saveCalls: () => SaveCall[]
       deleteCalls: () => DeleteCall[]
@@ -34,14 +35,16 @@ const dirtyChanges: boolean[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
 
-function App({ date, initialContent, version }: {
+function App({ date, initialContent, version, autoSave }: {
   date: string
   initialContent: string
   version: string | null
+  autoSave: boolean
 }) {
   return (
     <EntryEditor
       date={date}
+      autoSave={autoSave}
       getContent={async () => {
         if (!initialContent && version === null) return null
         return {
@@ -71,18 +74,20 @@ function App({ date, initialContent, version }: {
       }}
       onMenuClick={() => { menuClickCount++ }}
       onDirtyChange={(isDirty) => { dirtyChanges.push(isDirty) }}
+      onPrevDay={() => {}}
+      onNextDay={() => {}}
     />
   )
 }
 
 window.editorHarness = {
-  render: ({ date, initialContent, version, saveReject }) => {
+  render: ({ date, initialContent, version, saveReject, autoSave }) => {
     saveCalls.splice(0)
     deleteCalls.splice(0)
     menuClickCount = 0
     dirtyChanges.splice(0)
     currentSaveReject = saveReject
-    root.render(<App date={date} initialContent={initialContent} version={version} />)
+    root.render(<App date={date} initialContent={initialContent} version={version} autoSave={autoSave ?? true} />)
   },
   saveCalls: () => [...saveCalls],
   deleteCalls: () => [...deleteCalls],
