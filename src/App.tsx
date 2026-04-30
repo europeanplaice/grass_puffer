@@ -241,7 +241,9 @@ export default function App() {
           getContent={diary.getContent}
           onSave={diary.save}
           onDelete={diary.remove}
-          onMenuClick={() => setSidebarOpen(true)}
+          onMenuClick={() => {
+            if (isMobileLayout()) setSidebarOpen(true)
+          }}
         />
       </main>
     </div>

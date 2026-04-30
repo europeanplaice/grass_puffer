@@ -192,6 +192,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick }:
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
           <h2>
+            <span className="entry-date-text">{date}</span>
             <button
               className="entry-date-button"
               onClick={onMenuClick}

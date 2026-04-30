@@ -93,3 +93,17 @@ test('mobile back from the initial entry opens the calendar instead of leaving t
   await page.goBack()
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
 })
+
+test('entry date opens the calendar only on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 900, height: 700 })
+  await page.goto(baseUrl)
+  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
+  await page.getByRole('button', { name: 'Sign in with Google' }).click()
+
+  await expect(page.locator('.editor-textarea')).toBeVisible()
+  await expect(page.locator('.entry-date-text')).toBeVisible()
+  await expect(page.locator('.entry-date-button')).toBeHidden()
+
+  await page.locator('.editor-header h2').click()
+  await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
+})

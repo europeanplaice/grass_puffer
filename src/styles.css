@@ -349,6 +349,7 @@ body {
 }
 .editor-header h2 { font-size: 1.3rem; letter-spacing: 0.02em; }
 .entry-date-button {
+  display: none;
   appearance: none;
   border: none;
   background: transparent;
@@ -587,6 +588,10 @@ body {
   .editor { padding: 1rem 1rem; }
 
   .editor-header h2 { font-size: 1.1rem; }
+
+  .entry-date-text { display: none; }
+
+  .entry-date-button { display: inline-block; }
 
   .editor-actions button {
     padding: 0.5rem 0.8rem;
