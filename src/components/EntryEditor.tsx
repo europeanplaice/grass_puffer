@@ -207,7 +207,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     )}
     <div className="editor">
       <div className="editor-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div className="editor-date-group">
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
           <h2>
             <span className="entry-date-text">{date}</span>
