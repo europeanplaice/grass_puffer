@@ -39,7 +39,12 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 24px rgba(0,0,0,0.06);
 }
-.login-logo { font-size: 3.5rem; margin-bottom: 1rem; }
+.login-logo {
+  display: block;
+  width: 4.75rem;
+  height: 4.75rem;
+  margin: 0 auto 1rem;
+}
 .login-card h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
 .login-card > p { color: var(--text-muted); margin-bottom: 1.5rem; }
 .session-expired-msg {
@@ -117,7 +122,17 @@ body {
   justify-content: space-between;
   padding: 1rem 1rem 0.5rem;
 }
-.app-title { font-size: 1.1rem; }
+.app-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1.1rem;
+}
+.app-title-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+}
 .btn-signout {
   background: none;
   border: none;

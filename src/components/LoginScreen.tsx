@@ -1,3 +1,5 @@
+import { AppIcon } from './AppIcon'
+
 interface Props {
   onSignIn: () => void
   sessionExpired?: boolean
@@ -7,7 +9,7 @@ export function LoginScreen({ onSignIn, sessionExpired }: Props) {
   return (
     <div className="login-screen">
       <div className="login-card">
-        <div className="login-logo">📔</div>
+        <AppIcon className="login-logo" />
         <h1>Grass Puffer Diary</h1>
         <p>Your private diary, stored in your Google Drive.</p>
         {sessionExpired && (

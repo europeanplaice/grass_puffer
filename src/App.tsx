@@ -5,6 +5,7 @@ import { LoginScreen } from './components/LoginScreen'
 import { CalendarView } from './components/CalendarView'
 import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
+import { AppIcon } from './components/AppIcon'
 
 function todayYMD(): string {
   const d = new Date()
@@ -16,7 +17,7 @@ function RestoringScreen({ selectedDate }: { selectedDate: string }) {
     <div className="app restoring-app">
       <aside className="sidebar restoring-sidebar open">
         <div className="sidebar-top">
-          <h1 className="app-title">📔 Diary</h1>
+          <h1 className="app-title"><AppIcon className="app-title-icon" /> Diary</h1>
         </div>
         <div className="restoring-search" />
         <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
@@ -111,7 +112,7 @@ export default function App() {
       />
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-top">
-          <h1 className="app-title">📔 Diary</h1>
+          <h1 className="app-title"><AppIcon className="app-title-icon" /> Diary</h1>
           <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
         </div>
         <SearchBar onSearch={diary.search} onSelect={selectDate} />
