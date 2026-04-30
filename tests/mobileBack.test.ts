@@ -42,6 +42,9 @@ test.beforeEach(async ({ page }) => {
       },
     })
   })
+  await page.route('https://accounts.google.com/gsi/client', async route => {
+    await route.fulfill({ contentType: 'application/javascript', body: '' })
+  })
   await page.route('https://www.googleapis.com/drive/v3/files**', async route => {
     const url = decodeURIComponent(route.request().url())
     if (url.includes("mimeType='application/vnd.google-apps.folder'")) {
@@ -65,20 +68,25 @@ test('mobile back from the initial entry opens the calendar instead of leaving t
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
   await expect(page.locator('.calendar')).toBeVisible()
 
-  await page.locator('.sidebar-overlay').click()
+  await page.mouse.click(360, 20)
   await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(entryHash)
 
-  await page.locator('.editor-textarea').focus()
+  const editor = page.locator('.editor-textarea')
+  await editor.fill('cursor handle')
+  await editor.evaluate((node: HTMLTextAreaElement) => node.setSelectionRange(6, 6))
   await expect.poll(() => page.evaluate(() => document.activeElement?.classList.contains('editor-textarea'))).toBe(true)
+  await expect.poll(() => editor.evaluate((node: HTMLTextAreaElement) => node.selectionStart)).toBe(6)
 
   await page.goBack()
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
   await expect(page.locator('.calendar')).toBeVisible()
   await expect.poll(() => page.evaluate(() => document.activeElement?.classList.contains('editor-textarea'))).toBe(false)
+  await expect.poll(() => editor.evaluate((node: HTMLTextAreaElement) => node.selectionStart)).toBe(0)
+  await expect.poll(() => editor.evaluate((node: HTMLTextAreaElement) => node.selectionEnd)).toBe(0)
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('')
 
-  await page.locator('.sidebar-overlay').click()
+  await page.mouse.click(360, 20)
   await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(entryHash)
 

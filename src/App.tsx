@@ -51,6 +51,29 @@ function isCalendarHistoryState(state: unknown): state is AppHistoryState {
   )
 }
 
+function dismissActiveTextCursor() {
+  const activeElement = document.activeElement
+  if (!(activeElement instanceof HTMLElement)) return
+
+  if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement) {
+    const wasReadOnly = activeElement.readOnly
+    activeElement.readOnly = true
+    try {
+      activeElement.setSelectionRange(0, 0)
+    } catch {
+      // Some input types do not support text selection.
+    }
+    activeElement.blur()
+    requestAnimationFrame(() => {
+      activeElement.readOnly = wasReadOnly
+    })
+  } else {
+    activeElement.blur()
+  }
+
+  window.getSelection()?.removeAllRanges()
+}
+
 function RestoringScreen({ selectedDate }: { selectedDate: string }) {
   return (
     <div className="app restoring-app">
@@ -145,10 +168,7 @@ export default function App() {
   useLayoutEffect(() => {
     if (!sidebarOpen || !isMobileLayout()) return
 
-    const activeElement = document.activeElement
-    if (activeElement instanceof HTMLElement) {
-      activeElement.blur()
-    }
+    dismissActiveTextCursor()
   }, [sidebarOpen])
 
   const closeSidebar = useCallback(() => {
