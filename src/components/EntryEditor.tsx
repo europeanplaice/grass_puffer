@@ -221,7 +221,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           </h2>
         </div>
         <div className="editor-actions">
-          <span className={statusClassName}>{visibleStatus}</span>
+          {/* <span className={statusClassName}>{visibleStatus}</span> */}
           <button
             className={`btn-save${saving ? ' btn-saving' : ''}`}
             onClick={save}
