@@ -1,4 +1,4 @@
-const CACHE_NAME = 'grass-puffer-v1'
+const CACHE_NAME = '__CACHE_VERSION__'
 
 function scopedUrl(path) {
   return new URL(path, self.registration.scope).toString()

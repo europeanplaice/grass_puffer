@@ -134,6 +134,7 @@ function RestoringScreen({ selectedDate }: { selectedDate: string }) {
 export default function App() {
   const { accessToken, status, signIn, signOut, handleExpired } = useAuth()
   const [sessionExpired, setSessionExpired] = useState(false)
+  const [updateAvailable, setUpdateAvailable] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYMD)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
@@ -149,6 +150,12 @@ export default function App() {
   useEffect(() => {
     editorDirtyRef.current = editorDirty
   }, [editorDirty])
+
+  useEffect(() => {
+    const handler = () => setUpdateAvailable(true)
+    window.addEventListener('sw-update-available', handler)
+    return () => window.removeEventListener('sw-update-available', handler)
+  }, [])
 
   const onExpired = useCallback(() => {
     handleExpired()
@@ -338,6 +345,12 @@ export default function App() {
           onDirtyChange={setEditorDirty}
         />
       </main>
+      {updateAvailable && (
+        <div className="update-banner">
+          <span>新しいバージョンがあります</span>
+          <button onClick={() => window.location.reload()}>更新</button>
+        </div>
+      )}
     </div>
   )
 }
