@@ -298,6 +298,7 @@ export default function App() {
 
   const datesSet = new Set(diary.dates)
   const recentDates = diary.dates.slice(0, 5)
+  const todayDate = todayYMD()
 
   useEffect(() => {
     let cancelled = false
@@ -364,15 +365,17 @@ export default function App() {
         <ul className="entry-list">
           {recentDates.map(d => {
             const preview = recentPreviews.get(d)
+            const isToday = d === todayDate
             return (
             <li
               key={d}
-              className={d === selectedDate ? 'active' : ''}
+              className={[d === selectedDate ? 'active' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
               onClick={() => selectDate(d)}
             >
               <span className="entry-list-date">
                 <span>{d}</span>
                 {weekdayLabel(d) && <span className="entry-list-weekday">{weekdayLabel(d)}</span>}
+                {isToday && <span className="date-today-badge">Today</span>}
               </span>
               <span className="entry-list-preview">
                 {preview?.hasContent ? preview.snippet : 'No text yet'}

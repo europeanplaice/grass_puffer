@@ -56,6 +56,17 @@ test.describe('EntryEditor — date header', () => {
 
     await expect(page.locator('.entry-date-text .entry-date-weekday')).toHaveText(expectedWeekday)
   })
+
+  test('marks today in the entry date header', async ({ page }) => {
+    await loadHarness(page)
+    const today = await page.evaluate(() => {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
+    await renderEditor(page, { date: today, initialContent: '' })
+
+    await expect(page.locator('.entry-date-text .date-today-badge')).toHaveText('Today')
+  })
 })
 
 test.describe('EntryEditor — draft storage', () => {

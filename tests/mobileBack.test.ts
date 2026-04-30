@@ -73,7 +73,7 @@ test('mobile back from the initial entry opens the calendar instead of leaving t
   const entryHash = await page.evaluate(() => window.location.hash)
   expect(entryHash).toMatch(/^#\d{4}-\d{2}-\d{2}$/)
 
-  await page.locator('.entry-date-button').click()
+  await page.locator('.btn-menu').click()
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
   await expect(page.locator('.calendar')).toBeVisible()
 
@@ -103,16 +103,19 @@ test('mobile back from the initial entry opens the calendar instead of leaving t
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
 })
 
-test('entry date opens the calendar only on mobile', async ({ page }) => {
-  await page.setViewportSize({ width: 900, height: 700 })
+test('entry date does not open the calendar on mobile or desktop', async ({ page }) => {
   await page.goto(baseUrl)
   await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
   await page.getByRole('button', { name: 'Sign in with Google' }).click()
 
   await expect(page.locator('.editor-textarea')).toBeVisible()
   await expect(page.locator('.entry-date-text')).toBeVisible()
-  await expect(page.locator('.entry-date-button')).toBeHidden()
+  await expect(page.locator('.entry-date-button')).toHaveCount(0)
 
+  await page.locator('.editor-header h2').click()
+  await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
+
+  await page.setViewportSize({ width: 900, height: 700 })
   await page.locator('.editor-header h2').click()
   await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
 })
@@ -130,7 +133,7 @@ test('mobile date selection confirms before leaving unsaved edits', async ({ pag
   const currentDate = currentHash.slice(1)
   const nextDate = adjacentDate(currentDate)
 
-  await page.locator('.entry-date-button').click()
+  await page.locator('.btn-menu').click()
   await expect(page.locator('.calendar')).toBeVisible()
 
   page.once('dialog', async dialog => {

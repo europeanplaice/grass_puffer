@@ -59,6 +59,11 @@ function weekdayLabel(date: string): string {
   return parsed.toLocaleDateString(undefined, { weekday: 'short' })
 }
 
+function todayYMD(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
@@ -73,6 +78,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [showDraftBanner, setShowDraftBanner] = useState(false)
   const [pendingDraft, setPendingDraft] = useState<string | null>(null)
   const weekday = weekdayLabel(date)
+  const isToday = date === todayYMD()
 
   // Use a ref to track the latest onSave without restarting debounce timers
   const onSaveRef = useRef(onSave)
@@ -302,15 +308,8 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
             <span className="entry-date-text">
               {date}
               {weekday && <span className="entry-date-weekday">{weekday}</span>}
+              {isToday && <span className="date-today-badge">Today</span>}
             </span>
-            <button
-              className="entry-date-button"
-              onClick={onMenuClick}
-              aria-label={`Open calendar for ${date}`}
-            >
-              {date}
-              {weekday && <span className="entry-date-weekday">{weekday}</span>}
-            </button>
           </h2>
           <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>
         </div>
