@@ -835,7 +835,13 @@ body {
 
   .main { width: 100%; }
 
-  .editor { padding: 1rem 1rem 5.75rem; }
+  .editor {
+    --mobile-save-size: 3.5rem;
+    --mobile-save-edge: 1rem;
+    --mobile-save-bottom: calc(var(--mobile-save-edge) + env(safe-area-inset-bottom) + var(--mobile-keyboard-inset-bottom, 0px));
+    --mobile-save-clearance: calc(var(--mobile-save-size) + var(--mobile-save-bottom) + 1rem);
+    padding: 1rem 1rem var(--mobile-save-clearance);
+  }
 
   .editor-header {
     align-items: center;
@@ -889,19 +895,19 @@ body {
 
   .editor-textarea {
     font-size: 1rem;
-    padding-bottom: 1rem;
+    padding-bottom: var(--mobile-save-clearance);
   }
 
   /* Icon-only action buttons on mobile */
   .btn-text { display: none; }
   .editor-actions .btn-save {
     position: fixed;
-    right: max(1rem, env(safe-area-inset-right));
-    bottom: calc(1rem + env(safe-area-inset-bottom) + var(--mobile-keyboard-inset-bottom, 0px));
+    right: max(var(--mobile-save-edge), env(safe-area-inset-right));
+    bottom: var(--mobile-save-bottom);
     z-index: 90;
-    width: 3.5rem;
-    height: 3.5rem;
-    min-width: 3.5rem;
+    width: var(--mobile-save-size);
+    height: var(--mobile-save-size);
+    min-width: var(--mobile-save-size);
     padding: 0;
     border-radius: 999px;
     box-shadow: 0 6px 18px rgba(44,44,44,0.18);
