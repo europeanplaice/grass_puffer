@@ -897,7 +897,7 @@ body {
   .editor-actions .btn-save {
     position: fixed;
     right: max(1rem, env(safe-area-inset-right));
-    bottom: calc(1rem + env(safe-area-inset-bottom));
+    bottom: calc(1rem + env(safe-area-inset-bottom) + var(--mobile-keyboard-inset-bottom, 0px));
     z-index: 90;
     width: 3.5rem;
     height: 3.5rem;

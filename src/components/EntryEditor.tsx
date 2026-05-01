@@ -44,6 +44,7 @@ const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
 const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
+const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 
 function parseYMD(date: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
@@ -270,6 +271,34 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       window.clearTimeout(clearTimeout)
     }
   }, [status])
+
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+
+    let frameId: number | null = null
+
+    const updateKeyboardInset = () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId)
+
+      frameId = window.requestAnimationFrame(() => {
+        frameId = null
+        const keyboardInset = Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop)
+        document.documentElement.style.setProperty(KEYBOARD_INSET_VAR, `${Math.round(keyboardInset)}px`)
+      })
+    }
+
+    updateKeyboardInset()
+    viewport.addEventListener('resize', updateKeyboardInset)
+    viewport.addEventListener('scroll', updateKeyboardInset)
+
+    return () => {
+      if (frameId !== null) window.cancelAnimationFrame(frameId)
+      viewport.removeEventListener('resize', updateKeyboardInset)
+      viewport.removeEventListener('scroll', updateKeyboardInset)
+      document.documentElement.style.removeProperty(KEYBOARD_INSET_VAR)
+    }
+  }, [])
 
 
   return (

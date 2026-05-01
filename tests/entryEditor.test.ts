@@ -94,6 +94,51 @@ test.describe('EntryEditor — date header', () => {
     expect(metrics.saveHeight).toBeGreaterThanOrEqual(56)
   })
 
+  test('moves the mobile save action above the visual viewport keyboard inset', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 })
+    await loadHarness(page)
+
+    await page.evaluate(() => {
+      const viewport = new EventTarget() as unknown as VisualViewport
+      Object.defineProperties(viewport, {
+        height: { configurable: true, writable: true, value: window.innerHeight },
+        offsetTop: { configurable: true, writable: true, value: 0 },
+      })
+      Object.defineProperty(window, 'visualViewport', {
+        configurable: true,
+        value: viewport,
+      })
+    })
+
+    await renderEditor(page, { date: '2026-12-31', initialContent: 'saved content', version: '1' })
+
+    await page.evaluate(() => {
+      Object.defineProperty(window.visualViewport, 'height', {
+        configurable: true,
+        writable: true,
+        value: 420,
+      })
+      window.visualViewport?.dispatchEvent(new Event('resize'))
+    })
+
+    await expect.poll(() =>
+      page.locator('button.btn-save').evaluate(button => {
+        const save = button.getBoundingClientRect()
+        const keyboardInset = getComputedStyle(document.documentElement)
+          .getPropertyValue('--mobile-keyboard-inset-bottom')
+          .trim()
+
+        return {
+          keyboardInset,
+          distanceFromBottom: Math.round(window.innerHeight - save.bottom),
+        }
+      })
+    ).toEqual({
+      keyboardInset: '280px',
+      distanceFromBottom: 296,
+    })
+  })
+
   test('keeps the mobile header divider stable when delete action appears after loading', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 })
     await loadHarness(page)
