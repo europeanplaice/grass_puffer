@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { initTokenClient, requestToken, revokeToken } from '../api/gauth'
 import { clearAllDrafts } from '../utils/draftStorage'
 
@@ -8,11 +8,13 @@ const GIS_POLL_MS = 100
 
 export type AuthStatus = 'initializing' | 'signedOut' | 'signedIn'
 
+type PendingSignIn = { resolve: () => void; reject: (e: Error) => void }
+
 export interface AuthState {
   accessToken: string | null
   status: AuthStatus
   loadFailed: boolean
-  signIn: () => void
+  signIn: () => Promise<void>
   signOut: () => void
   handleExpired: () => void
 }
@@ -47,6 +49,7 @@ export function useAuth(): AuthState {
     canRestoreSession() ? 'initializing' : 'signedOut'
   ))
   const [loadFailed, setLoadFailed] = useState(false)
+  const pendingSignInRef = useRef<PendingSignIn | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -59,6 +62,9 @@ export function useAuth(): AuthState {
       rememberRestorableSession()
       setAccessToken(token)
       setStatus('signedIn')
+      const pending = pendingSignInRef.current
+      pendingSignInRef.current = null
+      pending?.resolve()
     }
 
     const rejectToken = () => {
@@ -66,6 +72,9 @@ export function useAuth(): AuthState {
       forgetRestorableSession()
       setAccessToken(null)
       setStatus('signedOut')
+      const pending = pendingSignInRef.current
+      pendingSignInRef.current = null
+      pending?.reject(new Error('Sign-in cancelled or failed'))
     }
 
     const waitForGis = () => {
@@ -98,7 +107,15 @@ export function useAuth(): AuthState {
     }
   }, [])
 
-  const signIn = () => requestToken()
+  const signIn = () => new Promise<void>((resolve, reject) => {
+    pendingSignInRef.current = { resolve, reject }
+    try {
+      requestToken()
+    } catch (e) {
+      pendingSignInRef.current = null
+      reject(e instanceof Error ? e : new Error(String(e)))
+    }
+  })
 
   const signOut = () => {
     if (accessToken) revokeToken(accessToken)
@@ -111,7 +128,6 @@ export function useAuth(): AuthState {
   // called when a Drive API call returns 401 (token expired without user action)
   const handleExpired = useCallback(() => {
     forgetRestorableSession()
-    clearAllDrafts()
     setAccessToken(null)
     setStatus('signedOut')
   }, [])

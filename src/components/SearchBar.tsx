@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { IndexingProgress, SearchResult } from '../hooks/useDiary'
 
 interface Result {
   date: string
@@ -6,60 +7,59 @@ interface Result {
 }
 
 interface Props {
-  onSearch: (query: string) => Promise<Result[]>
+  onSearch: (query: string) => SearchResult
   onSelect: (date: string) => void
   entriesLoading: boolean
+  indexingProgress: IndexingProgress
 }
-
-type SearchStatus = 'idle' | 'waiting' | 'searching' | 'done' | 'error'
 
 const SEARCH_DEBOUNCE_MS = 250
 
-export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
+export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
-  const [status, setStatus] = useState<SearchStatus>('idle')
-  const searchIdRef = useRef(0)
+  const [unindexedCount, setUnindexedCount] = useState(0)
+  const [searched, setSearched] = useState(false)
+  const timerRef = useRef<number | undefined>(undefined)
 
   useEffect(() => {
+    window.clearTimeout(timerRef.current)
     const trimmed = query.trim()
-    const searchId = searchIdRef.current + 1
-    searchIdRef.current = searchId
 
     if (!trimmed) {
       setResults([])
-      setStatus('idle')
+      setUnindexedCount(0)
+      setSearched(false)
       return
     }
-
-    setResults([])
 
     if (entriesLoading) {
-      setStatus('waiting')
+      setResults([])
+      setSearched(false)
       return
     }
 
-    setStatus('waiting')
-    const timeoutId = window.setTimeout(() => {
-      setStatus('searching')
-      onSearch(query)
-        .then(r => {
-          if (searchIdRef.current !== searchId) return
-          setResults(r)
-          setStatus('done')
-        })
-        .catch(() => {
-          if (searchIdRef.current !== searchId) return
-          setResults([])
-          setStatus('error')
-        })
+    timerRef.current = window.setTimeout(() => {
+      const { results: r, unindexedCount: u } = onSearch(query)
+      setResults(r)
+      setUnindexedCount(u)
+      setSearched(true)
     }, SEARCH_DEBOUNCE_MS)
 
-    return () => window.clearTimeout(timeoutId)
+    return () => window.clearTimeout(timerRef.current)
   }, [entriesLoading, onSearch, query])
 
+  // Re-run search when indexing completes new entries (progress changes)
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (!trimmed || entriesLoading || !searched) return
+    const { results: r, unindexedCount: u } = onSearch(query)
+    setResults(r)
+    setUnindexedCount(u)
+  }, [indexingProgress.done, indexingProgress.running])
+
   const hasQuery = query.trim().length > 0
-  const searching = hasQuery && (entriesLoading || status === 'waiting' || status === 'searching')
+  const isIndexing = indexingProgress.running && indexingProgress.total > 0
 
   return (
     <div className="search-bar">
@@ -69,23 +69,28 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
         value={query}
         onChange={e => setQuery(e.target.value)}
       />
-      {searching && (
-        <div className="search-status">{entriesLoading ? 'Loading entries…' : 'Searching…'}</div>
+      {isIndexing && (
+        <div className="search-status indexing">
+          インデックス作成中… {indexingProgress.done}/{indexingProgress.total}
+        </div>
+      )}
+      {entriesLoading && hasQuery && (
+        <div className="search-status">Loading entries…</div>
       )}
       {results.length > 0 && (
         <ul className="search-results">
           {results.map(r => (
-            <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setStatus('idle') }}>
+            <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setSearched(false) }}>
               <span className="search-date">{r.date}</span>
               <span className="search-snippet">…{r.snippet}…</span>
             </li>
           ))}
         </ul>
       )}
-      {status === 'error' && hasQuery && (
-        <div className="search-status error">Search failed</div>
+      {searched && hasQuery && !entriesLoading && unindexedCount > 0 && (
+        <div className="search-status">残り {unindexedCount} 件のエントリをインデックス中…</div>
       )}
-      {status === 'done' && hasQuery && results.length === 0 && (
+      {searched && hasQuery && !entriesLoading && results.length === 0 && unindexedCount === 0 && (
         <div className="search-status">No results</div>
       )}
     </div>

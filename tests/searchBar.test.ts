@@ -6,57 +6,50 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe('SearchBar', () => {
-  test('shows no results only after the latest search completes empty', async ({ page }) => {
+  test('shows No results when search returns empty and indexing is complete', async ({ page }) => {
     await page.getByPlaceholder('Search entries...').fill('alpha')
-
-    await expect(page.getByText('No results')).toHaveCount(0)
-    await expect.poll(() => page.evaluate(() => window.searchHarness.pending())).toEqual(['alpha'])
-
-    await page.evaluate(() => window.searchHarness.resolveByQuery('alpha', []))
-
     await expect(page.getByText('No results')).toBeVisible()
   })
 
-  test('ignores older searches that resolve after a newer query starts', async ({ page }) => {
-    const input = page.getByPlaceholder('Search entries...')
-
-    await input.fill('alpha')
-    await expect.poll(() => page.evaluate(() => window.searchHarness.pending())).toEqual(['alpha'])
-
-    await input.fill('beta')
-    await expect.poll(() => page.evaluate(() => window.searchHarness.pending())).toEqual(['alpha', 'beta'])
-
+  test('shows results when onSearch returns matches', async ({ page }) => {
     await page.evaluate(() => {
-      window.searchHarness.resolveByQuery('alpha', [{ date: '2026-04-01', snippet: 'alpha match' }])
+      window.searchHarness.setSearchResult('alpha', {
+        results: [{ date: '2026-04-01', snippet: 'alpha match' }],
+        unindexedCount: 0,
+      })
     })
-
-    await expect(page.getByText('2026-04-01')).toHaveCount(0)
-    await expect(page.getByText('No results')).toHaveCount(0)
-
-    await page.evaluate(() => {
-      window.searchHarness.resolveByQuery('beta', [{ date: '2026-04-02', snippet: 'beta match' }])
-    })
-
-    await expect(page.getByText('2026-04-02')).toBeVisible()
-    await expect(page.getByText('beta match')).toBeVisible()
+    await page.getByPlaceholder('Search entries...').fill('alpha')
+    await expect(page.getByText('2026-04-01')).toBeVisible()
+    await expect(page.getByText('alpha match')).toBeVisible()
   })
 
-  test('waits for entries to finish loading before searching', async ({ page }) => {
-    await page.evaluate(() => window.searchHarness.render(true))
+  test('does not search while entriesLoading is true', async ({ page }) => {
+    await page.evaluate(() => window.searchHarness.render({ entriesLoading: true }))
     await page.getByPlaceholder('Search entries...').fill('alpha')
-
     await expect(page.getByText('Loading entries…')).toBeVisible()
-    await expect(page.getByText('No results')).toHaveCount(0)
-    await page.waitForTimeout(300)
-    await expect.poll(() => page.evaluate(() => window.searchHarness.pending())).toEqual([])
+    await page.waitForTimeout(400)
+    expect(await page.evaluate(() => window.searchHarness.calls())).toEqual([])
 
-    await page.evaluate(() => window.searchHarness.render(false))
-    await expect.poll(() => page.evaluate(() => window.searchHarness.pending())).toEqual(['alpha'])
+    await page.evaluate(() => window.searchHarness.render({ entriesLoading: false }))
+    await expect.poll(() => page.evaluate(() => window.searchHarness.calls())).toEqual(['alpha'])
+  })
 
+  test('shows indexing progress while indexing is running', async ({ page }) => {
+    await page.evaluate(() =>
+      window.searchHarness.render({ indexingProgress: { done: 3, total: 10, running: true } }),
+    )
+    await expect(page.getByText('インデックス作成中… 3/10')).toBeVisible()
+  })
+
+  test('shows remaining-unindexed message when unindexedCount > 0', async ({ page }) => {
     await page.evaluate(() => {
-      window.searchHarness.resolveByQuery('alpha', [{ date: '2026-04-03', snippet: 'loaded match' }])
+      window.searchHarness.setSearchResult('alpha', {
+        results: [],
+        unindexedCount: 5,
+      })
     })
-
-    await expect(page.getByText('2026-04-03')).toBeVisible()
+    await page.getByPlaceholder('Search entries...').fill('alpha')
+    await expect(page.getByText('残り 5 件のエントリをインデックス中…')).toBeVisible()
+    await expect(page.getByText('No results')).toHaveCount(0)
   })
 })

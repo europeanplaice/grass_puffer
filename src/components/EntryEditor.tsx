@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import { saveDraft, loadDraft, clearDraft } from '../utils/draftStorage'
 import type { LoadedDiaryEntry } from '../types'
+import { todayYmd, parseYmd } from '../utils/date'
 
 interface Props {
   date: string
@@ -46,23 +47,11 @@ const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 
-function parseYMD(date: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (!match) return null
-
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-}
-
 function weekdayLabel(date: string): string {
-  const parsed = parseYMD(date)
-  if (!parsed) return ''
+  const parts = parseYmd(date)
+  if (!parts) return ''
 
-  return parsed.toLocaleDateString('en-US', { weekday: 'short' })
-}
-
-function todayYMD(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return new Date(parts.y, parts.m - 1, parts.d).toLocaleDateString('en-US', { weekday: 'short' })
 }
 
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay }: Props) {
@@ -79,7 +68,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [showDraftBanner, setShowDraftBanner] = useState(false)
   const [pendingDraft, setPendingDraft] = useState<string | null>(null)
   const weekday = weekdayLabel(date)
-  const isToday = date === todayYMD()
+  const isToday = date === todayYmd()
 
   // Use a ref to track the latest onSave without restarting debounce timers
   const onSaveRef = useRef(onSave)

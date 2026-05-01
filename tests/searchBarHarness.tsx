@@ -1,38 +1,34 @@
-import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { SearchBar } from '../src/components/SearchBar'
-
-type SearchResult = { date: string; snippet: string }
-type PendingSearch = {
-  query: string
-  resolve: (results: SearchResult[]) => void
-}
+import type { IndexingProgress, SearchResult } from '../src/hooks/useDiary'
 
 declare global {
   interface Window {
     searchHarness: {
+      render: (opts?: { entriesLoading?: boolean; indexingProgress?: Partial<IndexingProgress> }) => void
+      setSearchResult: (query: string, result: { results: SearchResult['results']; unindexedCount: number }) => void
       calls: () => string[]
-      pending: () => string[]
-      render: (entriesLoading: boolean) => void
-      resolveByQuery: (query: string, results: SearchResult[]) => void
     }
   }
 }
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
-const calls: string[] = []
-const pending: PendingSearch[] = []
-let entriesLoading = false
+
+const callLog: string[] = []
+const resultMap = new Map<string, { results: SearchResult['results']; unindexedCount: number }>()
+
+let currentEntriesLoading = false
+let currentIndexingProgress: IndexingProgress = { done: 0, total: 0, running: false }
 
 function render() {
   root.render(
     <SearchBar
-      entriesLoading={entriesLoading}
+      entriesLoading={currentEntriesLoading}
+      indexingProgress={currentIndexingProgress}
       onSearch={query => {
-        calls.push(query)
-        return new Promise<SearchResult[]>(resolve => {
-          pending.push({ query, resolve })
-        })
+        callLog.push(query)
+        const registered = resultMap.get(query)
+        return registered ?? { results: [], unindexedCount: 0 }
       }}
       onSelect={() => {}}
     />,
@@ -40,18 +36,17 @@ function render() {
 }
 
 window.searchHarness = {
-  calls: () => [...calls],
-  pending: () => pending.map(search => search.query),
-  render: nextEntriesLoading => {
-    entriesLoading = nextEntriesLoading
+  render: (opts = {}) => {
+    if (opts.entriesLoading !== undefined) currentEntriesLoading = opts.entriesLoading
+    if (opts.indexingProgress !== undefined) {
+      currentIndexingProgress = { ...currentIndexingProgress, ...opts.indexingProgress }
+    }
     render()
   },
-  resolveByQuery: (query, results) => {
-    const index = pending.findIndex(search => search.query === query)
-    if (index === -1) throw new Error(`No pending search for ${query}`)
-    const [search] = pending.splice(index, 1)
-    search.resolve(results)
+  setSearchResult: (query, result) => {
+    resultMap.set(query, result)
   },
+  calls: () => [...callLog],
 }
 
 render()

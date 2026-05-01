@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { todayYmd, ymd as toYmdUtil, daysInMonth as daysInMonthUtil } from '../utils/date'
 
 interface Props {
   dates: Set<string>
@@ -6,8 +7,8 @@ interface Props {
   onSelect: (date: string) => void
 }
 
-function toYMD(y: number, m: number, d: number): string {
-  return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+function toYMD(y: number, m0: number, d: number): string {
+  return toYmdUtil(y, m0 + 1, d)
 }
 
 function dateParts(ymd: string): { year: number; month: number } | null {
@@ -26,11 +27,12 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December']
 
 export function CalendarView({ dates, selectedDate, onSelect }: Props) {
-  const today = new Date()
+  const todayStr = todayYmd()
+  const todayParts = dateParts(todayStr)!
   const selectedParts = dateParts(selectedDate)
-  const todayYear = today.getFullYear()
+  const todayYear = todayParts.year
   const [year, setYear] = useState(selectedParts?.year ?? todayYear)
-  const [month, setMonth] = useState(selectedParts?.month ?? today.getMonth())
+  const [month, setMonth] = useState(selectedParts?.month ?? todayParts.month)
 
   useEffect(() => {
     if (!selectedParts) return
@@ -39,7 +41,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   }, [selectedParts?.year, selectedParts?.month])
 
   const firstDay = new Date(year, month, 1).getDay()
-  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const daysInMonth = daysInMonthUtil(year, month + 1)
   const entryDates = [...dates]
     .filter(date => dateParts(date))
     .sort((a, b) => a.localeCompare(b))
@@ -62,9 +64,9 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
     else setMonth(m => m + 1)
   }
   const goToToday = () => {
-    setYear(today.getFullYear())
-    setMonth(today.getMonth())
-    onSelect(toYMD(today.getFullYear(), today.getMonth(), today.getDate()))
+    setYear(todayParts.year)
+    setMonth(todayParts.month)
+    onSelect(todayStr)
   }
 
   const cells: (number | null)[] = [...Array(firstDay).fill(null),
@@ -108,7 +110,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
           const ymd = toYMD(year, month, day)
           const hasEntry = dates.has(ymd)
           const isSelected = ymd === selectedDate
-          const isToday = ymd === toYMD(today.getFullYear(), today.getMonth(), today.getDate())
+          const isToday = ymd === todayStr
           return (
             <div
               key={ymd}

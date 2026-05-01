@@ -2,19 +2,16 @@ import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { LoginScreen } from './components/LoginScreen'
+import { SessionExpiredModal } from './components/SessionExpiredModal'
 import { CalendarView } from './components/CalendarView'
 import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
 import { AppIcon } from './components/AppIcon'
+import { todayYmd, ymd, parseYmd } from './utils/date'
 
 type RecentPreview = {
   snippet: string
   hasContent: boolean
-}
-
-function todayYMD(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 const DATE_HASH_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -43,18 +40,11 @@ function entryPath(date: string): string {
   return `${currentPathWithoutHash()}#${date}`
 }
 
-function parseYMD(date: string): Date | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
-  if (!match) return null
-
-  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-}
-
 function weekdayLabel(date: string): string {
-  const parsed = parseYMD(date)
-  if (!parsed) return ''
+  const parts = parseYmd(date)
+  if (!parts) return ''
 
-  return parsed.toLocaleDateString('en-US', { weekday: 'short' })
+  return new Date(parts.y, parts.m - 1, parts.d).toLocaleDateString('en-US', { weekday: 'short' })
 }
 
 function firstLinePreview(content: string): string {
@@ -132,16 +122,17 @@ function RestoringScreen({ selectedDate }: { selectedDate: string }) {
 }
 
 function shiftDate(date: string, days: number): string {
-  const d = parseYMD(date) ?? new Date()
+  const parts = parseYmd(date)
+  const d = parts ? new Date(parts.y, parts.m - 1, parts.d) : new Date()
   d.setDate(d.getDate() + days)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return ymd(d.getFullYear(), d.getMonth() + 1, d.getDate())
 }
 
 export default function App() {
   const { accessToken, status, loadFailed, signIn, signOut, handleExpired } = useAuth()
   const [sessionExpired, setSessionExpired] = useState(false)
   const [updateAvailable, setUpdateAvailable] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(todayYMD)
+  const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
   const [autoSave, setAutoSave] = useState(() => localStorage.getItem('grass_puffer_autosave') !== 'false')
@@ -289,7 +280,7 @@ export default function App() {
         selectDate(shiftDate(selectedDateRef.current, 1))
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
-        selectDate(todayYMD())
+        selectDate(todayYmd())
       }
     }
     window.addEventListener('keydown', handler)
@@ -298,7 +289,7 @@ export default function App() {
 
   const datesSet = new Set(diary.dates)
   const recentDates = diary.dates.slice(0, 5)
-  const todayDate = todayYMD()
+  const todayDate = todayYmd()
 
   useEffect(() => {
     let cancelled = false
@@ -331,16 +322,22 @@ export default function App() {
     }
   }, [accessToken, diary.getContent, recentDates.join('|')])
 
+  const handleReauth = useCallback(async () => {
+    await signIn()
+    await diary.retryPendingSave()
+  }, [signIn, diary.retryPendingSave])
+
   if (status === 'initializing') {
     return <RestoringScreen selectedDate={selectedDate} />
   }
 
-  if (!accessToken) {
-    return <LoginScreen onSignIn={signIn} sessionExpired={sessionExpired} loadFailed={loadFailed} />
+  if (!accessToken && !sessionExpired) {
+    return <LoginScreen onSignIn={signIn} loadFailed={loadFailed} />
   }
 
   return (
     <div className="app">
+      {sessionExpired && <SessionExpiredModal onReauth={handleReauth} />}
       <div
         className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
         onClick={closeSidebar}
@@ -353,7 +350,7 @@ export default function App() {
             <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
           </div>
         </div>
-        <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
+        <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} indexingProgress={diary.indexingProgress} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         <label className="calendar-entry-toggle">
           <input type="checkbox" checked={autoSave} onChange={handleAutoSaveToggle} />
