@@ -602,8 +602,8 @@ body {
   animation: save-spinner 0.75s linear infinite;
 }
 @keyframes save-button-pulse {
-  0%, 100% { transform: translateY(0); box-shadow: none; }
-  50% { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(90,122,90,0.25); }
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 2px 8px rgba(90,122,90,0.25); }
 }
 @keyframes save-spinner {
   to { transform: rotate(360deg); }
