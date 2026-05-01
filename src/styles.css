@@ -869,6 +869,7 @@ body {
     flex-wrap: nowrap;
     gap: 0.5rem;
     justify-content: flex-end;
+    min-height: 2.75rem;
     min-width: max-content;
   }
 

@@ -93,6 +93,34 @@ test.describe('EntryEditor — date header', () => {
     expect(metrics.saveWidth).toBeGreaterThanOrEqual(56)
     expect(metrics.saveHeight).toBeGreaterThanOrEqual(56)
   })
+
+  test('keeps the mobile header divider stable when delete action appears after loading', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 })
+    await loadHarness(page)
+
+    await page.evaluate(() => {
+      window.editorHarness.render({
+        date: '2026-12-31',
+        initialContent: 'saved content',
+        version: '1',
+        getContentDelayMs: 100,
+      })
+    })
+    await page.waitForSelector('.entry-skeleton')
+
+    const loadingHeaderBottom = await page.locator('.editor-header').evaluate(el =>
+      el.getBoundingClientRect().bottom
+    )
+
+    await page.waitForSelector('textarea.editor-textarea')
+    await expect(page.locator('.editor-actions > button.btn-delete')).toBeVisible()
+
+    const loadedHeaderBottom = await page.locator('.editor-header').evaluate(el =>
+      el.getBoundingClientRect().bottom
+    )
+
+    expect(loadedHeaderBottom).toBe(loadingHeaderBottom)
+  })
 })
 
 test.describe('EntryEditor — draft storage', () => {

@@ -16,6 +16,7 @@ declare global {
         version: string | null
         saveReject?: 'conflict' | 'error'
         autoSave?: boolean
+        getContentDelayMs?: number
       }) => void
       saveCalls: () => SaveCall[]
       deleteCalls: () => DeleteCall[]
@@ -36,17 +37,21 @@ const dirtyChanges: boolean[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
 
-function App({ date, initialContent, version, autoSave }: {
+function App({ date, initialContent, version, autoSave, getContentDelayMs }: {
   date: string
   initialContent: string
   version: string | null
   autoSave: boolean
+  getContentDelayMs: number
 }) {
   return (
     <EntryEditor
       date={date}
       autoSave={autoSave}
       getContent={async () => {
+        if (getContentDelayMs > 0) {
+          await new Promise(resolve => setTimeout(resolve, getContentDelayMs))
+        }
         if (!initialContent && version === null) return null
         return {
           entry: { date, content: initialContent, updated_at: new Date().toISOString() },
@@ -82,13 +87,21 @@ function App({ date, initialContent, version, autoSave }: {
 }
 
 window.editorHarness = {
-  render: ({ date, initialContent, version, saveReject, autoSave }) => {
+  render: ({ date, initialContent, version, saveReject, autoSave, getContentDelayMs }) => {
     saveCalls.splice(0)
     deleteCalls.splice(0)
     menuClickCount = 0
     dirtyChanges.splice(0)
     currentSaveReject = saveReject
-    root.render(<App date={date} initialContent={initialContent} version={version} autoSave={autoSave ?? true} />)
+    root.render(
+      <App
+        date={date}
+        initialContent={initialContent}
+        version={version}
+        autoSave={autoSave ?? true}
+        getContentDelayMs={getContentDelayMs ?? 0}
+      />
+    )
   },
   saveCalls: () => [...saveCalls],
   deleteCalls: () => [...deleteCalls],
