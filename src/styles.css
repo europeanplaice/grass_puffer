@@ -274,7 +274,12 @@ body {
 }
 .search-results li:last-child { border-bottom: none; }
 .search-results li:hover { background: var(--selected-bg); }
-.search-date { font-weight: bold; display: block; color: var(--accent); }
+.search-date {
+  color: var(--accent);
+  display: block;
+  font-weight: 700;
+  line-height: 1.25;
+}
 .search-snippet { color: var(--text-muted); font-size: 0.78rem; }
 
 /* ── Calendar ── */
@@ -432,6 +437,14 @@ body {
   justify-content: space-between;
   gap: 0.5rem;
   font-weight: 600;
+  line-height: 1.25;
+  min-width: 0;
+}
+.entry-list-date > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .entry-list-date[data-today] {
   color: var(--accent);
@@ -526,13 +539,15 @@ body {
 }
 .editor-header h2 {
   font-size: 1.3rem;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   white-space: nowrap;
 }
 .entry-date-text {
   align-items: baseline;
   gap: 0.4rem;
   display: inline-flex;
+  line-height: 1.15;
+  min-width: 0;
 }
 .entry-date-text[data-today] {
   color: var(--accent);
@@ -933,6 +948,9 @@ body {
   .entry-date-text {
     display: inline-flex;
     max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .editor-actions button {

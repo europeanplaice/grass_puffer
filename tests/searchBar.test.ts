@@ -19,7 +19,7 @@ test.describe('SearchBar', () => {
       })
     })
     await page.getByPlaceholder('Search entries...').fill('alpha')
-    await expect(page.getByText('2026-04-01')).toBeVisible()
+    await expect(page.getByText('April 1, 2026')).toBeVisible()
     await expect(page.getByText('alpha match')).toBeVisible()
   })
 

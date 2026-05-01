@@ -7,7 +7,7 @@ import { CalendarView } from './components/CalendarView'
 import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
 import { AppIcon } from './components/AppIcon'
-import { todayYmd, ymd, parseYmd } from './utils/date'
+import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
 
 type RecentPreview = {
   snippet: string
@@ -38,13 +38,6 @@ function currentPathWithoutHash(): string {
 
 function entryPath(date: string): string {
   return `${currentPathWithoutHash()}#${date}`
-}
-
-function weekdayLabel(date: string): string {
-  const parts = parseYmd(date)
-  if (!parts) return ''
-
-  return new Date(parts.y, parts.m - 1, parts.d).toLocaleDateString('en-US', { weekday: 'short' })
 }
 
 function firstLinePreview(content: string): string {
@@ -107,7 +100,7 @@ function RestoringScreen({ selectedDate }: { selectedDate: string }) {
       <main className="main">
         <div className="editor restoring-editor">
           <div className="editor-header">
-            <h2>{selectedDate}</h2>
+            <h2>{diaryDateLabel(selectedDate)}</h2>
             <span className="editor-status">Signing in…</span>
           </div>
           <div className="restoring-lines">
@@ -370,7 +363,7 @@ export default function App() {
               onClick={() => selectDate(d)}
             >
               <span className="entry-list-date" data-today={isToday || undefined}>
-                <span>{d}</span>
+                <span>{diaryDateLabel(d, false)}</span>
                 {weekdayLabel(d) && <span className="entry-list-weekday">{weekdayLabel(d)}</span>}
               </span>
               <span className="entry-list-preview">

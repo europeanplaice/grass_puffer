@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import { saveDraft, loadDraft, clearDraft } from '../utils/draftStorage'
 import type { LoadedDiaryEntry } from '../types'
-import { todayYmd, parseYmd } from '../utils/date'
+import { todayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
 
 interface Props {
   date: string
@@ -46,13 +46,6 @@ const SAVED_STATUS_EXIT_MS = 220
 const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
-
-function weekdayLabel(date: string): string {
-  const parts = parseYmd(date)
-  if (!parts) return ''
-
-  return new Date(parts.y, parts.m - 1, parts.d).toLocaleDateString('en-US', { weekday: 'short' })
-}
 
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay }: Props) {
   const [text, setText] = useState('')
@@ -296,7 +289,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
         <div className="delete-modal" onClick={e => e.stopPropagation()}>
           <h3>Delete entry?</h3>
-          <p>The entry for {date} will be permanently deleted and cannot be undone.</p>
+          <p>The entry for {diaryDateLabel(date)} will be permanently deleted and cannot be undone.</p>
           <p className="delete-modal-hint">Type <strong>confirm</strong> to proceed</p>
           <input
             className="delete-modal-input"
@@ -324,7 +317,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           <button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day">‹</button>
           <h2>
             <span className="entry-date-text" data-today={isToday || undefined}>
-              {date}
+              {diaryDateLabel(date)}
               {weekday && <span className="entry-date-weekday">{weekday}</span>}
             </span>
           </h2>

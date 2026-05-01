@@ -13,6 +13,29 @@ export function parseYmd(s: string): { y: number; m: number; d: number } | null 
   return { y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) }
 }
 
+export function dateFromYmd(s: string): Date | null {
+  const parts = parseYmd(s)
+  return parts ? new Date(parts.y, parts.m - 1, parts.d) : null
+}
+
+export function weekdayLabel(date: string): string {
+  const d = dateFromYmd(date)
+  if (!d) return ''
+
+  return d.toLocaleDateString('en-US', { weekday: 'short' })
+}
+
+export function diaryDateLabel(date: string, includeYear = true): string {
+  const d = dateFromYmd(date)
+  if (!d) return date
+
+  return d.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    ...(includeYear ? { year: 'numeric' as const } : {}),
+  })
+}
+
 export function daysInMonth(year: number, month1to12: number): number {
   return new Date(year, month1to12, 0).getDate()
 }

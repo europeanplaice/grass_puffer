@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { IndexingProgress, SearchResult } from '../hooks/useDiary'
+import { diaryDateLabel } from '../utils/date'
 
 interface Result {
   date: string
@@ -81,7 +82,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
         <ul className="search-results">
           {results.map(r => (
             <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setSearched(false) }}>
-              <span className="search-date">{r.date}</span>
+              <span className="search-date">{diaryDateLabel(r.date)}</span>
               <span className="search-snippet">…{r.snippet}…</span>
             </li>
           ))}
