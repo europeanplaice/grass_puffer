@@ -305,10 +305,9 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
           <button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day">‹</button>
           <h2>
-            <span className="entry-date-text">
+            <span className="entry-date-text" data-today={isToday || undefined}>
               {date}
               {weekday && <span className="entry-date-weekday">{weekday}</span>}
-              {isToday && <span className="date-today-badge">Today</span>}
             </span>
           </h2>
           <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>

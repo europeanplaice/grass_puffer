@@ -372,10 +372,9 @@ export default function App() {
               className={[d === selectedDate ? 'active' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
               onClick={() => selectDate(d)}
             >
-              <span className="entry-list-date">
+              <span className="entry-list-date" data-today={isToday || undefined}>
                 <span>{d}</span>
                 {weekdayLabel(d) && <span className="entry-list-weekday">{weekdayLabel(d)}</span>}
-                {isToday && <span className="date-today-badge">Today</span>}
               </span>
               <span className="entry-list-preview">
                 {preview?.hasContent ? preview.snippet : 'No text yet'}

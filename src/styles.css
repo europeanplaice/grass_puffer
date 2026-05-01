@@ -421,6 +421,9 @@ body {
   gap: 0.5rem;
   font-weight: 600;
 }
+.entry-list-date[data-today] {
+  color: var(--accent);
+}
 .entry-list-weekday {
   color: var(--text-muted);
   flex: 0 0 auto;
@@ -517,28 +520,17 @@ body {
 .entry-date-text {
   align-items: baseline;
   gap: 0.4rem;
-}
-.entry-date-text {
   display: inline-flex;
+}
+.entry-date-text[data-today] {
+  color: var(--accent);
+  font-weight: 600;
 }
 .entry-date-weekday {
   color: var(--text-muted);
   font-size: 0.62em;
   font-weight: 600;
   letter-spacing: 0;
-}
-.date-today-badge {
-  background: color-mix(in srgb, var(--today-ring) 22%, transparent);
-  border: 1px solid color-mix(in srgb, var(--today-ring) 60%, transparent);
-  border-radius: 999px;
-  color: var(--text);
-  display: inline-flex;
-  flex: 0 0 auto;
-  font-size: 0.62em;
-  font-weight: 700;
-  letter-spacing: 0;
-  line-height: 1;
-  padding: 0.18rem 0.38rem;
 }
 .editor-actions {
   display: flex;
