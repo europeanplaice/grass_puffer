@@ -139,6 +139,33 @@ test.describe('EntryEditor — date header', () => {
     })
   })
 
+  test('keeps mobile editing scroll inside the textarea', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 520 })
+    await loadHarness(page)
+    await renderEditor(page, {
+      date: '2026-12-31',
+      initialContent: Array.from({ length: 80 }, (_, i) => `line ${i + 1}`).join('\n'),
+      version: '1',
+    })
+
+    const metrics = await page.locator('textarea.editor-textarea').evaluate(textarea => {
+      const root = document.documentElement
+      return {
+        documentScrollable: root.scrollHeight > window.innerHeight || document.body.scrollHeight > window.innerHeight,
+        textareaScrollable: textarea.scrollHeight > textarea.clientHeight,
+        textareaMinHeight: getComputedStyle(textarea).minHeight,
+        textareaOverscroll: getComputedStyle(textarea).overscrollBehaviorY,
+      }
+    })
+
+    expect(metrics).toEqual({
+      documentScrollable: false,
+      textareaScrollable: true,
+      textareaMinHeight: '0px',
+      textareaOverscroll: 'contain',
+    })
+  })
+
   test('keeps the mobile header divider stable when delete action appears after loading', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 })
     await loadHarness(page)
