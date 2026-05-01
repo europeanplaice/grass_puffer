@@ -908,7 +908,7 @@ body {
   .editor-actions .btn-delete { padding: 0.65rem; min-width: 2.75rem; }
   .editor-actions button .btn-icon { width: 20px; height: 20px; }
 
-  @media (max-width: 360px) {
+  @media (max-width: 340px) {
     .entry-date-weekday { display: none; }
     .btn-day-nav { padding: 0.1rem 0.25rem; }
   }
