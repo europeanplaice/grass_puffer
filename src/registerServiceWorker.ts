@@ -3,13 +3,16 @@ export function registerServiceWorker() {
 
   window.addEventListener('load', () => {
     const serviceWorkerUrl = `${import.meta.env.BASE_URL}sw.js`
+    const hadController = Boolean(navigator.serviceWorker.controller)
 
     navigator.serviceWorker.register(serviceWorkerUrl).then(registration => {
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing
         if (!newWorker) return
+        let updateDispatched = false
         newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated') {
+          if (hadController && !updateDispatched && newWorker.state === 'activated') {
+            updateDispatched = true
             window.dispatchEvent(new CustomEvent('sw-update-available'))
           }
         })
