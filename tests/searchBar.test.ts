@@ -38,7 +38,7 @@ test.describe('SearchBar', () => {
     await page.evaluate(() =>
       window.searchHarness.render({ indexingProgress: { done: 3, total: 10, running: true } }),
     )
-    await expect(page.getByText('インデックス作成中… 3/10')).toBeVisible()
+    await expect(page.getByText('Indexing… 3/10')).toBeVisible()
   })
 
   test('shows remaining-unindexed message when unindexedCount > 0', async ({ page }) => {
@@ -49,7 +49,7 @@ test.describe('SearchBar', () => {
       })
     })
     await page.getByPlaceholder('Search entries...').fill('alpha')
-    await expect(page.getByText('残り 5 件のエントリをインデックス中…')).toBeVisible()
+    await expect(page.getByText('Indexing 5 remaining entries…')).toBeVisible()
     await expect(page.getByText('No results')).toHaveCount(0)
   })
 })

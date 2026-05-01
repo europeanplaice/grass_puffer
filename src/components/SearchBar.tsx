@@ -71,7 +71,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
       />
       {isIndexing && (
         <div className="search-status indexing">
-          インデックス作成中… {indexingProgress.done}/{indexingProgress.total}
+          Indexing… {indexingProgress.done}/{indexingProgress.total}
         </div>
       )}
       {entriesLoading && hasQuery && (
@@ -88,7 +88,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
         </ul>
       )}
       {searched && hasQuery && !entriesLoading && unindexedCount > 0 && (
-        <div className="search-status">残り {unindexedCount} 件のエントリをインデックス中…</div>
+        <div className="search-status">Indexing {unindexedCount} remaining entries…</div>
       )}
       {searched && hasQuery && !entriesLoading && results.length === 0 && unindexedCount === 0 && (
         <div className="search-status">No results</div>
