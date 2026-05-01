@@ -50,7 +50,7 @@ test.describe('EntryEditor — date header', () => {
     await expect(page.locator('.entry-date-text')).toHaveAttribute('data-today', 'true')
   })
 
-  test('keeps mobile save and delete actions on one row', async ({ page }) => {
+  test('places mobile save action near the bottom-right thumb zone', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 })
     await loadHarness(page)
     await renderEditor(page, { date: '2026-12-31', initialContent: 'saved content', version: '1' })
@@ -62,22 +62,36 @@ test.describe('EntryEditor — date header', () => {
 
     const metrics = await page.evaluate(() => {
       const header = document.querySelector('.editor-header')?.getBoundingClientRect()
+      const editor = document.querySelector('.editor')?.getBoundingClientRect()
       const save = document.querySelector('button.btn-save')?.getBoundingClientRect()
       const del = document.querySelector('.editor-actions > button.btn-delete')?.getBoundingClientRect()
-      if (!header || !save || !del) throw new Error('missing editor header actions')
+      if (!header || !editor || !save || !del) throw new Error('missing editor layout')
 
       return {
+        editorHeight: editor.height,
         headerLeft: header.left,
         headerRight: header.right,
-        saveTop: save.top,
+        headerBottom: header.bottom,
+        saveRight: save.right,
+        saveBottom: save.bottom,
+        saveWidth: save.width,
+        saveHeight: save.height,
         deleteTop: del.top,
         viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
       }
     })
 
-    expect(Math.abs(metrics.saveTop - metrics.deleteTop)).toBeLessThan(1)
+    expect(metrics.editorHeight).toBeLessThanOrEqual(metrics.viewportHeight)
     expect(metrics.headerLeft).toBeGreaterThanOrEqual(0)
     expect(metrics.headerRight).toBeLessThanOrEqual(metrics.viewportWidth)
+    expect(metrics.deleteTop).toBeLessThan(metrics.headerBottom)
+    expect(metrics.saveRight).toBeLessThanOrEqual(metrics.viewportWidth - 16 + 1)
+    expect(metrics.saveBottom).toBeLessThanOrEqual(metrics.viewportHeight - 16 + 1)
+    expect(metrics.viewportWidth - metrics.saveRight).toBeLessThanOrEqual(17)
+    expect(metrics.viewportHeight - metrics.saveBottom).toBeLessThanOrEqual(17)
+    expect(metrics.saveWidth).toBeGreaterThanOrEqual(56)
+    expect(metrics.saveHeight).toBeGreaterThanOrEqual(56)
   })
 })
 

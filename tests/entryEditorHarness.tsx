@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client'
 import { EntryEditor } from '../src/components/EntryEditor'
 import { EntryConflictError } from '../src/hooks/useDiary'
 import type { LoadedDiaryEntry } from '../src/types'
+import '../src/styles.css'
 
 type SaveCall = { date: string; content: string; baseVersion: string | null; force?: boolean }
 type DeleteCall = { date: string }

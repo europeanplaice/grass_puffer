@@ -20,6 +20,7 @@ body {
   background: var(--bg);
   color: var(--text);
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -29,6 +30,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg);
 }
 .login-card {
@@ -133,6 +135,7 @@ body {
 .app {
   display: flex;
   height: 100vh;
+  height: 100dvh;
 }
 
 /* ── Sidebar ── */
@@ -693,6 +696,7 @@ body {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  height: 100dvh;
   gap: 1rem;
   font-family: inherit;
   color: var(--text);
@@ -831,7 +835,7 @@ body {
 
   .main { width: 100%; }
 
-  .editor { padding: 1rem 1rem; }
+  .editor { padding: 1rem 1rem 5.75rem; }
 
   .editor-header {
     align-items: center;
@@ -882,11 +886,25 @@ body {
     flex-wrap: wrap;
   }
 
-  .editor-textarea { font-size: 1rem; }
+  .editor-textarea {
+    font-size: 1rem;
+    padding-bottom: 1rem;
+  }
 
   /* Icon-only action buttons on mobile */
   .btn-text { display: none; }
-  .editor-actions .btn-save { min-width: 2.75rem; padding: 0.65rem; }
+  .editor-actions .btn-save {
+    position: fixed;
+    right: max(1rem, env(safe-area-inset-right));
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    z-index: 90;
+    width: 3.5rem;
+    height: 3.5rem;
+    min-width: 3.5rem;
+    padding: 0;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(44,44,44,0.18);
+  }
   .editor-actions .btn-delete { padding: 0.65rem; min-width: 2.75rem; }
   .editor-actions button .btn-icon { width: 20px; height: 20px; }
 
