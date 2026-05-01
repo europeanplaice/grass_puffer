@@ -67,6 +67,36 @@ test.describe('EntryEditor — date header', () => {
 
     await expect(page.locator('.entry-date-text .date-today-badge')).toHaveText('Today')
   })
+
+  test('keeps mobile save and delete actions on one row', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-12-31', initialContent: 'saved content', version: '1' })
+
+    const saveButton = page.locator('button.btn-save')
+    const deleteButton = page.locator('.editor-actions > button.btn-delete')
+    await expect(saveButton).toBeVisible()
+    await expect(deleteButton).toBeVisible()
+
+    const metrics = await page.evaluate(() => {
+      const header = document.querySelector('.editor-header')?.getBoundingClientRect()
+      const save = document.querySelector('button.btn-save')?.getBoundingClientRect()
+      const del = document.querySelector('.editor-actions > button.btn-delete')?.getBoundingClientRect()
+      if (!header || !save || !del) throw new Error('missing editor header actions')
+
+      return {
+        headerLeft: header.left,
+        headerRight: header.right,
+        saveTop: save.top,
+        deleteTop: del.top,
+        viewportWidth: window.innerWidth,
+      }
+    })
+
+    expect(Math.abs(metrics.saveTop - metrics.deleteTop)).toBeLessThan(1)
+    expect(metrics.headerLeft).toBeGreaterThanOrEqual(0)
+    expect(metrics.headerRight).toBeLessThanOrEqual(metrics.viewportWidth)
+  })
 })
 
 test.describe('EntryEditor — draft storage', () => {

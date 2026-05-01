@@ -836,17 +836,25 @@ body {
   .editor-header {
     align-items: center;
     display: grid;
-    gap: 1rem;
-    grid-template-columns: max-content minmax(0, 1fr);
+    gap: 0.75rem;
+    grid-template-columns: minmax(0, 1fr) max-content;
   }
 
-  .editor-header h2 { font-size: 1.1rem; }
+  .editor-header h2 {
+    font-size: 1.1rem;
+    min-width: 0;
+    overflow: hidden;
+  }
 
   .editor-date-group {
-    min-width: max-content;
+    gap: 0.4rem;
+    min-width: 0;
   }
 
-  .entry-date-text { display: inline-flex; }
+  .entry-date-text {
+    display: inline-flex;
+    max-width: 100%;
+  }
 
   .editor-actions button {
     padding: 0.5rem 0.8rem;
@@ -854,9 +862,10 @@ body {
   }
 
   .editor-actions {
-    flex-wrap: wrap;
-    gap: 0.75rem;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
     justify-content: flex-end;
+    min-width: max-content;
   }
 
   .editor-status {
@@ -880,6 +889,11 @@ body {
   .editor-actions .btn-save { min-width: 2.75rem; padding: 0.65rem; }
   .editor-actions .btn-delete { padding: 0.65rem; min-width: 2.75rem; }
   .editor-actions button .btn-icon { width: 20px; height: 20px; }
+
+  @media (max-width: 360px) {
+    .entry-date-weekday { display: none; }
+    .btn-day-nav { padding: 0.1rem 0.25rem; }
+  }
 
   /* Larger tap targets for calendar */
   .cal-day { padding: 0.4rem 0; }
