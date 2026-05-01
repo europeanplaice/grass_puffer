@@ -225,7 +225,7 @@ test.describe('EntryEditor — draft storage', () => {
     expect(afterKey).toBe('my draft text')
   })
 
-  test('auto-save fires after 3 seconds of dirty state, silently (no saved button state)', async ({ page }) => {
+  test('auto-save fires after 3 seconds of dirty state and briefly shows saved state', async ({ page }) => {
     await loadHarness(page)
     await page.clock.install({ time: 0 })
     await renderEditor(page, { date: '2026-05-01', initialContent: '' })
@@ -243,11 +243,9 @@ test.describe('EntryEditor — draft storage', () => {
     expect(saveCalls).toHaveLength(1)
     expect(saveCalls[0].content).toBe('auto-save content')
 
-    // Save button should NOT show "✓ Saved" text (auto-save is silent)
     const saveButtonText = await page.locator('button.btn-save span').last().textContent()
-    expect(saveButtonText).not.toContain('Saved')
-    // Button shows "Save" (not in saved-celebratory state)
-    expect(saveButtonText).toBe('Save')
+    expect(saveButtonText).toBe('Saved')
+    await expect(page.locator('button.btn-save')).toHaveClass(/btn-saved/)
   })
 
   test('auto-save does not fire while hasConflict is true', async ({ page }) => {

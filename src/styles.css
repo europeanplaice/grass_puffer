@@ -873,6 +873,13 @@ body {
     min-width: 0;
   }
 
+  .btn-day-nav {
+    font-size: 1.65rem;
+    min-width: 2rem;
+    min-height: 2rem;
+    padding: 0.1rem 0.45rem;
+  }
+
   .entry-date-text {
     display: inline-flex;
     max-width: 100%;
@@ -930,7 +937,10 @@ body {
 
   @media (max-width: 340px) {
     .entry-date-weekday { display: none; }
-    .btn-day-nav { padding: 0.1rem 0.25rem; }
+    .btn-day-nav {
+      min-width: 1.85rem;
+      padding: 0.1rem 0.35rem;
+    }
   }
 
   /* Larger tap targets for calendar */

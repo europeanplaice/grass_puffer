@@ -152,7 +152,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
       clearDraft(date)
-      if (explicit) setStatus(SAVED_STATUS)
+      setStatus(SAVED_STATUS)
     } catch (e) {
       if (!explicit) {
         // Auto-save silently swallows errors; conflicts surface on next manual save
@@ -352,7 +352,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
             {saving
               ? <span className="btn-saving-spinner" aria-hidden="true" />
               : status === SAVED_STATUS ? <CheckIcon /> : <SaveIcon />}
-            <span className="btn-text">{saving ? 'Saving…' : status === SAVED_STATUS ? '✓ Saved' : 'Save'}</span>
+            <span className="btn-text">{saving ? 'Saving…' : status === SAVED_STATUS ? 'Saved' : 'Save'}</span>
           </button>
           {savedText && (
             <button className="btn-delete" onClick={del} aria-label="Delete entry">
