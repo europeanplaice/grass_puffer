@@ -221,10 +221,10 @@ body {
 .btn-day-nav {
   background: none;
   border: none;
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   cursor: pointer;
   color: var(--text-muted);
-  padding: 0.1rem 0.35rem;
+  padding: 0.12rem 0.45rem;
   border-radius: 4px;
   line-height: 1;
 }
