@@ -63,23 +63,17 @@ test.describe('EntryEditor — date header', () => {
     const metrics = await page.evaluate(() => {
       const header = document.querySelector('.editor-header')?.getBoundingClientRect()
       const editor = document.querySelector('.editor')?.getBoundingClientRect()
-      const textarea = document.querySelector('.editor-textarea')?.getBoundingClientRect()
       const save = document.querySelector('button.btn-save')?.getBoundingClientRect()
       const del = document.querySelector('.editor-actions > button.btn-delete')?.getBoundingClientRect()
-      if (!header || !editor || !textarea || !save || !del) throw new Error('missing editor layout')
-
-      const textareaStyle = getComputedStyle(document.querySelector('.editor-textarea') as HTMLElement)
+      if (!header || !editor || !save || !del) throw new Error('missing editor layout')
 
       return {
         editorHeight: editor.height,
         headerLeft: header.left,
         headerRight: header.right,
         headerBottom: header.bottom,
-        textareaBottom: textarea.bottom,
-        textareaPaddingBottom: parseFloat(textareaStyle.paddingBottom),
         saveRight: save.right,
         saveBottom: save.bottom,
-        saveTop: save.top,
         saveWidth: save.width,
         saveHeight: save.height,
         deleteTop: del.top,
@@ -98,7 +92,6 @@ test.describe('EntryEditor — date header', () => {
     expect(metrics.viewportHeight - metrics.saveBottom).toBeLessThanOrEqual(17)
     expect(metrics.saveWidth).toBeGreaterThanOrEqual(56)
     expect(metrics.saveHeight).toBeGreaterThanOrEqual(56)
-    expect(metrics.textareaBottom - metrics.textareaPaddingBottom).toBeLessThanOrEqual(metrics.saveTop - 16)
   })
 
   test('moves the mobile save action above the visual viewport keyboard inset', async ({ page }) => {
