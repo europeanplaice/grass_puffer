@@ -577,6 +577,7 @@ body {
   font-family: inherit;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.4rem;
 }
 .editor-actions button:disabled { opacity: 0.5; cursor: default; }
@@ -932,7 +933,12 @@ body {
     border-radius: 999px;
     box-shadow: 0 6px 18px rgba(44,44,44,0.18);
   }
-  .editor-actions .btn-delete { padding: 0.65rem; min-width: 2.75rem; }
+  .editor-actions .btn-delete {
+    width: 2.75rem;
+    height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0;
+  }
   .editor-actions button .btn-icon { width: 20px; height: 20px; }
 
   @media (max-width: 340px) {

@@ -65,7 +65,8 @@ test.describe('EntryEditor — date header', () => {
       const editor = document.querySelector('.editor')?.getBoundingClientRect()
       const save = document.querySelector('button.btn-save')?.getBoundingClientRect()
       const del = document.querySelector('.editor-actions > button.btn-delete')?.getBoundingClientRect()
-      if (!header || !editor || !save || !del) throw new Error('missing editor layout')
+      const deleteIcon = document.querySelector('.editor-actions > button.btn-delete .btn-icon')?.getBoundingClientRect()
+      if (!header || !editor || !save || !del || !deleteIcon) throw new Error('missing editor layout')
 
       return {
         editorHeight: editor.height,
@@ -77,6 +78,8 @@ test.describe('EntryEditor — date header', () => {
         saveWidth: save.width,
         saveHeight: save.height,
         deleteTop: del.top,
+        deleteCenterX: del.left + del.width / 2,
+        deleteIconCenterX: deleteIcon.left + deleteIcon.width / 2,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
       }
@@ -92,6 +95,7 @@ test.describe('EntryEditor — date header', () => {
     expect(metrics.viewportHeight - metrics.saveBottom).toBeLessThanOrEqual(17)
     expect(metrics.saveWidth).toBeGreaterThanOrEqual(56)
     expect(metrics.saveHeight).toBeGreaterThanOrEqual(56)
+    expect(Math.abs(metrics.deleteCenterX - metrics.deleteIconCenterX)).toBeLessThanOrEqual(0.5)
   })
 
   test('moves the mobile save action above the visual viewport keyboard inset', async ({ page }) => {
