@@ -54,7 +54,7 @@ function weekdayLabel(date: string): string {
   const parsed = parseYMD(date)
   if (!parsed) return ''
 
-  return parsed.toLocaleDateString(undefined, { weekday: 'short' })
+  return parsed.toLocaleDateString('en-US', { weekday: 'short' })
 }
 
 function firstLinePreview(content: string): string {
