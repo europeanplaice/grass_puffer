@@ -30,7 +30,6 @@ function hashDistFiles(dir: string, root = dir): string {
 export default defineConfig({
   base: '/',
   server: {
-    host: '0.0.0.0',
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
