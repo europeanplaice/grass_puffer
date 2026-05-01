@@ -1,8 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createServer, type ViteDevServer } from 'vite'
-
-let server: ViteDevServer
-let baseUrl: string
+import { baseUrl } from './baseUrl'
 
 const FOLDER_INIT = { files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] }
 const ENTRIES_EMPTY = { files: [] }
@@ -10,21 +7,6 @@ const ENTRIES_EMPTY = { files: [] }
 function fileMeta(version: string, id = 'file-1') {
   return { id, name: 'diary-2026-05-01.json', version }
 }
-
-test.beforeAll(async ({}, workerInfo) => {
-  const port = 5400 + workerInfo.workerIndex
-  server = await createServer({
-    root: process.cwd(),
-    server: { host: '127.0.0.1', port, strictPort: true },
-    logLevel: 'error',
-  })
-  await server.listen()
-  baseUrl = server.resolvedUrls?.local[0] ?? ''
-})
-
-test.afterAll(async () => {
-  await server.close()
-})
 
 async function loadHarness(page: import('@playwright/test').Page) {
   await page.goto(`${baseUrl}/tests/useDiaryHarness.html`)

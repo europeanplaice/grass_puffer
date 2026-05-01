@@ -1,8 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createServer, type ViteDevServer } from 'vite'
-
-let server: ViteDevServer
-let baseUrl: string
+import { baseUrl } from './baseUrl'
 
 function adjacentDate(date: string): string {
   const [year, month, day] = date.split('-').map(Number)
@@ -12,21 +9,6 @@ function adjacentDate(date: string): string {
 
   return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}-${String(next.getDate()).padStart(2, '0')}`
 }
-
-test.beforeAll(async ({}, workerInfo) => {
-  const port = 5400 + workerInfo.workerIndex
-  server = await createServer({
-    root: process.cwd(),
-    server: { host: '127.0.0.1', port, strictPort: true },
-    logLevel: 'error',
-  })
-  await server.listen()
-  baseUrl = server.resolvedUrls?.local[0] ?? ''
-})
-
-test.afterAll(async () => {
-  await server.close()
-})
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })

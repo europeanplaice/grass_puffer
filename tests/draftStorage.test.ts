@@ -1,23 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { createServer, type ViteDevServer } from 'vite'
-
-let server: ViteDevServer
-let baseUrl: string
-
-test.beforeAll(async ({}, workerInfo) => {
-  const port = 5500 + workerInfo.workerIndex
-  server = await createServer({
-    root: process.cwd(),
-    server: { host: '127.0.0.1', port, strictPort: true },
-    logLevel: 'error',
-  })
-  await server.listen()
-  baseUrl = server.resolvedUrls?.local[0] ?? ''
-})
-
-test.afterAll(async () => {
-  await server.close()
-})
+import { baseUrl } from './baseUrl'
 
 async function loadHarness(page: import('@playwright/test').Page) {
   await page.goto(`${baseUrl}/tests/draftStorageHarness.html`)
