@@ -50,6 +50,26 @@ test.describe('EntryEditor — date header', () => {
     await expect(page.locator('.entry-date-text')).toHaveAttribute('data-today', 'true')
   })
 
+  test('shortens the month label on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-12-31', initialContent: '' })
+
+    await expect(page.locator('.entry-date-label-full')).toBeHidden()
+    await expect(page.locator('.entry-date-label-short')).toBeVisible()
+    await expect(page.locator('.entry-date-label-short')).toHaveText('Dec 31, 2026')
+  })
+
+  test('keeps the full month label on desktop', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-09-01', initialContent: '' })
+
+    await expect(page.locator('.entry-date-label-full')).toBeVisible()
+    await expect(page.locator('.entry-date-label-full')).toHaveText('September 1, 2026')
+    await expect(page.locator('.entry-date-label-short')).toBeHidden()
+  })
+
   test('places mobile save action near the bottom-right thumb zone', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 })
     await loadHarness(page)

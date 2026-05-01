@@ -25,12 +25,12 @@ export function weekdayLabel(date: string): string {
   return d.toLocaleDateString('en-US', { weekday: 'short' })
 }
 
-export function diaryDateLabel(date: string, includeYear = true): string {
+export function diaryDateLabel(date: string, includeYear = true, month: 'long' | 'short' = 'long'): string {
   const d = dateFromYmd(date)
   if (!d) return date
 
   return d.toLocaleDateString('en-US', {
-    month: 'long',
+    month,
     day: 'numeric',
     ...(includeYear ? { year: 'numeric' as const } : {}),
   })

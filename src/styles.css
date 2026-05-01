@@ -553,6 +553,9 @@ body {
   color: var(--accent);
   font-weight: 600;
 }
+.entry-date-label-short {
+  display: none;
+}
 .entry-date-weekday {
   color: var(--text-muted);
   font-size: 0.62em;
@@ -952,6 +955,9 @@ body {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  .entry-date-label-full { display: none; }
+  .entry-date-label-short { display: inline; }
 
   .editor-actions button {
     padding: 0.5rem 0.8rem;

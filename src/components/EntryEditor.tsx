@@ -317,7 +317,8 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           <button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day">‹</button>
           <h2>
             <span className="entry-date-text" data-today={isToday || undefined}>
-              {diaryDateLabel(date)}
+              <span className="entry-date-label-full">{diaryDateLabel(date)}</span>
+              <span className="entry-date-label-short">{diaryDateLabel(date, true, 'short')}</span>
               {weekday && <span className="entry-date-weekday">{weekday}</span>}
             </span>
           </h2>
