@@ -6,11 +6,12 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 
 ## Features
 
-- Write and save daily diary entries
-- Calendar view to navigate by date
-- Full-text search across all entries
-- Data stays in your Google Drive (`GrassPuffer Diary/` folder)
-- Works on mobile with a drawer sidebar
+- Write and save daily diary entries (Ctrl/Cmd+S to save)
+- Calendar view to navigate by date, with dots marking days that have entries
+- Full-text search across all loaded entries
+- Data stays in your Google Drive (`GrassPuffer Diary/` folder), one JSON file per day
+- Local draft autosave — unsaved edits survive accidental reloads and prompt to restore on next open
+- Works on mobile with a drawer sidebar and Android back-button support
 - Installable as a Progressive Web App
 
 ## How it works
@@ -21,6 +22,8 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 - Access tokens are kept in memory only and never persisted
 - The app shell is cached by a service worker. Google sign-in and Drive
   read/write operations still require a network connection.
+- In-progress edits are buffered in `localStorage` under `grass-puffer-draft:<date>`
+  and cleared on successful save.
 
 ## Self-hosting
 
@@ -63,15 +66,19 @@ cp .env.local.example .env.local   # or create manually
 # add: VITE_GOOGLE_CLIENT_ID=<your-client-id>.apps.googleusercontent.com
 
 npm install
-npm run dev
+npm run dev       # Vite dev server with HMR
+npm run build     # type-check + production build → dist/
+npm run preview   # serve the production build locally
+npm test          # run the Playwright test suite
 ```
 
 > Note: Google OAuth requires the origin to be registered. For local dev, add `http://localhost:5173` to your OAuth client's Authorized JavaScript origins.
 
 ## Tech stack
 
-- React + TypeScript
-- Vite
-- Google Identity Services
-- Google Drive API v3 (plain `fetch`, no SDK)
+- React 18 + TypeScript
+- Vite 6
+- Google Identity Services (token model)
+- Google Drive API v3 (plain `fetch`, no `gapi.client` SDK)
+- Playwright for component and integration tests
 - GitHub Actions + GitHub Pages
