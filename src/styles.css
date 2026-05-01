@@ -11,6 +11,7 @@
   --selected-bg: #dff0df;
   --danger: #c0392b;
   --sidebar-w: 280px;
+  --mobile-save-action-space: 0px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -814,6 +815,12 @@ body {
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
+  :root {
+    --mobile-save-action-space: calc(
+      4.5rem + env(safe-area-inset-bottom) + var(--mobile-keyboard-inset-bottom, 0px)
+    );
+  }
+
   body { overflow: hidden; }
 
   .login-card {
@@ -900,7 +907,8 @@ body {
 
   .editor-textarea {
     font-size: 1rem;
-    padding-bottom: 1rem;
+    padding-bottom: calc(1rem + var(--mobile-save-action-space));
+    scroll-padding-bottom: calc(1rem + var(--mobile-save-action-space));
   }
 
   /* Icon-only action buttons on mobile */

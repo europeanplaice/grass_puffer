@@ -124,6 +124,9 @@ test.describe('EntryEditor — date header', () => {
     await expect.poll(() =>
       page.locator('button.btn-save').evaluate(button => {
         const save = button.getBoundingClientRect()
+        const textarea = document.querySelector('textarea.editor-textarea')
+        if (!textarea) throw new Error('missing textarea')
+        const textareaStyle = getComputedStyle(textarea)
         const keyboardInset = getComputedStyle(document.documentElement)
           .getPropertyValue('--mobile-keyboard-inset-bottom')
           .trim()
@@ -131,11 +134,15 @@ test.describe('EntryEditor — date header', () => {
         return {
           keyboardInset,
           distanceFromBottom: Math.round(window.innerHeight - save.bottom),
+          textareaPaddingBottom: textareaStyle.paddingBottom,
+          textareaScrollPaddingBottom: textareaStyle.scrollPaddingBottom,
         }
       })
     ).toEqual({
       keyboardInset: '280px',
       distanceFromBottom: 296,
+      textareaPaddingBottom: '368px',
+      textareaScrollPaddingBottom: '368px',
     })
   })
 
