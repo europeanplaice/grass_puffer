@@ -45,6 +45,10 @@ const SAVED_STATUS_EXIT_MS = 220
 const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
 
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December']
+const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
 function parseYMD(date: string): Date | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date)
   if (!match) return null
@@ -52,11 +56,20 @@ function parseYMD(date: string): Date | null {
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
 }
 
-function weekdayLabel(date: string): string {
+function friendlyDateLabel(date: string): string {
   const parsed = parseYMD(date)
-  if (!parsed) return ''
+  if (!parsed) return date
 
-  return parsed.toLocaleDateString('en-US', { weekday: 'short' })
+  const currentYear = new Date().getFullYear()
+  const weekday = WEEKDAYS[parsed.getDay()]
+  const month = MONTHS[parsed.getMonth()]
+  const day = parsed.getDate()
+  const year = parsed.getFullYear()
+
+  if (year === currentYear) {
+    return `${weekday}, ${month} ${day}`
+  }
+  return `${weekday}, ${month} ${day}, ${year}`
 }
 
 function todayYMD(): string {
@@ -77,10 +90,10 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
   const [showDraftBanner, setShowDraftBanner] = useState(false)
   const [pendingDraft, setPendingDraft] = useState<string | null>(null)
-  const weekday = weekdayLabel(date)
+  const [overflowOpen, setOverflowOpen] = useState(false)
   const isToday = date === todayYMD()
+  const headingLabel = friendlyDateLabel(date)
 
-  // Use a ref to track the latest onSave without restarting debounce timers
   const onSaveRef = useRef(onSave)
   useEffect(() => { onSaveRef.current = onSave }, [onSave])
 
@@ -154,7 +167,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       if (explicit) setStatus(SAVED_STATUS)
     } catch (e) {
       if (!explicit) {
-        // Auto-save silently swallows errors; conflicts surface on next manual save
         console.error('Auto-save failed:', e)
         return
       }
@@ -208,6 +220,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const del = async () => {
     setDeleteInput('')
     setShowDeleteModal(true)
+    setOverflowOpen(false)
   }
 
   const confirmDelete = async () => {
@@ -215,7 +228,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     await onDelete(date)
   }
 
-  // Draft restore actions
   const restoreDraft = () => {
     if (pendingDraft === null) return
     setText(pendingDraft)
@@ -229,14 +241,12 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setPendingDraft(null)
   }
 
-  // Debounced local draft save
   useEffect(() => {
     if (!isDirty) return
     const id = window.setTimeout(() => saveDraft(date, textRef.current), DRAFT_DEBOUNCE_MS)
     return () => window.clearTimeout(id)
   }, [text, isDirty, date])
 
-  // Drive auto-save after 3s of being dirty (only when auto-save is enabled)
   useEffect(() => {
     if (!autoSave || !isDirty) return
     const id = window.setTimeout(() => {
@@ -247,7 +257,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     return () => window.clearTimeout(id)
   }, [text, isDirty, save, autoSave])
 
-  // Ctrl+S / Cmd+S explicit save
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -271,6 +280,44 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     }
   }, [status])
 
+  // Close overflow menu on outside click
+  const overflowRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!overflowOpen) return
+    const handler = (e: MouseEvent) => {
+      if (overflowRef.current && !overflowRef.current.contains(e.target as Node)) {
+        setOverflowOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [overflowOpen])
+
+  // Swipe gesture for prev/next day on the textarea
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touchStartRef.current = { x: t.clientX, y: t.clientY }
+  }, [])
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - touchStartRef.current.x
+    const dy = t.clientY - touchStartRef.current.y
+    touchStartRef.current = null
+
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 2) {
+      if (dx < 0) {
+        onNextDay()
+      } else {
+        onPrevDay()
+      }
+    }
+  }, [onPrevDay, onNextDay])
+
+  const saveBtnClass = `btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`
+  const fabClass = `fab-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`
 
   return (
     <>
@@ -306,15 +353,14 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           <button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day">‹</button>
           <h2>
             <span className="entry-date-text" data-today={isToday || undefined}>
-              {date}
-              {weekday && <span className="entry-date-weekday">{weekday}</span>}
+              {headingLabel}
             </span>
           </h2>
           <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>
         </div>
         <div className="editor-actions">
           <button
-            className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
+            className={saveBtnClass}
             onClick={() => save(true)}
             disabled={saving || !isDirty}
             aria-busy={saving}
@@ -331,7 +377,26 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
               <span className="btn-text">Delete</span>
             </button>
           )}
+          {savedText && (
+            <div className="overflow-menu-wrap" ref={overflowRef}>
+              <button
+                className="btn-overflow"
+                onClick={() => setOverflowOpen(o => !o)}
+                aria-label="More options"
+                aria-expanded={overflowOpen}
+              >⋯</button>
+              {overflowOpen && (
+                <div className="overflow-dropdown">
+                  <button onClick={del}>
+                    <TrashIcon />
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
+        {status && <span className="editor-status">{status}</span>}
       </div>
       {showDraftBanner && (
         <div className="restored-banner">
@@ -374,9 +439,22 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           }}
           placeholder="Write your thoughts…"
           autoFocus
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         />
       )}
     </div>
+    <button
+      className={fabClass}
+      onClick={() => save(true)}
+      disabled={saving || !isDirty}
+      aria-busy={saving}
+      aria-label={saving ? 'Saving' : status === SAVED_STATUS ? 'Saved' : 'Save'}
+    >
+      {saving
+        ? <span className="btn-saving-spinner" aria-hidden="true" />
+        : status === SAVED_STATUS ? <CheckIcon /> : <SaveIcon />}
+    </button>
     </>
   )
 }

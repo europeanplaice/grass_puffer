@@ -20,6 +20,14 @@ function todayYMD(): string {
 const DATE_HASH_RE = /^\d{4}-\d{2}-\d{2}$/
 const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
 
+function seasonalAccent(): string {
+  const month = new Date().getMonth()
+  if (month <= 1 || month === 11) return '#5a7a8a'
+  if (month <= 4) return '#6a8c5a'
+  if (month <= 7) return '#7a8a5a'
+  return '#8a7a5a'
+}
+
 type AppHistoryState = {
   grassPuffer: true
   view: 'calendar' | 'entry'
@@ -215,7 +223,6 @@ export default function App() {
       if (!editorDirtyRef.current) return
 
       event.preventDefault()
-      event.returnValue = ''
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
@@ -340,7 +347,7 @@ export default function App() {
   }
 
   return (
-    <div className="app">
+    <div className="app" style={{ '--accent-seasonal': seasonalAccent() } as React.CSSProperties}>
       <div
         className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
         onClick={closeSidebar}
