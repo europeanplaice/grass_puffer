@@ -13,6 +13,8 @@
   --danger: #c0392b;
   --sidebar-w: 280px;
   --mobile-save-action-space: 0px;
+  --font-body: 'Georgia', serif;
+  --font-editor: 'Georgia', serif;
   /* Additional themeable tokens */
   --card-bg: #fff;
   --input-bg: #fff;
@@ -114,6 +116,11 @@
   --unsaved-status: #e0c080;
 }
 
+[data-font="sans"] {
+  --font-body: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-editor: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html,
@@ -125,7 +132,7 @@ body,
 }
 
 body {
-  font-family: 'Georgia', serif;
+  font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
   height: 100vh;
@@ -359,6 +366,18 @@ body {
   justify-content: center;
 }
 .btn-theme-toggle:hover { background: var(--border); color: var(--text); }
+.btn-font-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--theme-icon);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-font-toggle:hover { background: var(--border); color: var(--text); }
 .btn-signout {
   background: none;
   border: none;
@@ -1082,7 +1101,7 @@ body {
   resize: none;
   border: none;
   outline: none;
-  font-family: 'Georgia', serif;
+  font-family: var(--font-editor);
   font-size: 1.05rem;
   line-height: 1.8;
   color: var(--text);
