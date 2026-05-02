@@ -552,7 +552,7 @@ body {
   color: var(--today-text);
   font-weight: 600;
 }
-.entry-date-text[data-today]::before {
+.entry-date-text[data-dirty]::before {
   content: "";
   flex: 0 0 auto;
   width: 0.42rem;

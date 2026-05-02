@@ -308,6 +308,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
             <span
               className="entry-date-text"
               data-today={isToday || undefined}
+              data-dirty={isDirty || undefined}
               aria-label={isToday ? `${diaryDateLabel(date)}${weekday ? ` ${weekday}` : ''}, Today` : undefined}
             >
               <span className="entry-date-label-full">{diaryDateLabel(date)}</span>
