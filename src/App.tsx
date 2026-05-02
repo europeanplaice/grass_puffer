@@ -335,7 +335,7 @@ export default function App() {
   }, [accessToken, diary.getContent, recentDates.join('|')])
 
   const handleReauth = useCallback(async () => {
-    await signIn({ prompt: 'consent' })
+    await signIn()
     setRetrySaveAfterReauth(true)
   }, [signIn])
 
