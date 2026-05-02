@@ -419,10 +419,6 @@ const { mode: fontMode, toggleFont } = useFont()
         </div>
         <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
-        <label className="calendar-entry-toggle">
-          <input type="checkbox" checked={autoSave} onChange={handleAutoSaveToggle} />
-          <span>Auto-save</span>
-        </label>
         {diary.loading && <div className="sidebar-status">Loading entries…</div>}
         {diary.error && <div className="sidebar-status error">{diary.error}</div>}
         {recentDates.length > 0 && <h2 className="entry-list-heading">Recent</h2>}
@@ -451,6 +447,12 @@ const { mode: fontMode, toggleFont } = useFont()
             </li>
           )})}
         </ul>
+        <div className="sidebar-settings">
+          <label className="sidebar-settings-toggle">
+            <input type="checkbox" checked={autoSave} onChange={handleAutoSaveToggle} />
+            <span>Auto-save</span>
+          </label>
+        </div>
       </aside>
       <main className="main">
         <EntryEditor
