@@ -554,6 +554,15 @@ body {
   color: var(--today-text);
   font-weight: 600;
 }
+.entry-date-text[data-today]::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--today-ring);
+  align-self: center;
+}
 .entry-date-label-short {
   display: none;
 }
