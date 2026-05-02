@@ -138,6 +138,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
   const [autoSave, setAutoSave] = useState(() => localStorage.getItem('grass_puffer_autosave') !== 'false')
+  const [pendingDate, setPendingDate] = useState<string | null>(null)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
@@ -223,12 +224,7 @@ export default function App() {
     setSidebarOpen(false)
   }, [])
 
-  const selectDate = useCallback((d: string) => {
-    if (d !== selectedDateRef.current && editorDirtyRef.current) {
-      const shouldLeave = window.confirm('You have unsaved changes. Leave this entry without saving?')
-      if (!shouldLeave) return
-    }
-
+  const doNavigateToDate = useCallback((d: string) => {
     if (isMobileLayout()) {
       history.replaceState(appHistoryState('calendar', d), '', currentPathWithoutHash())
       history.pushState(appHistoryState('entry', d), '', entryPath(d))
@@ -238,6 +234,23 @@ export default function App() {
     setSelectedDate(d)
     selectedDateRef.current = d
     setSidebarOpen(false)
+    setPendingDate(null)
+  }, [])
+
+  const selectDate = useCallback((d: string) => {
+    if (d !== selectedDateRef.current && editorDirtyRef.current) {
+      setPendingDate(d)
+      return
+    }
+    doNavigateToDate(d)
+  }, [doNavigateToDate])
+
+  const handlePendingNavigate = useCallback(() => {
+    if (pendingDate) doNavigateToDate(pendingDate)
+  }, [pendingDate, doNavigateToDate])
+
+  const handleCancelNavigation = useCallback(() => {
+    setPendingDate(null)
   }, [])
 
   const handleAutoSaveToggle = useCallback(() => {
@@ -259,6 +272,7 @@ export default function App() {
   const handleSignOut = useCallback(() => {
     seededMobileHistoryRef.current = false
     history.replaceState(null, '', '#')
+    setPendingDate(null)
     signOut()
   }, [signOut])
 
@@ -402,6 +416,9 @@ export default function App() {
           autoSave={autoSave}
           onPrevDay={onPrevDay}
           onNextDay={onNextDay}
+          pendingNavDate={pendingDate}
+          onPendingNavigate={handlePendingNavigate}
+          onCancelNavigation={handleCancelNavigation}
         />
       </main>
     </div>

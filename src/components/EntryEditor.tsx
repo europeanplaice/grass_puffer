@@ -13,6 +13,9 @@ interface Props {
   autoSave: boolean
   onPrevDay: () => void
   onNextDay: () => void
+  pendingNavDate: string | null
+  onPendingNavigate: () => void
+  onCancelNavigation: () => void
 }
 
 function SaveIcon() {
@@ -45,7 +48,7 @@ const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -106,8 +109,13 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     onDirtyChange(isDirty)
   }, [isDirty, onDirtyChange])
 
-  const save = useCallback(async (explicit = true) => {
-    if (savingRef.current) return
+  const pendingNavDateRef = useRef(pendingNavDate)
+  useEffect(() => { pendingNavDateRef.current = pendingNavDate }, [pendingNavDate])
+  const onCancelNavigationRef = useRef(onCancelNavigation)
+  useEffect(() => { onCancelNavigationRef.current = onCancelNavigation }, [onCancelNavigation])
+
+  const save = useCallback(async (explicit = true): Promise<boolean> => {
+    if (savingRef.current) return false
     setSaving(true)
     if (explicit) {
       setStatus('')
@@ -120,11 +128,12 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
       setStatus(SAVED_STATUS)
+      return true
     } catch (e) {
       if (!explicit) {
         // Auto-save silently swallows errors; conflicts surface on next manual save
         console.error('Auto-save failed:', e)
-        return
+        return false
       }
       if (e instanceof EntryConflictError) {
         setHasConflict(true)
@@ -133,10 +142,27 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       } else {
         setStatus('Save failed.')
       }
+      return false
     } finally {
       setSaving(false)
     }
   }, [date])
+
+  const handleExplicitSave = useCallback(async () => {
+    const ok = await save(true)
+    if (ok && pendingNavDateRef.current) {
+      onCancelNavigationRef.current()
+    }
+  }, [save])
+
+  const handleSaveAndNavigate = useCallback(async () => {
+    const ok = await save(true)
+    if (ok) {
+      onPendingNavigate()
+    } else {
+      onCancelNavigation()
+    }
+  }, [save, onPendingNavigate, onCancelNavigation])
 
   const loadRemote = () => {
     const remoteText = conflictRemote?.entry.content ?? ''
@@ -198,12 +224,12 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        if (isDirty) save(true)
+        if (isDirty) handleExplicitSave()
       }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [isDirty, save])
+  }, [isDirty, handleExplicitSave])
 
   useEffect(() => {
     if (status !== SAVED_STATUS) return
@@ -294,7 +320,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
         <div className="editor-actions">
           <button
             className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
-            onClick={() => save(true)}
+            onClick={handleExplicitSave}
             disabled={saving || !isDirty}
             aria-busy={saving}
             aria-label={saving ? 'Saving' : status === SAVED_STATUS ? 'Saved' : 'Save'}
@@ -312,6 +338,16 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           )}
         </div>
       </div>
+      {pendingNavDate && (
+        <div className="unsaved-nav-banner">
+          <span>Unsaved changes — save before leaving?</span>
+          <div className="unsaved-nav-actions">
+            <button onClick={handleSaveAndNavigate} disabled={saving}>Save</button>
+            <button onClick={onPendingNavigate}>Discard</button>
+            <button onClick={onCancelNavigation}>Cancel</button>
+          </div>
+        </div>
+      )}
       {hasConflict && (
         <div className="conflict-panel">
           <div>

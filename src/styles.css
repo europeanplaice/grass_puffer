@@ -694,6 +694,38 @@ body {
 .conflict-actions button:not(:disabled):hover { background: var(--sidebar-bg); }
 .conflict-actions button:disabled { opacity: 0.5; cursor: default; }
 
+/* ── Unsaved-changes navigation banner ── */
+.unsaved-nav-banner {
+  align-items: center;
+  background: #fdf7e6;
+  border: 1px solid #c9a84c;
+  border-radius: 6px;
+  color: #6f4a00;
+  display: flex;
+  font-size: 0.88rem;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.9rem;
+}
+.unsaved-nav-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+.unsaved-nav-actions button {
+  background: #fff;
+  border: 1px solid #c9a84c;
+  border-radius: 5px;
+  color: #6f4a00;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 0.3rem 0.7rem;
+}
+.unsaved-nav-actions button:hover { background: #faeec8; }
+.unsaved-nav-actions button:disabled { cursor: default; opacity: 0.5; }
+
 /* ── Draft restore banner ── */
 .restored-banner {
   display: flex;
