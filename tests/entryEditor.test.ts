@@ -71,23 +71,22 @@ test.describe('EntryEditor — date header', () => {
     await expect(page.locator('.entry-date-label-short')).toBeHidden()
   })
 
-  test('places mobile save action near the bottom-right thumb zone', async ({ page }) => {
+   test('places mobile save action near the bottom-right thumb zone', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 })
     await loadHarness(page)
     await renderEditor(page, { date: '2026-12-31', initialContent: 'saved content', version: '1' })
 
     const saveButton = page.locator('button.btn-save')
-    const deleteButton = page.locator('.editor-actions > button.btn-delete')
+    const moreButton = page.locator('button.btn-more')
     await expect(saveButton).toBeVisible()
-    await expect(deleteButton).toBeVisible()
+    await expect(moreButton).toBeVisible()
 
     const metrics = await page.evaluate(() => {
       const header = document.querySelector('.editor-header')?.getBoundingClientRect()
       const editor = document.querySelector('.editor')?.getBoundingClientRect()
       const save = document.querySelector('button.btn-save')?.getBoundingClientRect()
-      const del = document.querySelector('.editor-actions > button.btn-delete')?.getBoundingClientRect()
-      const deleteIcon = document.querySelector('.editor-actions > button.btn-delete .btn-icon')?.getBoundingClientRect()
-      if (!header || !editor || !save || !del || !deleteIcon) throw new Error('missing editor layout')
+      const more = document.querySelector('button.btn-more')?.getBoundingClientRect()
+      if (!header || !editor || !save || !more) throw new Error('missing editor layout')
 
       return {
         editorHeight: editor.height,
@@ -98,9 +97,8 @@ test.describe('EntryEditor — date header', () => {
         saveBottom: save.bottom,
         saveWidth: save.width,
         saveHeight: save.height,
-        deleteTop: del.top,
-        deleteCenterX: del.left + del.width / 2,
-        deleteIconCenterX: deleteIcon.left + deleteIcon.width / 2,
+        moreTop: more.top,
+        moreCenterX: more.left + more.width / 2,
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight,
       }
@@ -109,14 +107,13 @@ test.describe('EntryEditor — date header', () => {
     expect(metrics.editorHeight).toBeLessThanOrEqual(metrics.viewportHeight)
     expect(metrics.headerLeft).toBeGreaterThanOrEqual(0)
     expect(metrics.headerRight).toBeLessThanOrEqual(metrics.viewportWidth)
-    expect(metrics.deleteTop).toBeLessThan(metrics.headerBottom)
+    expect(metrics.moreTop).toBeLessThan(metrics.headerBottom)
     expect(metrics.saveRight).toBeLessThanOrEqual(metrics.viewportWidth - 16 + 1)
     expect(metrics.saveBottom).toBeLessThanOrEqual(metrics.viewportHeight - 16 + 1)
     expect(metrics.viewportWidth - metrics.saveRight).toBeLessThanOrEqual(17)
     expect(metrics.viewportHeight - metrics.saveBottom).toBeLessThanOrEqual(17)
     expect(metrics.saveWidth).toBeGreaterThanOrEqual(56)
     expect(metrics.saveHeight).toBeGreaterThanOrEqual(56)
-    expect(Math.abs(metrics.deleteCenterX - metrics.deleteIconCenterX)).toBeLessThanOrEqual(0.5)
   })
 
   test('moves the mobile save action above the visual viewport keyboard inset', async ({ page }) => {
@@ -198,7 +195,7 @@ test.describe('EntryEditor — date header', () => {
     })
   })
 
-  test('keeps the mobile header divider stable when delete action appears after loading', async ({ page }) => {
+  test('keeps the mobile header divider stable when more menu appears after loading', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 })
     await loadHarness(page)
 
@@ -217,7 +214,7 @@ test.describe('EntryEditor — date header', () => {
     )
 
     await page.waitForSelector('textarea.editor-textarea')
-    await expect(page.locator('.editor-actions > button.btn-delete')).toBeVisible()
+    await expect(page.locator('button.btn-more')).toBeVisible()
 
     const loadedHeaderBottom = await page.locator('.editor-header').evaluate(el =>
       el.getBoundingClientRect().bottom
@@ -350,7 +347,9 @@ test.describe('EntryEditor — delete confirmation', () => {
     await loadHarness(page)
     await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
 
-    await page.getByRole('button', { name: 'Delete entry' }).click()
+    await page.getByRole('button', { name: 'More options' }).click()
+    await expect(page.locator('.more-menu')).toBeVisible()
+    await page.locator('.more-menu-delete').click()
     await expect(page.getByRole('heading', { name: 'Delete entry?' })).toBeVisible()
     await expect(page.locator('.delete-modal-actions .btn-delete')).toBeDisabled()
 
