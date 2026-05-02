@@ -9,7 +9,6 @@
   --dot: #5a7a5a;
   --today-ring: #c0a060;
   --today-text: #6f4a00;
-  --today-bg: #fff4d6;
   --selected-bg: #dff0df;
   --danger: #c0392b;
   --sidebar-w: 280px;
@@ -449,10 +448,7 @@ body {
   white-space: nowrap;
 }
 .entry-list-date[data-today] {
-  background: var(--today-bg);
-  border-radius: 6px;
   color: var(--today-text);
-  padding: 0.12rem 0.35rem;
 }
 .entry-list-weekday {
   color: var(--text-muted);
@@ -555,11 +551,8 @@ body {
   min-width: 0;
 }
 .entry-date-text[data-today] {
-  background: var(--today-bg);
-  border-radius: 6px;
   color: var(--today-text);
   font-weight: 600;
-  padding: 0.12rem 0.35rem;
 }
 .entry-date-label-short {
   display: none;

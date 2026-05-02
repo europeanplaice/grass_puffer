@@ -356,15 +356,20 @@ export default function App() {
           {recentDates.map(d => {
             const preview = recentPreviews.get(d)
             const isToday = d === todayDate
+            const weekday = weekdayLabel(d)
             return (
             <li
               key={d}
               className={[d === selectedDate ? 'active' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
               onClick={() => selectDate(d)}
             >
-              <span className="entry-list-date" data-today={isToday || undefined}>
+              <span
+                className="entry-list-date"
+                data-today={isToday || undefined}
+                aria-label={isToday ? `${diaryDateLabel(d, false)}${weekday ? ` ${weekday}` : ''}, Today` : undefined}
+              >
                 <span>{diaryDateLabel(d, false)}</span>
-                {weekdayLabel(d) && <span className="entry-list-weekday">{weekdayLabel(d)}</span>}
+                {weekday && <span className="entry-list-weekday">{weekday}</span>}
               </span>
               <span className="entry-list-preview">
                 {preview?.hasContent ? preview.snippet : 'No text yet'}
