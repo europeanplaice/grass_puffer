@@ -13,6 +13,105 @@
   --danger: #c0392b;
   --sidebar-w: 280px;
   --mobile-save-action-space: 0px;
+  /* Additional themeable tokens */
+  --card-bg: #fff;
+  --input-bg: #fff;
+  --shadow: rgba(0,0,0,0.06);
+  --shadow-heavy: rgba(0,0,0,0.18);
+  --overlay: rgba(0,0,0,0.35);
+  --overlay-heavy: rgba(0,0,0,0.45);
+  --overlay-darkest: rgba(0,0,0,0.55);
+  --code-bg: rgba(0,0,0,0.06);
+  --skeleton-shim: rgba(255,255,255,0.75);
+  --skeleton-bg: rgba(255,255,255,0.6);
+  --skeleton-overlay: rgba(255,255,255,0.75);
+  --google-btn-bg: #fff;
+  --google-btn-text: #3c4043;
+  --google-btn-border: #dadce0;
+  --google-btn-hover-bg: #f8f9fa;
+  --google-btn-hover-border: #c6c9cc;
+  --google-btn-active-bg: #f1f3f4;
+  --google-btn-shadow: rgba(0,0,0,0.08);
+  --google-btn-shadow-hover: rgba(0,0,0,0.14);
+  --unsaved-bg: #fdf7e6;
+  --unsaved-border: #c9a84c;
+  --unsaved-text: #6f4a00;
+  --unsaved-hover: #faeec8;
+  --conflict-bg: #fff7e8;
+  --conflict-border: #e0b35b;
+  --conflict-text: #6f4a00;
+  --draft-bg: #eef4fb;
+  --draft-border: #7ba7d4;
+  --draft-text: #1a3a5c;
+  --draft-hover: #ddeaf8;
+  --expired-bg: #fdf0ee;
+  --expired-border: #f5c6c0;
+  --danger-hover: #a93226;
+  --save-success-bg: #437a55;
+  --save-success-flash: #5fad77;
+  --save-glow: rgba(90,122,90,0.25);
+  --save-btn-shadow: rgba(44,44,44,0.18);
+  --spinner-border: rgba(255,255,255,0.42);
+  --sidebar-box-shadow: rgba(0,0,0,0.12);
+  --restoring-search-bg: rgba(255,255,255,0.75);
+  --unsaved-status: #8a5f00;
+  --theme-icon: var(--text-muted);
+}
+
+[data-theme="dark"] {
+  --bg: #1a1a1a;
+  --sidebar-bg: #222;
+  --border: #3a3a3a;
+  --accent: #6b9b6b;
+  --accent-hover: #5a8a5a;
+  --text: #e0e0e0;
+  --text-muted: #888;
+  --dot: #6b9b6b;
+  --today-ring: #d4b060;
+  --today-text: #e0c080;
+  --selected-bg: #2a3d2a;
+  --danger: #e74c3c;
+  --card-bg: #2a2a2a;
+  --input-bg: #2a2a2a;
+  --shadow: rgba(0,0,0,0.3);
+  --shadow-heavy: rgba(0,0,0,0.5);
+  --overlay: rgba(0,0,0,0.5);
+  --overlay-heavy: rgba(0,0,0,0.65);
+  --overlay-darkest: rgba(0,0,0,0.75);
+  --code-bg: rgba(255,255,255,0.08);
+  --skeleton-shim: rgba(255,255,255,0.08);
+  --skeleton-bg: rgba(255,255,255,0.05);
+  --skeleton-overlay: rgba(255,255,255,0.06);
+  --google-btn-bg: #303134;
+  --google-btn-text: #e8eaed;
+  --google-btn-border: #5f6368;
+  --google-btn-hover-bg: #3c4043;
+  --google-btn-hover-border: #8ab4f8;
+  --google-btn-active-bg: #484a4d;
+  --google-btn-shadow: rgba(0,0,0,0.3);
+  --google-btn-shadow-hover: rgba(0,0,0,0.5);
+  --unsaved-bg: #3d3520;
+  --unsaved-border: #8a7030;
+  --unsaved-text: #e0c080;
+  --unsaved-hover: #4d4428;
+  --conflict-bg: #3d3520;
+  --conflict-border: #8a7030;
+  --conflict-text: #e0c080;
+  --draft-bg: #1e2d3d;
+  --draft-border: #4a6a8a;
+  --draft-text: #a0c8e0;
+  --draft-hover: #263848;
+  --expired-bg: #3d2020;
+  --expired-border: #8a3a3a;
+  --danger-hover: #c0392b;
+  --save-success-bg: #437a55;
+  --save-success-flash: #5fad77;
+  --save-glow: rgba(107,155,107,0.3);
+  --save-btn-shadow: rgba(200,200,200,0.15);
+  --spinner-border: rgba(255,255,255,0.25);
+  --sidebar-box-shadow: rgba(0,0,0,0.4);
+  --restoring-search-bg: rgba(255,255,255,0.06);
+  --unsaved-status: #e0c080;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -46,10 +145,10 @@ body {
 .login-card {
   text-align: center;
   padding: 3rem 4rem;
-  background: #fff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+  box-shadow: 0 4px 24px var(--shadow);
 }
 .login-logo {
   display: block;
@@ -60,11 +159,11 @@ body {
 .login-card h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
 .login-card > p { color: var(--text-muted); margin-bottom: 1.5rem; }
 .session-expired-msg {
-  color: #c0392b;
+  color: var(--danger);
   font-size: 0.85rem;
   margin-bottom: 1rem !important;
-  background: #fdf0ee;
-  border: 1px solid #f5c6c0;
+  background: var(--expired-bg);
+  border: 1px solid var(--expired-border);
   border-radius: 6px;
   padding: 0.5rem 0.8rem;
 }
@@ -79,9 +178,9 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: #fff;
-  color: #3c4043;
-  border: 1px solid #dadce0;
+  background: var(--google-btn-bg);
+  color: var(--google-btn-text);
+  border: 1px solid var(--google-btn-border);
   border-radius: 4px;
   padding: 0 16px;
   height: 40px;
@@ -90,27 +189,27 @@ body {
   font-weight: 500;
   letter-spacing: 0.25px;
   cursor: pointer;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 2px var(--google-btn-shadow);
   transition: background 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
 .btn-signin-google:hover {
-  background: #f8f9fa;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.14);
-  border-color: #c6c9cc;
+  background: var(--google-btn-hover-bg);
+  box-shadow: 0 2px 6px var(--google-btn-shadow-hover);
+  border-color: var(--google-btn-hover-border);
 }
 .btn-signin-google:active {
-  background: #f1f3f4;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  background: var(--google-btn-active-bg);
+  box-shadow: 0 1px 2px var(--google-btn-shadow);
 }
 .btn-signin-google:disabled {
   cursor: default;
   opacity: 0.6;
 }
 .btn-signin-google:disabled:hover {
-  background: #fff;
-  border-color: #dadce0;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  background: var(--google-btn-bg);
+  border-color: var(--google-btn-border);
+  box-shadow: 0 1px 2px var(--google-btn-shadow);
 }
 .btn-use-another-account {
   display: block;
@@ -191,7 +290,7 @@ body {
 .privacy-body code {
   font-family: monospace;
   font-size: 0.9em;
-  background: rgba(0,0,0,0.06);
+  background: var(--code-bg);
   padding: 0 3px;
   border-radius: 3px;
 }
@@ -248,6 +347,18 @@ body {
   line-height: 1;
 }
 .btn-close-sidebar:hover { background: var(--border); color: var(--text); }
+.btn-theme-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--theme-icon);
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn-theme-toggle:hover { background: var(--border); color: var(--text); }
 .btn-signout {
   background: none;
   border: none;
@@ -294,7 +405,7 @@ body {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.35);
+  background: var(--overlay);
   z-index: 99;
 }
 
@@ -305,7 +416,7 @@ body {
   padding: 0.4rem 0.7rem;
   border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fff;
+  background: var(--input-bg);
   font-size: 0.85rem;
   font-family: inherit;
   outline: none;
@@ -315,7 +426,7 @@ body {
 .search-status.error { color: var(--danger); }
 .search-results {
   list-style: none;
-  background: #fff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   margin-top: 0.3rem;
@@ -528,7 +639,7 @@ body {
   height: 32px;
   margin: 0.6rem 1rem;
   border-radius: 6px;
-  background: rgba(255,255,255,0.75);
+  background: var(--restoring-search-bg);
   border: 1px solid var(--border);
 }
 .restoring-entry-list {
@@ -542,7 +653,7 @@ body {
   margin: 0 1rem;
   border-left: 0;
   border-radius: 4px;
-  background: rgba(255,255,255,0.6);
+  background: var(--skeleton-bg);
 }
 .restoring-editor {
   color: var(--text-muted);
@@ -565,7 +676,7 @@ body {
 .restoring-search,
 .restoring-entry-list li,
 .restoring-lines span {
-  background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent);
+  background-image: linear-gradient(90deg, transparent, var(--skeleton-overlay), transparent);
   background-size: 220% 100%;
   animation: restoring-pulse 1.6s ease-in-out infinite;
 }
@@ -640,7 +751,7 @@ body {
   min-width: 4.8rem;
   text-align: right;
 }
-.editor-status.unsaved-status { color: #8a5f00; }
+.editor-status.unsaved-status { color: var(--unsaved-status); }
 .editor-status.saving-status { color: var(--accent); }
 .editor-status.saved-status {
   color: var(--accent);
@@ -679,14 +790,14 @@ body {
 .btn-saving-spinner {
   width: 0.72rem;
   height: 0.72rem;
-  border: 2px solid rgba(255,255,255,0.42);
+  border: 2px solid var(--spinner-border);
   border-top-color: #fff;
   border-radius: 50%;
   animation: save-spinner 0.75s linear infinite;
 }
 @keyframes save-button-pulse {
   0%, 100% { box-shadow: none; }
-  50% { box-shadow: 0 2px 8px rgba(90,122,90,0.25); }
+  50% { box-shadow: 0 2px 8px var(--save-glow); }
 }
 @keyframes save-spinner {
   to { transform: rotate(360deg); }
@@ -701,22 +812,22 @@ body {
 }
 .editor-actions .btn-save.btn-saved {
   opacity: 1;
-  background: #437a55;
+  background: var(--save-success-bg);
   animation: saved-button-flash 0.35s ease-out;
 }
 @keyframes saved-button-flash {
-  0%   { background: #5fad77; }
-  100% { background: #437a55; }
+  0%   { background: var(--save-success-flash); }
+  100% { background: var(--save-success-bg); }
 }
 .btn-delete { background: var(--danger) !important; }
-.btn-delete:not(:disabled):hover { background: #a93226 !important; }
+.btn-delete:not(:disabled):hover { background: var(--danger-hover) !important; }
 .conflict-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border: 1px solid #e0b35b;
-  background: #fff7e8;
+  border: 1px solid var(--conflict-border);
+  background: var(--conflict-bg);
   border-radius: 6px;
   padding: 0.75rem 0.9rem;
   margin-bottom: 1rem;
@@ -724,7 +835,7 @@ body {
 .conflict-panel strong {
   display: block;
   font-size: 0.9rem;
-  color: #6f4a00;
+  color: var(--conflict-text);
   margin-bottom: 0.2rem;
 }
 .conflict-panel p {
@@ -740,7 +851,7 @@ body {
 }
 .conflict-actions button {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--card-bg);
   color: var(--text);
   border-radius: 5px;
   padding: 0.35rem 0.75rem;
@@ -754,10 +865,10 @@ body {
 /* ── Unsaved-changes navigation banner ── */
 .unsaved-nav-banner {
   align-items: center;
-  background: #fdf7e6;
-  border: 1px solid #c9a84c;
+  background: var(--unsaved-bg);
+  border: 1px solid var(--unsaved-border);
   border-radius: 6px;
-  color: #6f4a00;
+  color: var(--unsaved-text);
   display: flex;
   font-size: 0.88rem;
   gap: 1rem;
@@ -771,16 +882,16 @@ body {
   gap: 0.5rem;
 }
 .unsaved-nav-actions button {
-  background: #fff;
-  border: 1px solid #c9a84c;
+  background: var(--card-bg);
+  border: 1px solid var(--unsaved-border);
   border-radius: 5px;
-  color: #6f4a00;
+  color: var(--unsaved-text);
   cursor: pointer;
   font-family: inherit;
   font-size: 0.82rem;
   padding: 0.3rem 0.7rem;
 }
-.unsaved-nav-actions button:hover { background: #faeec8; }
+.unsaved-nav-actions button:hover { background: var(--unsaved-hover); }
 .unsaved-nav-actions button:disabled { cursor: default; opacity: 0.5; }
 
 /* ── Draft restore banner ── */
@@ -789,13 +900,13 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border: 1px solid #7ba7d4;
-  background: #eef4fb;
+  border: 1px solid var(--draft-border);
+  background: var(--draft-bg);
   border-radius: 6px;
   padding: 0.6rem 0.9rem;
   margin-bottom: 1rem;
   font-size: 0.88rem;
-  color: #1a3a5c;
+  color: var(--draft-text);
 }
 .restored-banner-actions {
   display: flex;
@@ -803,16 +914,16 @@ body {
   flex-shrink: 0;
 }
 .restored-banner-actions button {
-  border: 1px solid #7ba7d4;
-  background: #fff;
-  color: #1a3a5c;
+  border: 1px solid var(--draft-border);
+  background: var(--card-bg);
+  color: var(--draft-text);
   border-radius: 5px;
   padding: 0.3rem 0.7rem;
   font-size: 0.82rem;
   font-family: inherit;
   cursor: pointer;
 }
-.restored-banner-actions button:hover { background: #ddeaf8; }
+.restored-banner-actions button:hover { background: var(--draft-hover); }
 
 /* ── Error boundary fallback ── */
 .error-boundary-fallback {
@@ -843,19 +954,19 @@ body {
 .delete-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: var(--overlay-heavy);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 200;
 }
 .delete-modal {
-  background: #fff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 2rem;
   width: min(420px, 90vw);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 32px var(--shadow-heavy);
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
@@ -893,19 +1004,19 @@ body {
 .session-expired-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.55);
+  background: var(--overlay-darkest);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 300;
 }
 .session-expired-modal {
-  background: #fff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 2rem;
   width: min(380px, 90vw);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 8px 32px var(--shadow-heavy);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -920,8 +1031,8 @@ body {
 .session-expired-modal-error {
   font-size: 0.85rem;
   color: var(--danger);
-  background: #fdf0ee;
-  border: 1px solid #f5c6c0;
+  background: var(--expired-bg);
+  border: 1px solid var(--expired-border);
   border-radius: 6px;
   padding: 0.4rem 0.7rem;
   margin: 0;
@@ -951,7 +1062,7 @@ body {
   width: 78%;
   border-radius: 999px;
   background-color: var(--sidebar-bg);
-  background-image: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent);
+  background-image: linear-gradient(90deg, transparent, var(--skeleton-overlay), transparent);
   background-size: 220% 100%;
   animation: entry-skeleton-shimmer 1.4s ease-in-out infinite;
 }
@@ -1007,7 +1118,7 @@ body {
     z-index: 100;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
-    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+    box-shadow: 4px 0 24px var(--sidebar-box-shadow);
   }
   .sidebar.open {
     transform: translateX(0);
@@ -1085,7 +1196,7 @@ body {
 
   .unsaved-nav-banner {
     bottom: max(1rem, env(safe-area-inset-bottom));
-    box-shadow: 0 10px 28px rgba(0,0,0,0.18);
+    box-shadow: 0 10px 28px var(--shadow-heavy);
     left: 1rem;
     margin: 0;
     position: fixed;
@@ -1111,7 +1222,7 @@ body {
     min-width: 3.5rem;
     padding: 0;
     border-radius: 999px;
-    box-shadow: 0 6px 18px rgba(44,44,44,0.18);
+    box-shadow: 0 6px 18px var(--save-btn-shadow);
   }
   .editor-actions .btn-delete {
     width: 2.75rem;

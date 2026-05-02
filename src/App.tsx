@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
+import { useTheme } from './hooks/useTheme'
 import { LoginScreen } from './components/LoginScreen'
 import { SessionExpiredModal } from './components/SessionExpiredModal'
 import { CalendarView } from './components/CalendarView'
@@ -134,6 +135,7 @@ export default function App() {
     forgetSession,
     handleExpired,
   } = useAuth()
+  const { effectiveTheme, toggleTheme } = useTheme()
   const [sessionExpired, setSessionExpired] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -280,8 +282,14 @@ export default function App() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (!e.repeat) {
+        if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+          e.preventDefault()
+          toggleTheme()
+          return
+        }
+      }
       if (!e.altKey || e.repeat) return
-      // Don't fire when focused in a text input (e.g. delete-modal confirmation field)
       if (document.activeElement instanceof HTMLInputElement) return
 
       if (e.key === 'ArrowLeft') {
@@ -297,7 +305,7 @@ export default function App() {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [selectDate])
+  }, [selectDate, toggleTheme])
 
   const datesSet = new Set(diary.dates)
   const recentDates = diary.dates.slice(0, 5)
@@ -385,6 +393,13 @@ export default function App() {
           <h1 className="app-title"><AppIcon className="app-title-icon" /> Diary</h1>
           <div className="sidebar-actions">
             <button className="btn-close-sidebar" onClick={closeSidebar} title="Close menu" aria-label="Close menu">×</button>
+            <button className="btn-theme-toggle" onClick={toggleTheme} title={`Switch to ${effectiveTheme === 'dark' ? 'light' : 'dark'} theme`} aria-label="Toggle theme">
+              {effectiveTheme === 'dark' ? (
+                <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+              ) : (
+                <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+              )}
+            </button>
             <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
           </div>
         </div>
