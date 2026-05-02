@@ -87,6 +87,14 @@ export async function listEntries(token: string, folderId: string): Promise<Driv
   return res.files
 }
 
+export async function searchEntries(token: string, folderId: string, query: string): Promise<DriveFileMeta[]> {
+  const escapedQuery = query.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='application/json' and fullText contains '${escapedQuery}'`)
+  const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
+  const res = await driveJson<{ files: DriveFileMeta[] }>(token, `${BASE}/files?q=${q}&fields=${fields}&pageSize=1000`)
+  return res.files
+}
+
 export async function findEntryMeta(token: string, folderId: string, date: string): Promise<DriveFileMeta | null> {
   const filename = `diary-${date}.json`.replace(/'/g, "\\'")
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name='${filename}'`)

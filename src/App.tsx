@@ -403,7 +403,7 @@ export default function App() {
             <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
           </div>
         </div>
-        <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} indexingProgress={diary.indexingProgress} />
+        <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         <label className="calendar-entry-toggle">
           <input type="checkbox" checked={autoSave} onChange={handleAutoSaveToggle} />

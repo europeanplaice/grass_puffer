@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { DiaryEntry, DriveFileMeta, LoadedDiaryEntry } from '../types'
-import { ensureFolder, listEntries, findEntryMeta, getEntry, getEntryMeta, saveEntry, deleteEntry, TokenExpiredError, DriveHttpError, clearFolderCache } from '../api/driveEntries'
+import { ensureFolder, listEntries, searchEntries, findEntryMeta, getEntry, getEntryMeta, saveEntry, deleteEntry, TokenExpiredError, DriveHttpError, clearFolderCache } from '../api/driveEntries'
 
 interface EntryCache {
   meta: DriveFileMeta
@@ -8,21 +8,14 @@ interface EntryCache {
   snippet?: string
 }
 
-export interface IndexingProgress {
-  done: number
-  total: number
-  running: boolean
-}
-
 export interface DiaryState {
   loading: boolean
   error: string | null
   dates: string[]                                      // sorted desc
-  indexingProgress: IndexingProgress
   getContent: (date: string) => Promise<LoadedDiaryEntry | null>
   save: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
   remove: (date: string) => Promise<void>
-  search: (query: string) => SearchResult
+  search: (query: string) => Promise<SearchResult>
   retryPendingSave: () => Promise<LoadedDiaryEntry | null>
 }
 
@@ -47,13 +40,11 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cache, setCache] = useState<Map<string, EntryCache>>(new Map())
-  const [indexingProgress, setIndexingProgress] = useState<IndexingProgress>({ done: 0, total: 0, running: false })
   const cacheRef = useRef(cache)
   const folderIdRef = useRef<string | null>(null)
   const folderLoadPromiseRef = useRef<Promise<string> | null>(null)
   const saveQueueRef = useRef<Map<string, Promise<unknown>>>(new Map())
   const pendingSaveRef = useRef<PendingSave | null>(null)
-  const indexingAbortRef = useRef<AbortController | null>(null)
   const onExpiredRef = useRef(onExpired)
   useEffect(() => { onExpiredRef.current = onExpired })
   useEffect(() => { cacheRef.current = cache }, [cache])
@@ -106,12 +97,9 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
   // Load entry list when token becomes available
   useEffect(() => {
     if (!accessToken) {
-      indexingAbortRef.current?.abort()
-      indexingAbortRef.current = null
       const emptyCache = new Map<string, EntryCache>()
       cacheRef.current = emptyCache
       setCache(emptyCache)
-      setIndexingProgress({ done: 0, total: 0, running: false })
       folderIdRef.current = null
       folderLoadPromiseRef.current = null
       return
@@ -133,58 +121,6 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
         }
         cacheRef.current = newCache
         setCache(newCache)
-
-        // Kick off background indexing with bounded concurrency (limit 6)
-        const dates = Array.from(newCache.keys())
-        const toIndex = dates.filter(d => !newCache.get(d)?.snippet)
-        if (toIndex.length === 0) return
-
-        indexingAbortRef.current?.abort()
-        const controller = new AbortController()
-        indexingAbortRef.current = controller
-
-        setIndexingProgress({ done: 0, total: toIndex.length, running: true })
-
-        const CONCURRENCY = 6
-        let cursor = 0
-        let done = 0
-
-        const runNext = async (): Promise<void> => {
-          while (cursor < toIndex.length) {
-            if (controller.signal.aborted) return
-            const date = toIndex[cursor++]
-            const current = cacheRef.current.get(date)
-            if (current?.snippet) {
-              done++
-              setIndexingProgress(p => ({ ...p, done }))
-              continue
-            }
-            try {
-              const meta = current?.meta
-              if (!meta) continue
-              const entry = await getEntry(accessToken, meta.id)
-              if (controller.signal.aborted) return
-              const snippet = entry.content.slice(0, 500)
-              updateCache(prev => {
-                const next = new Map(prev)
-                const existing = next.get(date)
-                if (existing) next.set(date, { ...existing, content: entry, snippet })
-                return next
-              })
-            } catch {
-              // individual fetch failures don't block indexing
-            }
-            done++
-            setIndexingProgress(p => ({ ...p, done }))
-          }
-        }
-
-        const workers = Array.from({ length: Math.min(CONCURRENCY, toIndex.length) }, runNext)
-        await Promise.allSettled(workers)
-
-        if (!controller.signal.aborted) {
-          setIndexingProgress(p => ({ ...p, running: false }))
-        }
       } catch (e) {
         if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
         setError(String(e))
@@ -313,28 +249,53 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
     }
   }, [accessToken, updateCache])
 
-  const search = useCallback((query: string): SearchResult => {
+  const search = useCallback(async (query: string): Promise<SearchResult> => {
     if (!accessToken || !query.trim()) return { results: [], unindexedCount: 0 }
-    const q = query.toLowerCase()
-    const results: { date: string; snippet: string }[] = []
-    let unindexedCount = 0
 
-    for (const [date, entry] of cacheRef.current.entries()) {
-      const text = entry.content?.content ?? entry.snippet
-      if (text === undefined) {
-        unindexedCount++
-        continue
-      }
-      if (text.toLowerCase().includes(q)) {
-        const idx = text.toLowerCase().indexOf(q)
+    const folderId = folderIdRef.current ?? await ensureFolderId()
+    if (!folderId) return { results: [], unindexedCount: 0 }
+
+    // Search Drive API for matching entries
+    const files = await searchEntries(accessToken, folderId, query)
+
+    const results: { date: string; snippet: string }[] = []
+    const cached = cacheRef.current
+
+    for (const f of files) {
+      const date = f.name.replace('diary-', '').replace('.json', '')
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+
+      // Try to get snippet from cache first
+      const cachedEntry = cached.get(date)
+      if (cachedEntry?.content) {
+        const text = cachedEntry.content.content
+        const idx = text.toLowerCase().indexOf(query.toLowerCase())
         const snippet = text.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
         results.push({ date, snippet })
+      } else {
+        // Fetch content for snippet
+        try {
+          const entry = await getEntry(accessToken, f.id)
+          const text = entry.content
+          const idx = text.toLowerCase().indexOf(query.toLowerCase())
+          const snippet = text.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
+          results.push({ date, snippet })
+          // Cache the content
+          updateCache(prev => {
+            const next = new Map(prev)
+            const existing = next.get(date)
+            if (existing) next.set(date, { ...existing, content: entry, snippet })
+            return next
+          })
+        } catch {
+          // Skip entries that fail to load
+        }
       }
     }
 
     results.sort((a, b) => b.date.localeCompare(a.date))
-    return { results, unindexedCount }
-  }, [accessToken])
+    return { results, unindexedCount: 0 }
+  }, [accessToken, ensureFolderId, updateCache])
 
   const retryPendingSave = useCallback(async (): Promise<LoadedDiaryEntry | null> => {
     const pending = pendingSaveRef.current
@@ -345,5 +306,5 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
 
   const dates = Array.from(cache.keys()).sort((a, b) => b.localeCompare(a))
 
-  return { loading, error, dates, indexingProgress, getContent, save, remove, search, retryPendingSave }
+  return { loading, error, dates, getContent, save, remove, search, retryPendingSave }
 }
