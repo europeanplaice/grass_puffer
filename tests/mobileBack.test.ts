@@ -118,19 +118,15 @@ test('mobile date selection confirms before leaving unsaved edits', async ({ pag
   await page.locator('.btn-menu').click()
   await expect(page.locator('.calendar')).toBeVisible()
 
-  page.once('dialog', async dialog => {
-    expect(dialog.message()).toContain('unsaved changes')
-    await dialog.dismiss()
-  })
   await page.getByRole('button', { name: nextDate }).click()
+  await expect(page.locator('.unsaved-nav-banner')).toContainText('Unsaved changes')
+  await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Cancel' }).click()
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(currentHash)
   await expect(editor).toHaveValue('unsaved draft')
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
 
-  page.once('dialog', async dialog => {
-    await dialog.accept()
-  })
   await page.getByRole('button', { name: nextDate }).click()
+  await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Discard' }).click()
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#${nextDate}`)
   await expect(editor).toHaveValue('')
 })

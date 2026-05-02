@@ -173,6 +173,6 @@ test('expired save reauth retries with the refreshed token without showing re-lo
   await expect(page.getByText('Your session has expired. Please log in again.')).toHaveCount(0)
   await expect.poll(() => page.evaluate(() => (
     window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
-  ).__lastTokenRequestConfig)).toEqual({ prompt: 'consent' })
+  ).__lastTokenRequestConfig)).toEqual({ prompt: '' })
   await expect.poll(() => uploadTokens).toEqual(['Bearer test-token-2'])
 })
