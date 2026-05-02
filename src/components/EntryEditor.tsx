@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
-import { saveDraft, loadDraft, clearDraft } from '../utils/draftStorage'
 import type { LoadedDiaryEntry } from '../types'
 import { todayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
 
@@ -43,7 +42,6 @@ function TrashIcon() {
 const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
-const DRAFT_DEBOUNCE_MS = 300
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 
@@ -58,8 +56,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [deleteInput, setDeleteInput] = useState('')
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
-  const [showDraftBanner, setShowDraftBanner] = useState(false)
-  const [pendingDraft, setPendingDraft] = useState<string | null>(null)
   const weekday = weekdayLabel(date)
   const isToday = date === todayYmd()
 
@@ -90,21 +86,11 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setStatus('')
     setHasConflict(false)
     setConflictRemote(null)
-    setShowDraftBanner(false)
-    setPendingDraft(null)
     getContent(date).then(entry => {
       if (cancelled) return
       const driveText = entry?.entry.content ?? ''
-      const draft = loadDraft(date)
-      if (draft !== null && draft !== driveText) {
-        setPendingDraft(draft)
-        setShowDraftBanner(true)
-        setText(driveText)
-        setSavedText(driveText)
-      } else {
-        setText(driveText)
-        setSavedText(driveText)
-      }
+      setText(driveText)
+      setSavedText(driveText)
       setBaseVersion(entry?.meta.version ?? null)
     }).catch(() => {
       if (!cancelled) setStatus('Failed to load entry.')
@@ -133,7 +119,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       const saved = await onSaveRef.current(date, currentText, baseVersionRef.current)
       setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
-      clearDraft(date)
       setStatus(SAVED_STATUS)
     } catch (e) {
       if (!explicit) {
@@ -177,7 +162,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       const saved = await onSaveRef.current(date, currentText, conflictRemote?.meta.version ?? baseVersionRef.current, true)
       setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
-      clearDraft(date)
       setHasConflict(false)
       setConflictRemote(null)
       setStatus(SAVED_STATUS)
@@ -197,27 +181,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setShowDeleteModal(false)
     await onDelete(date)
   }
-
-  // Draft restore actions
-  const restoreDraft = () => {
-    if (pendingDraft === null) return
-    setText(pendingDraft)
-    setShowDraftBanner(false)
-    setPendingDraft(null)
-  }
-
-  const discardDraft = () => {
-    clearDraft(date)
-    setShowDraftBanner(false)
-    setPendingDraft(null)
-  }
-
-  // Debounced local draft save
-  useEffect(() => {
-    if (!isDirty) return
-    const id = window.setTimeout(() => saveDraft(date, textRef.current), DRAFT_DEBOUNCE_MS)
-    return () => window.clearTimeout(id)
-  }, [text, isDirty, date])
 
   // Drive auto-save after 3s of being dirty (only when auto-save is enabled)
   useEffect(() => {
@@ -349,15 +312,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           )}
         </div>
       </div>
-      {showDraftBanner && (
-        <div className="restored-banner">
-          <span>You have an unsaved draft for this entry.</span>
-          <div className="restored-banner-actions">
-            <button onClick={restoreDraft}>Restore</button>
-            <button onClick={discardDraft}>Discard</button>
-          </div>
-        </div>
-      )}
       {hasConflict && (
         <div className="conflict-panel">
           <div>

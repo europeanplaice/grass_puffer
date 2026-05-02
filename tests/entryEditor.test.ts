@@ -226,29 +226,7 @@ test.describe('EntryEditor — date header', () => {
   })
 })
 
-test.describe('EntryEditor — draft storage', () => {
-  test('typing triggers localStorage draft write after 300ms debounce', async ({ page }) => {
-    await page.clock.install()
-    await loadHarness(page)
-    await renderEditor(page, { date: '2026-05-01', initialContent: '' })
-
-    await page.fill('textarea.editor-textarea', 'my draft text')
-
-    // Before 300ms: localStorage key should not yet exist
-    const beforeKey = await page.evaluate(() =>
-      localStorage.getItem('grass-puffer-draft:2026-05-01')
-    )
-    expect(beforeKey).toBeNull()
-
-    // Advance clock past debounce
-    await page.clock.fastForward(300)
-
-    const afterKey = await page.evaluate(() =>
-      localStorage.getItem('grass-puffer-draft:2026-05-01')
-    )
-    expect(afterKey).toBe('my draft text')
-  })
-
+test.describe('EntryEditor — auto-save', () => {
   test('auto-save fires after 3 seconds of dirty state and briefly shows saved state', async ({ page }) => {
     await loadHarness(page)
     await page.clock.install({ time: 0 })
@@ -294,61 +272,5 @@ test.describe('EntryEditor — draft storage', () => {
     // Auto-save should NOT have fired because hasConflict is true
     const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
     expect(saveCalls).toHaveLength(0)
-  })
-})
-
-test.describe('EntryEditor — draft restore banner', () => {
-  test('draft banner appears when localStorage has a draft differing from loaded content', async ({ page }) => {
-    await loadHarness(page)
-    // Seed localStorage with a draft before rendering
-    await page.evaluate(() => {
-      localStorage.setItem('grass-puffer-draft:2026-05-02', 'my unsaved draft')
-    })
-
-    await renderEditor(page, { date: '2026-05-02', initialContent: 'saved content', version: '1' })
-
-    await page.waitForSelector('.restored-banner')
-    const bannerText = await page.locator('.restored-banner').textContent()
-    expect(bannerText).toContain('unsaved draft')
-
-    // Both action buttons present
-    await expect(page.getByRole('button', { name: 'Restore' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Discard' })).toBeVisible()
-  })
-
-  test('clicking Restore puts the draft text into the textarea and hides the banner', async ({ page }) => {
-    await loadHarness(page)
-    await page.evaluate(() => {
-      localStorage.setItem('grass-puffer-draft:2026-05-03', 'draft content here')
-    })
-
-    await renderEditor(page, { date: '2026-05-03', initialContent: 'drive content', version: '1' })
-    await page.waitForSelector('.restored-banner')
-
-    await page.getByRole('button', { name: 'Restore' }).click()
-
-    const textareaValue = await page.locator('textarea.editor-textarea').inputValue()
-    expect(textareaValue).toBe('draft content here')
-
-    await expect(page.locator('.restored-banner')).not.toBeVisible()
-  })
-
-  test('clicking Discard removes the localStorage draft and hides the banner', async ({ page }) => {
-    await loadHarness(page)
-    await page.evaluate(() => {
-      localStorage.setItem('grass-puffer-draft:2026-05-04', 'old draft')
-    })
-
-    await renderEditor(page, { date: '2026-05-04', initialContent: 'drive content', version: '1' })
-    await page.waitForSelector('.restored-banner')
-
-    await page.getByRole('button', { name: 'Discard' }).click()
-
-    await expect(page.locator('.restored-banner')).not.toBeVisible()
-
-    const draftKey = await page.evaluate(() =>
-      localStorage.getItem('grass-puffer-draft:2026-05-04')
-    )
-    expect(draftKey).toBeNull()
   })
 })

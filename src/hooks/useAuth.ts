@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { initTokenClient, requestToken, revokeToken } from '../api/gauth'
-import { clearAllDrafts } from '../utils/draftStorage'
 
 const RESTORE_FLAG = 'grass-puffer-auth-restorable'
 const GIS_TIMEOUT_MS = 10_000
@@ -126,7 +125,6 @@ export function useAuth(): AuthState {
     if (accessToken) revokeToken(accessToken)
     forgetRestorableSession()
     setWasPreviouslySignedIn(false)
-    clearAllDrafts()
     setAccessToken(null)
     setStatus('signedOut')
   }
