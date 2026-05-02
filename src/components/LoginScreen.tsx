@@ -58,6 +58,16 @@ export function LoginScreen({
             Use another account
           </button>
         )}
+        <details className="privacy-details">
+          <summary>How your data is stored</summary>
+          <div className="privacy-body">
+            <ul>
+              <li>Stored only in your own Google Drive — this app has no backend server</li>
+              <li>Browser's Content Security Policy blocks connections to any server outside <code>googleapis.com</code></li>
+              <li>Verify: open DevTools → Network tab — every request goes to Google only</li>
+            </ul>
+          </div>
+        </details>
         <p className="login-footer">
           <a href="/privacy.html" target="_blank" rel="noopener noreferrer">
             Privacy Policy

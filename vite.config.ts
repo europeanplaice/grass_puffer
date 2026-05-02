@@ -37,6 +37,31 @@ export default defineConfig({
   plugins: [
     react(),
     {
+      name: 'csp-production',
+      apply: 'build',
+      transformIndexHtml(html) {
+        return {
+          html,
+          tags: [{
+            tag: 'meta',
+            attrs: {
+              'http-equiv': 'Content-Security-Policy',
+              content: [
+                "default-src 'self'",
+                "connect-src 'self' https://www.googleapis.com https://accounts.google.com https://oauth2.googleapis.com",
+                "script-src 'self' https://accounts.google.com",
+                "style-src 'self' 'unsafe-inline'",
+                "img-src 'self' data: blob:",
+                "font-src 'self'",
+                "worker-src 'self'",
+              ].join('; '),
+            },
+            injectTo: 'head-prepend',
+          }],
+        }
+      },
+    },
+    {
       name: 'sw-cache-version',
       writeBundle() {
         const distPath = resolve(__dirname, 'dist')
