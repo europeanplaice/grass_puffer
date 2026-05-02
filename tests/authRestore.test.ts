@@ -70,3 +70,18 @@ test('first-time visitors still see the normal Google sign-in action', async ({ 
   await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
 })
+
+test('previous session can be forgotten before requesting a token', async ({ page }) => {
+  await page.addInitScript(installGoogleMock, true)
+
+  await page.goto(baseUrl)
+  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
+
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+  await page.getByRole('button', { name: 'Use another account' }).click()
+
+  await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('grass-puffer-auth-restorable'))).toBeNull()
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(0)
+})

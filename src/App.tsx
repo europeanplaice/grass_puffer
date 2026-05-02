@@ -130,6 +130,7 @@ export default function App() {
     loadFailed,
     signIn,
     signOut,
+    forgetSession,
     handleExpired,
   } = useAuth()
   const [sessionExpired, setSessionExpired] = useState(false)
@@ -330,6 +331,7 @@ export default function App() {
     return (
       <LoginScreen
         onSignIn={signIn}
+        onForgetSession={forgetSession}
         authReady={authReady}
         wasPreviouslySignedIn={wasPreviouslySignedIn}
         loadFailed={loadFailed}

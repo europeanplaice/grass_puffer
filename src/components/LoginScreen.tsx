@@ -2,13 +2,21 @@ import { AppIcon } from './AppIcon'
 
 interface Props {
   onSignIn: () => void
+  onForgetSession?: () => void
   authReady?: boolean
   wasPreviouslySignedIn?: boolean
   sessionExpired?: boolean
   loadFailed?: boolean
 }
 
-export function LoginScreen({ onSignIn, authReady = true, wasPreviouslySignedIn, sessionExpired, loadFailed }: Props) {
+export function LoginScreen({
+  onSignIn,
+  onForgetSession,
+  authReady = true,
+  wasPreviouslySignedIn,
+  sessionExpired,
+  loadFailed,
+}: Props) {
   const disabled = !authReady || Boolean(loadFailed)
   const buttonLabel = wasPreviouslySignedIn ? 'Continue with Google' : 'Sign in with Google'
 
@@ -45,6 +53,11 @@ export function LoginScreen({ onSignIn, authReady = true, wasPreviouslySignedIn,
           </svg>
           {buttonLabel}
         </button>
+        {wasPreviouslySignedIn && onForgetSession && (
+          <button className="btn-use-another-account" type="button" onClick={onForgetSession}>
+            Use another account
+          </button>
+        )}
         <p className="login-footer">
           <a href="/privacy.html" target="_blank" rel="noopener noreferrer">
             Privacy Policy

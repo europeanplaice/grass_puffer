@@ -18,6 +18,7 @@ export interface AuthState {
   loadFailed: boolean
   signIn: () => Promise<void>
   signOut: () => void
+  forgetSession: () => void
   handleExpired: () => void
 }
 
@@ -130,6 +131,11 @@ export function useAuth(): AuthState {
     setStatus('signedOut')
   }
 
+  const forgetSession = useCallback(() => {
+    forgetRestorableSession()
+    setWasPreviouslySignedIn(false)
+  }, [])
+
   // called when a Drive API call returns 401 (token expired without user action)
   const handleExpired = useCallback(() => {
     forgetRestorableSession()
@@ -138,5 +144,5 @@ export function useAuth(): AuthState {
     setStatus('signedOut')
   }, [])
 
-  return { accessToken, status, authReady, wasPreviouslySignedIn, loadFailed, signIn, signOut, handleExpired }
+  return { accessToken, status, authReady, wasPreviouslySignedIn, loadFailed, signIn, signOut, forgetSession, handleExpired }
 }
