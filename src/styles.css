@@ -795,7 +795,6 @@ body {
   gap: 0.4rem;
 }
 .editor-actions button:disabled { opacity: 0.5; cursor: default; }
-.editor-actions button:not(:disabled):hover { background: var(--accent-hover); }
 .editor-actions .btn-save {
   display: inline-flex;
   align-items: center;
@@ -841,6 +840,39 @@ body {
 }
 .btn-delete { background: var(--danger) !important; }
 .btn-delete:not(:disabled):hover { background: var(--danger-hover) !important; }
+.more-menu-container { position: relative; }
+.editor-actions .btn-more {
+  background: none;
+  border: none;
+  padding: 0.45rem 0.6rem;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.editor-actions .btn-more:hover,
+.editor-actions .btn-more:focus,
+.editor-actions .btn-more:active { background: none; }
+.more-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 8rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px var(--shadow-heavy);
+  z-index: 120;
+  overflow: hidden;
+}
+.more-menu-item {
+  padding: 0.55rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.more-menu-item:hover { background: var(--border); }
+.more-menu-delete { color: var(--danger); }
 .conflict-panel {
   display: flex;
   align-items: center;
@@ -1251,6 +1283,8 @@ body {
     padding: 0;
   }
   .editor-actions button .btn-icon { width: 20px; height: 20px; }
+  .more-menu .btn-text { display: inline; }
+  .editor-actions .btn-more { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; padding: 0; font-size: 1.6rem; background: none; }
 
   @media (max-width: 340px) {
     .entry-date-weekday { display: none; }

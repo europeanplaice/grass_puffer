@@ -34,14 +34,6 @@ function CheckIcon() {
   )
 }
 
-function TrashIcon() {
-  return (
-    <svg className="btn-icon" aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
-    </svg>
-  )
-}
-
 const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
@@ -57,6 +49,8 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [status, setStatus] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
   const weekday = weekdayLabel(date)
@@ -271,6 +265,17 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     }
   }, [])
 
+  useEffect(() => {
+    if (!showMoreMenu) return
+    const handler = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setShowMoreMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showMoreMenu])
+
 
   return (
     <>
@@ -332,10 +337,16 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
             <span className="btn-text">{saving ? 'Saving…' : status === SAVED_STATUS ? 'Saved' : 'Save'}</span>
           </button>
           {savedText && (
-            <button className="btn-delete" onClick={del} aria-label="Delete entry">
-              <TrashIcon />
-              <span className="btn-text">Delete</span>
-            </button>
+            <div className="more-menu-container" ref={moreMenuRef}>
+              <button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label="More options">···</button>
+              {showMoreMenu && (
+                <div className="more-menu">
+                  <div className="more-menu-item more-menu-delete" onClick={del}>
+                    Delete
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
