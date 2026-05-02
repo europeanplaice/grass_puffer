@@ -23,6 +23,21 @@ test.describe('SearchBar', () => {
     await expect(page.getByText('alpha match')).toBeVisible()
   })
 
+  test('selecting a result calls onSelect and clears the search UI', async ({ page }) => {
+    await page.evaluate(() => {
+      window.searchHarness.setSearchResult('alpha', {
+        results: [{ date: '2026-04-01', snippet: 'alpha match' }],
+        unindexedCount: 0,
+      })
+    })
+    await page.getByPlaceholder('Search entries...').fill('alpha')
+    await page.getByText('alpha match').click()
+
+    expect(await page.evaluate(() => window.searchHarness.selectedDates())).toEqual(['2026-04-01'])
+    await expect(page.getByPlaceholder('Search entries...')).toHaveValue('')
+    await expect(page.locator('.search-results')).toHaveCount(0)
+  })
+
   test('does not search while entriesLoading is true', async ({ page }) => {
     await page.evaluate(() => window.searchHarness.render({ entriesLoading: true }))
     await page.getByPlaceholder('Search entries...').fill('alpha')

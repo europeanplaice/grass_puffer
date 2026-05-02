@@ -8,6 +8,7 @@ declare global {
       render: (opts?: { entriesLoading?: boolean; indexingProgress?: Partial<IndexingProgress> }) => void
       setSearchResult: (query: string, result: { results: SearchResult['results']; unindexedCount: number }) => void
       calls: () => string[]
+      selectedDates: () => string[]
     }
   }
 }
@@ -15,6 +16,7 @@ declare global {
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 const callLog: string[] = []
+const selectedDates: string[] = []
 const resultMap = new Map<string, { results: SearchResult['results']; unindexedCount: number }>()
 
 let currentEntriesLoading = false
@@ -30,7 +32,9 @@ function render() {
         const registered = resultMap.get(query)
         return registered ?? { results: [], unindexedCount: 0 }
       }}
-      onSelect={() => {}}
+      onSelect={date => {
+        selectedDates.push(date)
+      }}
     />,
   )
 }
@@ -47,6 +51,7 @@ window.searchHarness = {
     resultMap.set(query, result)
   },
   calls: () => [...callLog],
+  selectedDates: () => [...selectedDates],
 }
 
 render()

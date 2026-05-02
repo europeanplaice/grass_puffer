@@ -276,6 +276,21 @@ test.describe('EntryEditor — auto-save', () => {
   })
 })
 
+test.describe('EntryEditor — keyboard save', () => {
+  test('Ctrl+S saves dirty content without clicking the save button', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.fill('textarea.editor-textarea', 'keyboard saved content')
+    await page.keyboard.press('Control+S')
+
+    await expect.poll(() => page.evaluate(() => window.editorHarness.saveCalls())).toEqual([
+      { date: '2026-05-01', content: 'keyboard saved content', baseVersion: '1' },
+    ])
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+  })
+})
+
 test.describe('EntryEditor — conflict resolution', () => {
   test('loads the latest remote content from the conflict panel', async ({ page }) => {
     await loadHarness(page)
