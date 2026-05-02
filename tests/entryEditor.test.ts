@@ -12,16 +12,17 @@ async function renderEditor(
     initialContent?: string
     version?: string | null
     saveReject?: 'conflict' | 'error'
+    pendingNavDate?: string | null
   } = {},
 ) {
   const date = opts.date ?? '2026-05-01'
   const initialContent = opts.initialContent ?? ''
   const version = opts.version ?? null
   await page.evaluate(
-    ({ date, initialContent, version, saveReject }) => {
-      window.editorHarness.render({ date, initialContent, version, saveReject })
+    ({ date, initialContent, version, saveReject, pendingNavDate }) => {
+      window.editorHarness.render({ date, initialContent, version, saveReject, pendingNavDate })
     },
-    { date, initialContent, version, saveReject: opts.saveReject },
+    { date, initialContent, version, saveReject: opts.saveReject, pendingNavDate: opts.pendingNavDate },
   )
   // Wait for textarea to be visible (loading done)
   await page.waitForSelector('textarea.editor-textarea')
@@ -272,5 +273,129 @@ test.describe('EntryEditor — auto-save', () => {
     // Auto-save should NOT have fired because hasConflict is true
     const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
     expect(saveCalls).toHaveLength(0)
+  })
+})
+
+test.describe('EntryEditor — conflict resolution', () => {
+  test('loads the latest remote content from the conflict panel', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'local base', version: '1', saveReject: 'conflict' })
+
+    await page.fill('textarea.editor-textarea', 'local edits')
+    await page.locator('button.btn-save').click()
+    await page.waitForSelector('.conflict-panel')
+
+    await page.getByRole('button', { name: 'Load latest' }).click()
+
+    await expect(page.locator('.conflict-panel')).toHaveCount(0)
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('remote content')
+    const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
+    expect(saveCalls).toEqual([
+      { date: '2026-05-01', content: 'local edits', baseVersion: '1' },
+    ])
+  })
+
+  test('keeps local edits when resolving a conflict locally', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'local base', version: '1', saveReject: 'conflict' })
+
+    await page.fill('textarea.editor-textarea', 'local edits')
+    await page.locator('button.btn-save').click()
+    await page.waitForSelector('.conflict-panel')
+
+    await page.getByRole('button', { name: 'Keep local' }).click()
+
+    await expect(page.locator('.conflict-panel')).toHaveCount(0)
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('local edits')
+    await expect(page.locator('button.btn-save')).toBeEnabled()
+  })
+
+  test('overwrites the remote entry with force and the remote version', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'local base', version: '1', saveReject: 'conflict' })
+
+    await page.fill('textarea.editor-textarea', 'local edits')
+    await page.locator('button.btn-save').click()
+    await page.waitForSelector('.conflict-panel')
+
+    await page.getByRole('button', { name: 'Overwrite' }).click()
+    await expect(page.locator('.conflict-panel')).toHaveCount(0)
+
+    const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
+    expect(saveCalls).toEqual([
+      { date: '2026-05-01', content: 'local edits', baseVersion: '1' },
+      { date: '2026-05-01', content: 'local edits', baseVersion: '99', force: true },
+    ])
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+  })
+})
+
+test.describe('EntryEditor — delete confirmation', () => {
+  test('requires confirm before deleting an existing entry', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.getByRole('button', { name: 'Delete entry' }).click()
+    await expect(page.getByRole('heading', { name: 'Delete entry?' })).toBeVisible()
+    await expect(page.locator('.delete-modal-actions .btn-delete')).toBeDisabled()
+
+    await page.locator('.delete-modal-input').fill('nope')
+    await expect(page.locator('.delete-modal-actions .btn-delete')).toBeDisabled()
+    expect(await page.evaluate(() => window.editorHarness.deleteCalls())).toEqual([])
+
+    await page.locator('.delete-modal-input').fill('confirm')
+    await page.locator('.delete-modal-actions .btn-delete').click()
+
+    await expect(page.locator('.delete-modal')).toHaveCount(0)
+    expect(await page.evaluate(() => window.editorHarness.deleteCalls())).toEqual([
+      { date: '2026-05-01' },
+    ])
+  })
+})
+
+test.describe('EntryEditor — unsaved navigation save', () => {
+  test('saves and continues pending navigation when banner save succeeds', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, {
+      date: '2026-05-01',
+      initialContent: 'saved content',
+      version: '1',
+      pendingNavDate: '2026-05-02',
+    })
+
+    await page.fill('textarea.editor-textarea', 'changed content')
+    await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Save' }).click()
+
+    expect(await page.evaluate(() => window.editorHarness.saveCalls())).toEqual([
+      { date: '2026-05-01', content: 'changed content', baseVersion: '1' },
+    ])
+    expect(await page.evaluate(() => window.editorHarness.pendingNavigateCalls())).toEqual([
+      { date: '2026-05-02' },
+    ])
+    expect(await page.evaluate(() => window.editorHarness.cancelNavigationCalls())).toEqual([])
+    await expect(page.locator('.unsaved-nav-banner')).toHaveCount(0)
+  })
+
+  test('cancels pending navigation when banner save fails', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, {
+      date: '2026-05-01',
+      initialContent: 'saved content',
+      version: '1',
+      saveReject: 'error',
+      pendingNavDate: '2026-05-02',
+    })
+
+    await page.fill('textarea.editor-textarea', 'changed content')
+    await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Save' }).click()
+
+    expect(await page.evaluate(() => window.editorHarness.saveCalls())).toEqual([
+      { date: '2026-05-01', content: 'changed content', baseVersion: '1' },
+    ])
+    expect(await page.evaluate(() => window.editorHarness.pendingNavigateCalls())).toEqual([])
+    expect(await page.evaluate(() => window.editorHarness.cancelNavigationCalls())).toEqual([
+      { date: '2026-05-02' },
+    ])
+    await expect(page.locator('.unsaved-nav-banner')).toHaveCount(0)
   })
 })
