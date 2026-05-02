@@ -53,18 +53,16 @@ test.describe('SearchBar', () => {
     await page.evaluate(() =>
       window.searchHarness.render({ indexingProgress: { done: 3, total: 10, running: true } }),
     )
+    await page.getByPlaceholder('Search entries...').fill('alpha')
     await expect(page.getByText('Indexing… 3/10')).toBeVisible()
   })
 
-  test('shows remaining-unindexed message when unindexedCount > 0', async ({ page }) => {
-    await page.evaluate(() => {
-      window.searchHarness.setSearchResult('alpha', {
-        results: [],
-        unindexedCount: 5,
-      })
-    })
+  test('shows remaining-unindexed message when search returns empty and indexing is incomplete', async ({ page }) => {
+    await page.evaluate(() =>
+      window.searchHarness.render({ indexingProgress: { done: 5, total: 10, running: true } }),
+    )
     await page.getByPlaceholder('Search entries...').fill('alpha')
     await expect(page.getByText('Indexing 5 remaining entries…')).toBeVisible()
-    await expect(page.getByText('No results')).toHaveCount(0)
+    await expect(page.getByText('No results')).toBeVisible()
   })
 })

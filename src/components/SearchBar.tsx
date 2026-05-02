@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { SearchResult } from '../hooks/useDiary'
+import type { SearchResult, IndexingProgress } from '../hooks/useDiary'
 import { diaryDateLabel } from '../utils/date'
 
 interface Result {
@@ -11,11 +11,12 @@ interface Props {
   onSearch: (query: string) => Promise<SearchResult>
   onSelect: (date: string) => void
   entriesLoading: boolean
+  indexingProgress?: IndexingProgress
 }
 
 const SEARCH_DEBOUNCE_MS = 250
 
-export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
+export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
   const [searched, setSearched] = useState(false)
@@ -71,6 +72,9 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
   }, [entriesLoading, onSearch, query])
 
   const hasQuery = query.trim().length > 0
+  const { done = 0, total = 0, running = false } = indexingProgress ?? {}
+
+  const unindexedCount = total - done
 
   return (
     <div className="search-bar">
@@ -86,6 +90,9 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
       {entriesLoading && hasQuery && !isSearching && (
         <div className="search-status">Loading entries…</div>
       )}
+      {running && hasQuery && (
+        <div className="search-status">Indexing… {done}/{total}</div>
+      )}
       {results.length > 0 && (
         <ul className="search-results">
           {results.map(r => (
@@ -97,7 +104,12 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
         </ul>
       )}
       {searched && hasQuery && !entriesLoading && !isSearching && results.length === 0 && (
-        <div className="search-status">No results</div>
+        <>
+          <div className="search-status">No results</div>
+          {unindexedCount > 0 && (
+            <div className="search-status">Indexing {unindexedCount} remaining entries…</div>
+          )}
+        </>
       )}
     </div>
   )

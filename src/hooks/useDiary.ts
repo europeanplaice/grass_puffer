@@ -24,6 +24,12 @@ export interface SearchResult {
   unindexedCount: number
 }
 
+export interface IndexingProgress {
+  done: number
+  total: number
+  running: boolean
+}
+
 export class EntryConflictError extends Error {
   remote: LoadedDiaryEntry | null
 

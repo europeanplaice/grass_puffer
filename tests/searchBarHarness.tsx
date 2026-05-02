@@ -6,7 +6,7 @@ declare global {
   interface Window {
     searchHarness: {
       render: (opts?: { entriesLoading?: boolean; indexingProgress?: Partial<IndexingProgress> }) => void
-      setSearchResult: (query: string, result: { results: SearchResult['results']; unindexedCount: number }) => void
+      setSearchResult: (query: string, result: SearchResult) => void
       calls: () => string[]
       selectedDates: () => string[]
     }
@@ -17,7 +17,7 @@ const root = createRoot(document.getElementById('root') as HTMLElement)
 
 const callLog: string[] = []
 const selectedDates: string[] = []
-const resultMap = new Map<string, { results: SearchResult['results']; unindexedCount: number }>()
+const resultMap = new Map<string, SearchResult>()
 
 let currentEntriesLoading = false
 let currentIndexingProgress: IndexingProgress = { done: 0, total: 0, running: false }
