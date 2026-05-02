@@ -124,7 +124,6 @@ function shiftDate(date: string, days: number): string {
 export default function App() {
   const { accessToken, status, loadFailed, signIn, signOut, handleExpired } = useAuth()
   const [sessionExpired, setSessionExpired] = useState(false)
-  const [updateAvailable, setUpdateAvailable] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
@@ -141,12 +140,6 @@ export default function App() {
   useEffect(() => {
     editorDirtyRef.current = editorDirty
   }, [editorDirty])
-
-  useEffect(() => {
-    const handler = () => setUpdateAvailable(true)
-    window.addEventListener('sw-update-available', handler)
-    return () => window.removeEventListener('sw-update-available', handler)
-  }, [])
 
   const onExpired = useCallback(() => {
     handleExpired()
@@ -393,12 +386,6 @@ export default function App() {
           onNextDay={onNextDay}
         />
       </main>
-      {updateAvailable && (
-        <div className="update-banner">
-          <span>A new version is available</span>
-          <button onClick={() => window.location.reload()}>Update</button>
-        </div>
-      )}
     </div>
   )
 }
