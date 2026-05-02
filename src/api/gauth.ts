@@ -1,7 +1,7 @@
 const SCOPE = 'https://www.googleapis.com/auth/drive.file'
 
 type TokenClient = google.accounts.oauth2.TokenClient
-type TokenRequestConfig = google.accounts.oauth2.OverridableTokenClientConfig
+export type TokenRequestConfig = google.accounts.oauth2.OverridableTokenClientConfig
 
 let tokenClient: TokenClient | null = null
 

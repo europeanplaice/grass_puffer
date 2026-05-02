@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { initTokenClient, requestToken, revokeToken } from '../api/gauth'
+import type { TokenRequestConfig } from '../api/gauth'
 
 const RESTORE_FLAG = 'grass-puffer-auth-restorable'
 const GIS_TIMEOUT_MS = 10_000
@@ -15,7 +16,7 @@ export interface AuthState {
   authReady: boolean
   wasPreviouslySignedIn: boolean
   loadFailed: boolean
-  signIn: () => Promise<void>
+  signIn: (config?: TokenRequestConfig) => Promise<void>
   signOut: () => void
   forgetSession: () => void
   handleExpired: () => void
@@ -43,6 +44,10 @@ function forgetRestorableSession(): void {
   } catch {
     // localStorage may be unavailable in private or restricted contexts.
   }
+}
+
+function isTokenRequestConfig(config: unknown): config is TokenRequestConfig {
+  return Boolean(config && typeof config === 'object' && 'prompt' in config)
 }
 
 export function useAuth(): AuthState {
@@ -107,14 +112,15 @@ export function useAuth(): AuthState {
     }
   }, [])
 
-  const signIn = () => new Promise<void>((resolve, reject) => {
+  const signIn = (config?: TokenRequestConfig) => new Promise<void>((resolve, reject) => {
     if (!authReady) {
       reject(new Error('Google Sign-In is not ready'))
       return
     }
+    const tokenConfig = isTokenRequestConfig(config) ? config : { prompt: '' }
     pendingSignInRef.current = { resolve, reject }
     try {
-      requestToken({ prompt: '' })
+      requestToken(tokenConfig)
     } catch (e) {
       pendingSignInRef.current = null
       reject(e instanceof Error ? e : new Error(String(e)))

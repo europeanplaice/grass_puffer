@@ -8,6 +8,7 @@ import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
 import { AppIcon } from './components/AppIcon'
 import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
+import { TokenExpiredError } from './api/driveEntries'
 
 type RecentPreview = {
   snippet: string
@@ -139,6 +140,7 @@ export default function App() {
   const [editorDirty, setEditorDirty] = useState(false)
   const [autoSave, setAutoSave] = useState(() => localStorage.getItem('grass_puffer_autosave') !== 'false')
   const [pendingDate, setPendingDate] = useState<string | null>(null)
+  const [retrySaveAfterReauth, setRetrySaveAfterReauth] = useState(false)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
@@ -333,9 +335,27 @@ export default function App() {
   }, [accessToken, diary.getContent, recentDates.join('|')])
 
   const handleReauth = useCallback(async () => {
-    await signIn()
-    await diary.retryPendingSave()
-  }, [signIn, diary.retryPendingSave])
+    await signIn({ prompt: 'consent' })
+    setRetrySaveAfterReauth(true)
+  }, [signIn])
+
+  useEffect(() => {
+    if (!accessToken || !retrySaveAfterReauth) return
+
+    let cancelled = false
+    diary.retryPendingSave()
+      .catch(e => {
+        if (e instanceof TokenExpiredError) return
+        if (!cancelled) console.error('Pending save retry failed:', e)
+      })
+      .finally(() => {
+        if (!cancelled) setRetrySaveAfterReauth(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [accessToken, retrySaveAfterReauth, diary.retryPendingSave])
 
   if (status === 'initializing') {
     return <RestoringScreen selectedDate={selectedDate} />
