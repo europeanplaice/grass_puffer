@@ -13,6 +13,8 @@ type PendingSignIn = { resolve: () => void; reject: (e: Error) => void }
 export interface AuthState {
   accessToken: string | null
   status: AuthStatus
+  authReady: boolean
+  wasPreviouslySignedIn: boolean
   loadFailed: boolean
   signIn: () => Promise<void>
   signOut: () => void
@@ -44,10 +46,13 @@ function forgetRestorableSession(): void {
 }
 
 export function useAuth(): AuthState {
+  const hadRestorableSession = canRestoreSession()
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [status, setStatus] = useState<AuthStatus>(() => (
-    canRestoreSession() ? 'initializing' : 'signedOut'
+    hadRestorableSession ? 'initializing' : 'signedOut'
   ))
+  const [authReady, setAuthReady] = useState(false)
+  const [wasPreviouslySignedIn, setWasPreviouslySignedIn] = useState(hadRestorableSession)
   const [loadFailed, setLoadFailed] = useState(false)
   const pendingSignInRef = useRef<PendingSignIn | null>(null)
 
@@ -60,6 +65,7 @@ export function useAuth(): AuthState {
     const acceptToken = (token: string) => {
       if (cancelled) return
       rememberRestorableSession()
+      setWasPreviouslySignedIn(true)
       setAccessToken(token)
       setStatus('signedIn')
       const pending = pendingSignInRef.current
@@ -70,6 +76,7 @@ export function useAuth(): AuthState {
     const rejectToken = () => {
       if (cancelled) return
       forgetRestorableSession()
+      setWasPreviouslySignedIn(false)
       setAccessToken(null)
       setStatus('signedOut')
       const pending = pendingSignInRef.current
@@ -82,15 +89,8 @@ export function useAuth(): AuthState {
       if (typeof google !== 'undefined') {
         initialized = true
         initTokenClient(acceptToken, rejectToken)
-        if (canRestoreSession()) {
-          try {
-            requestToken({ prompt: 'none' })
-          } catch {
-            rejectToken()
-          }
-        } else {
-          setStatus('signedOut')
-        }
+        setAuthReady(true)
+        setStatus('signedOut')
       } else {
         attempts++
         if (attempts >= maxAttempts) {
@@ -108,9 +108,13 @@ export function useAuth(): AuthState {
   }, [])
 
   const signIn = () => new Promise<void>((resolve, reject) => {
+    if (!authReady) {
+      reject(new Error('Google Sign-In is not ready'))
+      return
+    }
     pendingSignInRef.current = { resolve, reject }
     try {
-      requestToken()
+      requestToken({ prompt: '' })
     } catch (e) {
       pendingSignInRef.current = null
       reject(e instanceof Error ? e : new Error(String(e)))
@@ -120,6 +124,7 @@ export function useAuth(): AuthState {
   const signOut = () => {
     if (accessToken) revokeToken(accessToken)
     forgetRestorableSession()
+    setWasPreviouslySignedIn(false)
     clearAllDrafts()
     setAccessToken(null)
     setStatus('signedOut')
@@ -128,9 +133,10 @@ export function useAuth(): AuthState {
   // called when a Drive API call returns 401 (token expired without user action)
   const handleExpired = useCallback(() => {
     forgetRestorableSession()
+    setWasPreviouslySignedIn(false)
     setAccessToken(null)
     setStatus('signedOut')
   }, [])
 
-  return { accessToken, status, loadFailed, signIn, signOut, handleExpired }
+  return { accessToken, status, authReady, wasPreviouslySignedIn, loadFailed, signIn, signOut, handleExpired }
 }

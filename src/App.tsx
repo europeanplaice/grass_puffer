@@ -122,7 +122,16 @@ function shiftDate(date: string, days: number): string {
 }
 
 export default function App() {
-  const { accessToken, status, loadFailed, signIn, signOut, handleExpired } = useAuth()
+  const {
+    accessToken,
+    status,
+    authReady,
+    wasPreviouslySignedIn,
+    loadFailed,
+    signIn,
+    signOut,
+    handleExpired,
+  } = useAuth()
   const [sessionExpired, setSessionExpired] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -318,7 +327,14 @@ export default function App() {
   }
 
   if (!accessToken && !sessionExpired) {
-    return <LoginScreen onSignIn={signIn} loadFailed={loadFailed} />
+    return (
+      <LoginScreen
+        onSignIn={signIn}
+        authReady={authReady}
+        wasPreviouslySignedIn={wasPreviouslySignedIn}
+        loadFailed={loadFailed}
+      />
+    )
   }
 
   return (

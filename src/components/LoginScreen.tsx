@@ -2,24 +2,36 @@ import { AppIcon } from './AppIcon'
 
 interface Props {
   onSignIn: () => void
+  authReady?: boolean
+  wasPreviouslySignedIn?: boolean
   sessionExpired?: boolean
   loadFailed?: boolean
 }
 
-export function LoginScreen({ onSignIn, sessionExpired, loadFailed }: Props) {
+export function LoginScreen({ onSignIn, authReady = true, wasPreviouslySignedIn, sessionExpired, loadFailed }: Props) {
+  const disabled = !authReady || Boolean(loadFailed)
+  const buttonLabel = wasPreviouslySignedIn ? 'Continue with Google' : 'Sign in with Google'
+
   return (
     <div className="login-screen">
       <div className="login-card">
         <AppIcon className="login-logo" />
         <h1>Grass Puffer Diary</h1>
-        <p>Your private diary, stored in your Google Drive.</p>
+        <p>
+          {wasPreviouslySignedIn
+            ? 'Continue with your previous Google session.'
+            : 'Your private diary, stored in your Google Drive.'}
+        </p>
         {sessionExpired && (
           <p className="session-expired-msg">Session expired. Please sign in again.</p>
         )}
         {loadFailed && (
           <p className="session-expired-msg">Google Sign-In could not be loaded. Check your network or browser extensions.</p>
         )}
-        <button className="btn-signin-google" onClick={onSignIn}>
+        {!loadFailed && !authReady && (
+          <p className="session-expired-msg neutral">Loading Google Sign-In…</p>
+        )}
+        <button className="btn-signin-google" onClick={onSignIn} disabled={disabled}>
           <svg
             className="google-logo"
             xmlns="http://www.w3.org/2000/svg"
@@ -31,7 +43,7 @@ export function LoginScreen({ onSignIn, sessionExpired, loadFailed }: Props) {
             <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
             <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.35-8.16 2.35-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
           </svg>
-          Sign in with Google
+          {buttonLabel}
         </button>
         <p className="login-footer">
           <a href="/privacy.html" target="_blank" rel="noopener noreferrer">

@@ -68,6 +68,11 @@ body {
   border-radius: 6px;
   padding: 0.5rem 0.8rem;
 }
+.session-expired-msg.neutral {
+  color: var(--text-muted);
+  background: var(--sidebar-bg);
+  border-color: var(--border);
+}
 
 /* Google-branded sign-in button (follows Google branding guidelines) */
 .btn-signin-google {
@@ -96,6 +101,15 @@ body {
 }
 .btn-signin-google:active {
   background: #f1f3f4;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+.btn-signin-google:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.btn-signin-google:disabled:hover {
+  background: #fff;
+  border-color: #dadce0;
   box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 .google-logo {
