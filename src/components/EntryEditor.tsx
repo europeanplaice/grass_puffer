@@ -50,6 +50,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [lastModified, setLastModified] = useState<string | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
@@ -80,6 +81,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setText('')
     setSavedText('')
     setBaseVersion(null)
+    setLastModified(null)
     setStatus('')
     setHasConflict(false)
     setConflictRemote(null)
@@ -89,6 +91,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       setText(driveText)
       setSavedText(driveText)
       setBaseVersion(entry?.meta.version ?? null)
+      setLastModified(entry?.entry.updated_at ?? null)
     }).catch(() => {
       if (!cancelled) setStatus('Failed to load entry.')
     }).finally(() => {
@@ -121,6 +124,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       const saved = await onSaveRef.current(date, currentText, baseVersionRef.current)
       setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
+      setLastModified(saved.entry.updated_at ?? null)
       setStatus(SAVED_STATUS)
       return true
     } catch (e) {
@@ -350,6 +354,11 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           )}
         </div>
       </div>
+      {lastModified && (
+        <div className="editor-meta">
+          Last modified: {new Date(lastModified).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+        </div>
+      )}
       {pendingNavDate && (
         <div className="unsaved-nav-banner">
           <span>Unsaved changes — save before leaving?</span>
