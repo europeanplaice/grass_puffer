@@ -31,6 +31,7 @@ function installGoogleMock(restorable: boolean) {
 
 function installExpiringGoogleMock() {
   window.localStorage.clear()
+  window.localStorage.setItem('grass_puffer_autosave', 'false')
 
   Object.defineProperty(window, 'google', {
     configurable: true,
@@ -162,7 +163,6 @@ test('expired save reauth retries with the refreshed token without showing re-lo
   await page.getByRole('button', { name: 'Sign in with Google' }).click()
   await expect(page.locator('.editor-textarea')).toBeVisible()
 
-  await page.getByRole('checkbox', { name: 'Auto-save' }).uncheck()
   await page.locator('.editor-textarea').fill('saved after refreshed token')
   await page.getByRole('button', { name: 'Save' }).click()
 

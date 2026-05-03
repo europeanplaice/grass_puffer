@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { SettingsModal } from '../src/components/SettingsModal'
-import { ExportButton } from '../src/components/ExportButton'
 import '../src/styles.css'
 
 type ExportCall = { onProgress: (done: number, total: number) => void }[]

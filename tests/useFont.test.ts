@@ -38,8 +38,8 @@ test.describe('useFont', () => {
     await page.goto(`${baseUrl}/tests/useFontHarness.html`)
     // Default is serif
     await page.evaluate(() => window.fontHarness.toggle())
-    expect(await page.evaluate(() => window.fontHarness.mode())).toBe('sans')
-    expect(await page.evaluate(() => localStorage.getItem('grass_puffer_font'))).toBe('sans')
+    await expect.poll(() => page.evaluate(() => window.fontHarness.mode())).toBe('sans')
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('grass_puffer_font'))).toBe('sans')
   })
 
   test('applies data-font attribute on documentElement', async ({ page }) => {

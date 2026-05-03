@@ -30,10 +30,10 @@ test.describe('useTheme', () => {
     expect(await page.evaluate(() => window.themeHarness.mode())).toBe('dark')
 
     await page.evaluate(() => window.themeHarness.toggle())
-    expect(await page.evaluate(() => window.themeHarness.mode())).toBe('light')
+    await expect.poll(() => page.evaluate(() => window.themeHarness.mode())).toBe('light')
 
     await page.evaluate(() => window.themeHarness.toggle())
-    expect(await page.evaluate(() => window.themeHarness.mode())).toBe('dark')
+    await expect.poll(() => page.evaluate(() => window.themeHarness.mode())).toBe('dark')
   })
 
   test('toggleTheme stores new mode in localStorage', async ({ page }) => {
@@ -45,8 +45,8 @@ test.describe('useTheme', () => {
     expect(await page.evaluate(() => window.themeHarness.mode())).toBe('dark')
 
     await page.evaluate(() => window.themeHarness.toggle())
-    expect(await page.evaluate(() => window.themeHarness.mode())).toBe('light')
-    expect(await page.evaluate(() => localStorage.getItem('grass_puffer_theme'))).toBe('light')
+    await expect.poll(() => page.evaluate(() => window.themeHarness.mode())).toBe('light')
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('grass_puffer_theme'))).toBe('light')
   })
 
   test('applies data-theme attribute on documentElement', async ({ page }) => {
@@ -58,7 +58,9 @@ test.describe('useTheme', () => {
     expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('dark')
 
     await page.evaluate(() => window.themeHarness.toggle())
-    expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('light')
+    await expect.poll(() => page.evaluate(() => (
+      document.documentElement.getAttribute('data-theme')
+    ))).toBe('light')
   })
 
   test('effectiveTheme returns system preference when mode is system', async ({ page }) => {
