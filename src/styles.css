@@ -712,6 +712,71 @@ body {
   font-size: 0.78rem;
 }
 
+/* ── Export confirm modal ── */
+.export-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay-heavy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 210;
+}
+.export-confirm-modal {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: min(340px, 88vw);
+  box-shadow: 0 8px 32px var(--shadow-heavy);
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+.export-confirm-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+.export-confirm-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+.export-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 0.3rem;
+}
+.export-confirm-cancel {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+.export-confirm-cancel:hover {
+  background: var(--border);
+}
+.export-confirm-start {
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 1rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+}
+.export-confirm-start:hover {
+  opacity: 0.9;
+}
+
 /* ── Entry list ── */
 .sidebar-status { padding: 0.4rem 1rem; font-size: 0.82rem; color: var(--text-muted); }
 .sidebar-status.error { color: var(--danger); }

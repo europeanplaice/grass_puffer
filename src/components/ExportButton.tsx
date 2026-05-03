@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import JSZip from 'jszip'
 
 interface ExportButtonProps {
@@ -9,8 +9,20 @@ interface ExportButtonProps {
 export function ExportButton({ dates, onExport }: ExportButtonProps) {
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const overlayRef = useRef<HTMLDivElement>(null)
 
-  const handleExport = useCallback(async () => {
+  useEffect(() => {
+    if (!confirmOpen) return
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setConfirmOpen(false)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [confirmOpen])
+
+  const doExport = useCallback(async () => {
+    setConfirmOpen(false)
     if (exporting || dates.length === 0) return
 
     setExporting(true)
@@ -43,11 +55,20 @@ export function ExportButton({ dates, onExport }: ExportButtonProps) {
     }
   }, [exporting, dates.length, onExport])
 
+  const handleExportClick = () => {
+    if (dates.length === 0) return
+    setConfirmOpen(true)
+  }
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === overlayRef.current) setConfirmOpen(false)
+  }
+
   return (
     <div className="settings-export">
       <button
         className="btn-export-modern"
-        onClick={handleExport}
+        onClick={handleExportClick}
         disabled={exporting || dates.length === 0}
         title="Export all diary entries as ZIP file"
       >
@@ -60,6 +81,21 @@ export function ExportButton({ dates, onExport }: ExportButtonProps) {
           </>
         )}
       </button>
+
+      {confirmOpen && (
+        <div className="export-confirm-overlay" ref={overlayRef} onClick={handleOverlayClick}>
+          <div className="export-confirm-modal">
+            <h4 className="export-confirm-title">Export all entries?</h4>
+            <p className="export-confirm-desc">
+              {dates.length} entries will be downloaded as a ZIP file. This may take a while.
+            </p>
+            <div className="export-confirm-actions">
+              <button className="export-confirm-cancel" onClick={() => setConfirmOpen(false)}>Cancel</button>
+              <button className="export-confirm-start" onClick={doExport}>Start export</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
