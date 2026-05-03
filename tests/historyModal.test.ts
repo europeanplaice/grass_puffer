@@ -20,14 +20,16 @@ async function renderModal(
   page: import('@playwright/test').Page,
   opts: { date?: string; fileId?: string; baseVersion?: string | null } = {},
 ) {
-  await page.evaluate(({ revList, content, opts }) => {
+  // Queue: list revisions, then rev-3 content, then rev-2 content (for diff)
+  await page.evaluate(({ revList, contentV3, contentV2, opts }) => {
     window.historyHarness.q(
       { status: 200, body: revList },
-      { status: 200, body: content },
+      { status: 200, body: contentV3 },
+      { status: 200, body: contentV2 },
     )
     window.historyHarness.render(opts)
-  }, { revList: REV_LIST, content: CONTENT_V3, opts })
-  await page.waitForSelector('.history-preview-textarea')
+  }, { revList: REV_LIST, contentV3: CONTENT_V3, contentV2: CONTENT_V2, opts })
+  await page.waitForSelector('.history-preview-diff')
 }
 
 test.describe('HistoryModal — revision list', () => {
@@ -67,10 +69,11 @@ test.describe('HistoryModal — revision list', () => {
           { id: 'rev-1', modifiedTime: new Date(now - 3_600_000).toISOString() },
         ] } },
         { status: 200, body: content },
+        { status: 200, body: content },
       )
       window.historyHarness.render()
     }, { content: CONTENT_V3 })
-    await page.waitForSelector('.history-preview-textarea')
+    await page.waitForSelector('.history-preview-diff')
 
     const firstTime = await page.locator('.history-revision-item').first().locator('.history-revision-time').textContent()
     expect(firstTime).toMatch(/Today/)
@@ -82,6 +85,7 @@ test.describe('HistoryModal — revision list', () => {
     await page.evaluate(({ revList, content }) => {
       window.historyHarness.q(
         { status: 200, body: revList, delayMs: 300 },
+        { status: 200, body: content },
         { status: 200, body: content },
       )
       window.historyHarness.render()
@@ -98,38 +102,43 @@ test.describe('HistoryModal — preview', () => {
     await loadHarness(page)
     await renderModal(page)
 
-    await expect(page.locator('.history-preview-textarea')).toHaveValue(CONTENT_V3.content)
+    await expect(page.locator('.history-preview-diff')).toContainText(CONTENT_V3.content)
   })
 
   test('clicking a different revision loads its content', async ({ page }) => {
     await loadHarness(page)
     await renderModal(page)
 
-    await page.evaluate(({ content }) => {
-      window.historyHarness.q({ status: 200, body: content })
-    }, { content: CONTENT_V2 })
+    // When clicking rev-2, need rev-2 content and rev-1 (previous) content
+    await page.evaluate(({ contentV2, contentV1 }) => {
+      window.historyHarness.q(
+        { status: 200, body: contentV2 },
+        { status: 200, body: contentV1 },
+      )
+    }, { contentV2: CONTENT_V2, contentV1: CONTENT_V3 })
 
     await page.locator('.history-revision-item').nth(1).click()
 
     await expect(page.locator('.history-revision-item').nth(1)).toHaveClass(/selected/)
-    await expect(page.locator('.history-preview-textarea')).toHaveValue(CONTENT_V2.content)
+    await expect(page.locator('.history-preview-diff')).toContainText(CONTENT_V2.content)
   })
 
   test('shows preview skeleton while content is loading', async ({ page }) => {
     await loadHarness(page)
 
-    // List response is fast, preview response is delayed so the skeleton is observable
-    await page.evaluate(({ revList, content }) => {
+    // List response is fast, preview response is delayed
+    await page.evaluate(({ revList, contentV3, contentV2 }) => {
       window.historyHarness.q(
         { status: 200, body: revList },
-        { status: 200, body: content, delayMs: 300 },
+        { status: 200, body: contentV3, delayMs: 300 },
+        { status: 200, body: contentV2 },
       )
       window.historyHarness.render()
-    }, { revList: REV_LIST, content: CONTENT_V3 })
+    }, { revList: REV_LIST, contentV3: CONTENT_V3, contentV2: CONTENT_V2 })
 
     await page.waitForSelector('.history-revision-item')
     await expect(page.locator('.history-preview-skeleton')).toBeVisible()
-    await page.waitForSelector('.history-preview-textarea')
+    await page.waitForSelector('.history-preview-diff')
     await expect(page.locator('.history-preview-skeleton')).toHaveCount(0)
   })
 
@@ -161,12 +170,16 @@ test.describe('HistoryModal — restore button', () => {
     await loadHarness(page)
     await renderModal(page)
 
-    await page.evaluate(({ content }) => {
-      window.historyHarness.q({ status: 200, body: content })
-    }, { content: CONTENT_V2 })
+    // When clicking rev-2, need rev-2 content and rev-1 (previous) content
+    await page.evaluate(({ contentV2, contentV1 }) => {
+      window.historyHarness.q(
+        { status: 200, body: contentV2 },
+        { status: 200, body: contentV1 },
+      )
+    }, { contentV2: CONTENT_V2, contentV1: CONTENT_V3 })
 
     await page.locator('.history-revision-item').nth(1).click()
-    await page.waitForSelector('.history-preview-textarea')
+    await page.waitForSelector('.history-preview-diff')
 
     await expect(page.locator('.btn-restore')).toBeEnabled()
   })
@@ -175,12 +188,16 @@ test.describe('HistoryModal — restore button', () => {
     await loadHarness(page)
     await renderModal(page)
 
-    await page.evaluate(({ content }) => {
-      window.historyHarness.q({ status: 200, body: content })
-    }, { content: CONTENT_V2 })
+    // Clicking rev-2: need rev-2 content and rev-1 (previous) content
+    await page.evaluate(({ contentV2, contentV1 }) => {
+      window.historyHarness.q(
+        { status: 200, body: contentV2 },
+        { status: 200, body: contentV1 },
+      )
+    }, { contentV2: CONTENT_V2, contentV1: CONTENT_V3 })
 
     await page.locator('.history-revision-item').nth(1).click()
-    await page.waitForSelector('.history-preview-textarea')
+    await page.waitForSelector('.history-preview-diff')
 
     await page.locator('.btn-restore').click()
     await page.waitForSelector('#modal-closed')
@@ -198,12 +215,16 @@ test.describe('HistoryModal — restore button', () => {
     await loadHarness(page)
     await renderModal(page)
 
-    await page.evaluate(({ content }) => {
-      window.historyHarness.q({ status: 200, body: content })
-    }, { content: CONTENT_V2 })
+    // Clicking rev-2: need rev-2 content and rev-1 (previous) content
+    await page.evaluate(({ contentV2, contentV1 }) => {
+      window.historyHarness.q(
+        { status: 200, body: contentV2 },
+        { status: 200, body: contentV1 },
+      )
+    }, { contentV2: CONTENT_V2, contentV1: CONTENT_V3 })
 
     await page.locator('.history-revision-item').nth(1).click()
-    await page.waitForSelector('.history-preview-textarea')
+    await page.waitForSelector('.history-preview-diff')
 
     await page.evaluate(() => window.historyHarness.setSaveReject('conflict'))
     await page.locator('.btn-restore').click()
@@ -216,12 +237,16 @@ test.describe('HistoryModal — restore button', () => {
     await loadHarness(page)
     await renderModal(page)
 
-    await page.evaluate(({ content }) => {
-      window.historyHarness.q({ status: 200, body: content })
-    }, { content: CONTENT_V2 })
+    // Clicking rev-2: need rev-2 content and rev-1 (previous) content
+    await page.evaluate(({ contentV2, contentV1 }) => {
+      window.historyHarness.q(
+        { status: 200, body: contentV2 },
+        { status: 200, body: contentV1 },
+      )
+    }, { contentV2: CONTENT_V2, contentV1: CONTENT_V3 })
 
     await page.locator('.history-revision-item').nth(1).click()
-    await page.waitForSelector('.history-preview-textarea')
+    await page.waitForSelector('.history-preview-diff')
 
     await page.evaluate(() => window.historyHarness.setSaveReject('error'))
     await page.locator('.btn-restore').click()

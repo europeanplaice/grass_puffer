@@ -1437,10 +1437,9 @@ body {
   flex-direction: column;
   min-width: 0;
 }
-.history-preview-textarea {
+.history-preview-diff {
   flex: 1;
   min-height: 0;
-  resize: none;
   border: none;
   outline: none;
   padding: 1rem 1.5rem;
@@ -1452,6 +1451,21 @@ body {
   overflow-y: auto;
   overscroll-behavior: contain;
   cursor: default;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.history-preview-diff > div {
+  padding: 0;
+  margin: 0;
+}
+.diff-add {
+  background: #d4edda;
+  color: #155724;
+}
+.diff-remove {
+  background: #f8d7da;
+  color: #721c24;
+  text-decoration: line-through;
 }
 .history-modal-footer {
   border-top: 1px solid var(--border);

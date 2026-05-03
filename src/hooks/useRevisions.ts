@@ -3,6 +3,7 @@ import type { DriveRevisionMeta, LoadedDiaryEntry } from '../types'
 import { listRevisions, getRevisionContent } from '../api/driveRevisions'
 import { TokenExpiredError } from '../api/driveEntries'
 import { EntryConflictError } from './useDiary'
+import * as Diff from 'diff'
 
 export interface RevisionsState {
   revisions: DriveRevisionMeta[]
@@ -12,6 +13,7 @@ export interface RevisionsState {
   previewContent: string | null
   previewLoading: boolean
   previewError: string | null
+  diffHtml: string | null
   restoring: boolean
   restoreError: string | null
   selectRevision: (id: string) => void
@@ -36,6 +38,7 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
   const [previewContent, setPreviewContent] = useState<string | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [diffHtml, setDiffHtml] = useState<string | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [restoreError, setRestoreError] = useState<string | null>(null)
 
@@ -65,15 +68,56 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
 
   useEffect(() => {
     if (!selectedId) return
+    const idx = revisions.findIndex(r => r.id === selectedId)
+    if (idx === -1) return
+
     previewAbortRef.current?.abort()
     const controller = new AbortController()
     previewAbortRef.current = controller
 
     setPreviewLoading(true)
     setPreviewError(null)
-    getRevisionContent(token, fileId, selectedId).then(entry => {
+    setDiffHtml(null)
+
+    getRevisionContent(token, fileId, selectedId).then(async (current) => {
       if (controller.signal.aborted) return
-      setPreviewContent(entry.content)
+      const currentContent = current.content
+      setPreviewContent(currentContent)
+
+      const prevId = idx < revisions.length - 1 ? revisions[idx + 1].id : null
+      if (prevId) {
+        try {
+          const prev = await getRevisionContent(token, fileId, prevId)
+          if (controller.signal.aborted) return
+
+          const diff = Diff.diffLines(prev.content, currentContent)
+          const htmlParts = []
+          for (const part of diff) {
+            const escaped = part.value
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+            const lines = escaped.split('\n')
+            // Remove last empty element if the text ends with newline
+            if (lines.length > 0 && lines[lines.length - 1] === '') {
+              lines.pop()
+            }
+            for (const line of lines) {
+              if (part.added) {
+                htmlParts.push(`<div class="diff-add">${line}</div>`)
+              } else if (part.removed) {
+                htmlParts.push(`<div class="diff-remove">${line}</div>`)
+              } else {
+                htmlParts.push(`<div>${line}</div>`)
+              }
+            }
+          }
+          setDiffHtml(htmlParts.join(''))
+        } catch {
+          // 前バージョン取得失敗時はdiffなし
+          setDiffHtml(null)
+        }
+      }
     }).catch(e => {
       if (controller.signal.aborted) return
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
@@ -82,7 +126,7 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
       if (!controller.signal.aborted) setPreviewLoading(false)
     })
     return () => { controller.abort() }
-  }, [token, fileId, selectedId])
+  }, [token, fileId, selectedId, revisions])
 
   const selectRevision = useCallback((id: string) => {
     setSelectedId(id)
@@ -116,6 +160,7 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
     previewContent,
     previewLoading,
     previewError,
+    diffHtml,
     restoring,
     restoreError,
     selectRevision,

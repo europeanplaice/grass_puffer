@@ -36,7 +36,7 @@ export function HistoryModal({ date, fileId, token, baseVersion, onSave, onResto
   const {
     revisions, listLoading, listError,
     selectedId, previewContent, previewLoading, previewError,
-    restoring, restoreError,
+    diffHtml, restoring, restoreError,
     selectRevision, restore,
   } = useRevisions({ token, fileId, date, baseVersion, onSave, onRestored, onExpired })
 
@@ -94,10 +94,9 @@ export function HistoryModal({ date, fileId, token, baseVersion, onSave, onResto
               <div className="history-preview-error">{previewError}</div>
             )}
             {!previewLoading && !previewError && (
-              <textarea
-                className="history-preview-textarea"
-                readOnly
-                value={previewContent ?? ''}
+              <div
+                className="history-preview-diff"
+                dangerouslySetInnerHTML={{ __html: diffHtml ?? (previewContent ?? '') }}
               />
             )}
             <div className="history-modal-footer">
