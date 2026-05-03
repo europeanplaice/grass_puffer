@@ -413,3 +413,57 @@ test.describe('EntryEditor — unsaved navigation save', () => {
     await expect(page.locator('.unsaved-nav-banner')).toHaveCount(0)
   })
 })
+
+test.describe('EntryEditor — editor meta info', () => {
+  test('shows last modified timestamp for saved entries', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toContainText('Last modified:')
+  })
+
+  test('shows Today\'s entry label for today with no content', async ({ page }) => {
+    await loadHarness(page)
+    const today = await page.evaluate(() => {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
+    await renderEditor(page, { date: today, initialContent: '', version: null })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toHaveText('Today\'s entry')
+  })
+
+  test('shows Today\'s entry with last modified for today with content', async ({ page }) => {
+    await loadHarness(page)
+    const today = await page.evaluate(() => {
+      const d = new Date()
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
+    await renderEditor(page, { date: today, initialContent: 'saved content', version: '1' })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toContainText('Today\'s entry - Last modified:')
+  })
+
+  test('shows only last modified for past dates with content', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-04-15', initialContent: 'past content', version: '1' })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toContainText('Last modified:')
+    await expect(meta).not.toContainText('Today\'s entry')
+  })
+
+  test('hides editor meta when no entry exists for past dates', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-04-15', initialContent: '', version: null })
+
+    await expect(page.locator('.editor-meta')).toHaveCount(0)
+  })
+})
