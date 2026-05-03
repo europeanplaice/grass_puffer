@@ -14,8 +14,10 @@ interface Window {
     toggle: () => void
   }
   settingsHarness: {
-    render: (opts?: { entryCount?: number }) => void
+    render: (opts?: { autoSave?: boolean; modalOpen?: boolean }) => void
     getStoredAutoSave: () => string | null
+    exportCalls: () => { onProgress: (done: number, total: number) => void }[]
+    setExportReject: (v: boolean) => void
   }
   searchHarness: {
     render: (opts?: {

@@ -61,7 +61,6 @@ window.settingsHarness = {
       />
     )
   },
-  getAutoSave: () => localStorage.getItem('grass_puffer_autosave'),
   getStoredAutoSave: () => localStorage.getItem('grass_puffer_autosave'),
   exportCalls: () => [...exportCalls],
   setExportReject: (v: boolean) => { exportReject = v },
