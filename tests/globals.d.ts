@@ -64,4 +64,14 @@ interface Window {
     clearCalls: () => void
     EntryConflictError: typeof import('../src/hooks/useDiary').EntryConflictError
   }
+  historyHarness: {
+    q: (...responses: { status: number; body: unknown; delayMs?: number }[]) => void
+    render: (opts?: { date?: string; fileId?: string; token?: string; baseVersion?: string | null }) => void
+    calls: () => { url: string; method: string }[]
+    saveCalls: () => { date: string; content: string; baseVersion: string | null; force?: boolean }[]
+    restoredCalls: () => import('../src/types').LoadedDiaryEntry[]
+    closeCalls: () => number
+    expiredCalls: () => number
+    setSaveReject: (v: 'conflict' | 'error' | null) => void
+  }
 }

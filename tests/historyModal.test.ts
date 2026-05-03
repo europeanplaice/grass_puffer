@@ -1,0 +1,314 @@
+import { expect, test } from '@playwright/test'
+import { baseUrl } from './baseUrl'
+
+const REV_LIST = {
+  revisions: [
+    { id: 'rev-3', modifiedTime: new Date(Date.now() - 60_000).toISOString() },
+    { id: 'rev-2', modifiedTime: new Date(Date.now() - 3_600_000).toISOString() },
+    { id: 'rev-1', modifiedTime: new Date(Date.now() - 86_400_000).toISOString() },
+  ],
+}
+
+const CONTENT_V3 = { date: '2026-05-01', content: 'latest version text', updated_at: new Date().toISOString() }
+const CONTENT_V2 = { date: '2026-05-01', content: 'older version text', updated_at: new Date().toISOString() }
+
+async function loadHarness(page: import('@playwright/test').Page) {
+  await page.goto(`${baseUrl}/tests/historyModalHarness.html`)
+}
+
+async function renderModal(
+  page: import('@playwright/test').Page,
+  opts: { date?: string; fileId?: string; baseVersion?: string | null } = {},
+) {
+  await page.evaluate(({ revList, content, opts }) => {
+    window.historyHarness.q(
+      { status: 200, body: revList },
+      { status: 200, body: content },
+    )
+    window.historyHarness.render(opts)
+  }, { revList: REV_LIST, content: CONTENT_V3, opts })
+  await page.waitForSelector('.history-preview-textarea')
+}
+
+test.describe('HistoryModal — revision list', () => {
+  test('shows all revisions after loading', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    const items = page.locator('.history-revision-item')
+    await expect(items).toHaveCount(3)
+  })
+
+  test('shows "Current" badge only on the first (newest) revision', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await expect(page.locator('.history-revision-item').first().locator('.history-revision-badge')).toHaveText('Current')
+    await expect(page.locator('.history-revision-item').nth(1).locator('.history-revision-badge')).toHaveCount(0)
+    await expect(page.locator('.history-revision-item').nth(2).locator('.history-revision-badge')).toHaveCount(0)
+  })
+
+  test('first revision is selected by default', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await expect(page.locator('.history-revision-item').first()).toHaveClass(/selected/)
+    await expect(page.locator('.history-revision-item').nth(1)).not.toHaveClass(/selected/)
+  })
+
+  test('shows revision timestamps', async ({ page }) => {
+    await loadHarness(page)
+
+    await page.evaluate(({ content }) => {
+      const now = Date.now()
+      window.historyHarness.q(
+        { status: 200, body: { revisions: [
+          { id: 'rev-2', modifiedTime: new Date(now - 60_000).toISOString() },
+          { id: 'rev-1', modifiedTime: new Date(now - 3_600_000).toISOString() },
+        ] } },
+        { status: 200, body: content },
+      )
+      window.historyHarness.render()
+    }, { content: CONTENT_V3 })
+    await page.waitForSelector('.history-preview-textarea')
+
+    const firstTime = await page.locator('.history-revision-item').first().locator('.history-revision-time').textContent()
+    expect(firstTime).toMatch(/Today/)
+  })
+
+  test('shows skeleton while list is loading', async ({ page }) => {
+    await loadHarness(page)
+
+    await page.evaluate(({ revList, content }) => {
+      window.historyHarness.q(
+        { status: 200, body: revList, delayMs: 300 },
+        { status: 200, body: content },
+      )
+      window.historyHarness.render()
+    }, { revList: REV_LIST, content: CONTENT_V3 })
+
+    await expect(page.locator('.history-skeleton-row').first()).toBeVisible()
+    await page.waitForSelector('.history-revision-item')
+    await expect(page.locator('.history-skeleton-row')).toHaveCount(0)
+  })
+})
+
+test.describe('HistoryModal — preview', () => {
+  test('preview shows content of the selected revision', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await expect(page.locator('.history-preview-textarea')).toHaveValue(CONTENT_V3.content)
+  })
+
+  test('clicking a different revision loads its content', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.evaluate(({ content }) => {
+      window.historyHarness.q({ status: 200, body: content })
+    }, { content: CONTENT_V2 })
+
+    await page.locator('.history-revision-item').nth(1).click()
+
+    await expect(page.locator('.history-revision-item').nth(1)).toHaveClass(/selected/)
+    await expect(page.locator('.history-preview-textarea')).toHaveValue(CONTENT_V2.content)
+  })
+
+  test('shows preview skeleton while content is loading', async ({ page }) => {
+    await loadHarness(page)
+
+    // List response is fast, preview response is delayed so the skeleton is observable
+    await page.evaluate(({ revList, content }) => {
+      window.historyHarness.q(
+        { status: 200, body: revList },
+        { status: 200, body: content, delayMs: 300 },
+      )
+      window.historyHarness.render()
+    }, { revList: REV_LIST, content: CONTENT_V3 })
+
+    await page.waitForSelector('.history-revision-item')
+    await expect(page.locator('.history-preview-skeleton')).toBeVisible()
+    await page.waitForSelector('.history-preview-textarea')
+    await expect(page.locator('.history-preview-skeleton')).toHaveCount(0)
+  })
+
+  test('shows error when preview fetch fails', async ({ page }) => {
+    await loadHarness(page)
+
+    await page.evaluate(({ revList }) => {
+      window.historyHarness.q(
+        { status: 200, body: revList },
+        { status: 500, body: { error: 'Server error' } },
+      )
+      window.historyHarness.render()
+    }, { revList: REV_LIST })
+
+    await page.waitForSelector('.history-preview-error')
+    await expect(page.locator('.history-preview-error')).toContainText('Failed to load')
+  })
+})
+
+test.describe('HistoryModal — restore button', () => {
+  test('restore button is disabled for the current (newest) revision', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await expect(page.locator('.btn-restore')).toBeDisabled()
+  })
+
+  test('restore button is enabled for older revisions', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.evaluate(({ content }) => {
+      window.historyHarness.q({ status: 200, body: content })
+    }, { content: CONTENT_V2 })
+
+    await page.locator('.history-revision-item').nth(1).click()
+    await page.waitForSelector('.history-preview-textarea')
+
+    await expect(page.locator('.btn-restore')).toBeEnabled()
+  })
+
+  test('restore calls onSave with the selected content and closes modal', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.evaluate(({ content }) => {
+      window.historyHarness.q({ status: 200, body: content })
+    }, { content: CONTENT_V2 })
+
+    await page.locator('.history-revision-item').nth(1).click()
+    await page.waitForSelector('.history-preview-textarea')
+
+    await page.locator('.btn-restore').click()
+    await page.waitForSelector('#modal-closed')
+
+    const saveCalls = await page.evaluate(() => window.historyHarness.saveCalls())
+    expect(saveCalls).toHaveLength(1)
+    expect(saveCalls[0].content).toBe(CONTENT_V2.content)
+    expect(saveCalls[0].date).toBe('2026-05-01')
+
+    const restoredCalls = await page.evaluate(() => window.historyHarness.restoredCalls())
+    expect(restoredCalls).toHaveLength(1)
+  })
+
+  test('restore shows conflict error without closing modal', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.evaluate(({ content }) => {
+      window.historyHarness.q({ status: 200, body: content })
+    }, { content: CONTENT_V2 })
+
+    await page.locator('.history-revision-item').nth(1).click()
+    await page.waitForSelector('.history-preview-textarea')
+
+    await page.evaluate(() => window.historyHarness.setSaveReject('conflict'))
+    await page.locator('.btn-restore').click()
+
+    await expect(page.locator('.history-restore-error')).toBeVisible()
+    await expect(page.locator('.history-modal')).toBeVisible()
+  })
+
+  test('restore shows error message on save failure', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.evaluate(({ content }) => {
+      window.historyHarness.q({ status: 200, body: content })
+    }, { content: CONTENT_V2 })
+
+    await page.locator('.history-revision-item').nth(1).click()
+    await page.waitForSelector('.history-preview-textarea')
+
+    await page.evaluate(() => window.historyHarness.setSaveReject('error'))
+    await page.locator('.btn-restore').click()
+
+    await expect(page.locator('.history-restore-error')).toBeVisible()
+  })
+})
+
+test.describe('HistoryModal — close behaviour', () => {
+  test('× button closes the modal', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.locator('.history-modal-close').click()
+    await page.waitForSelector('#modal-closed')
+
+    const closeCalls = await page.evaluate(() => window.historyHarness.closeCalls())
+    expect(closeCalls).toBe(1)
+  })
+
+  test('Escape key closes the modal', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.keyboard.press('Escape')
+    await page.waitForSelector('#modal-closed')
+
+    const closeCalls = await page.evaluate(() => window.historyHarness.closeCalls())
+    expect(closeCalls).toBe(1)
+  })
+
+  test('clicking the overlay closes the modal', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.locator('.history-overlay').click({ position: { x: 10, y: 10 } })
+    await page.waitForSelector('#modal-closed')
+
+    const closeCalls = await page.evaluate(() => window.historyHarness.closeCalls())
+    expect(closeCalls).toBe(1)
+  })
+
+  test('clicking inside the modal does not close it', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page)
+
+    await page.locator('.history-modal-header').click()
+    await expect(page.locator('.history-modal')).toBeVisible()
+  })
+})
+
+test.describe('HistoryModal — error states', () => {
+  test('shows error when revision list fetch fails', async ({ page }) => {
+    await loadHarness(page)
+
+    await page.evaluate(() => {
+      window.historyHarness.q({ status: 500, body: { error: 'Server error' } })
+      window.historyHarness.render()
+    })
+
+    await page.waitForSelector('.history-list-error')
+    await expect(page.locator('.history-list-error')).toContainText('Failed to load history')
+  })
+
+  test('calls onExpired when revision list returns 401', async ({ page }) => {
+    await loadHarness(page)
+
+    await page.evaluate(() => {
+      window.historyHarness.q({ status: 401, body: { error: 'Unauthorized' } })
+      window.historyHarness.render()
+    })
+
+    await page.waitForFunction(() => window.historyHarness.expiredCalls() > 0)
+
+    const expiredCalls = await page.evaluate(() => window.historyHarness.expiredCalls())
+    expect(expiredCalls).toBe(1)
+  })
+})
+
+test.describe('HistoryModal — API calls', () => {
+  test('makes correct requests to Drive Revisions API', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, { fileId: 'my-file-id' })
+
+    const calls = await page.evaluate(() => window.historyHarness.calls())
+    expect(calls[0].url).toContain('/drive/v3/files/my-file-id/revisions')
+    expect(calls[1].url).toContain('/drive/v3/files/my-file-id/revisions/')
+    expect(calls[1].url).toContain('alt=media')
+  })
+})
