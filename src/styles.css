@@ -1327,7 +1327,12 @@ body {
   0% { background-position: 120% 0; }
   100% { background-position: -120% 0; }
 }
+@keyframes editor-content-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .editor-textarea {
+  animation: editor-content-in 0.2s ease;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
