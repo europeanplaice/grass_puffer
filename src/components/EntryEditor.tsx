@@ -354,9 +354,13 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           )}
         </div>
       </div>
-      {lastModified && (
+      {(isToday || lastModified) && (
         <div className="editor-meta">
-          Last modified: {new Date(lastModified).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          {isToday && lastModified
+            ? `Today's entry - Last modified: ${new Date(lastModified).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
+            : isToday
+            ? "Today's entry"
+            : `Last modified: ${new Date(lastModified!).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`}
         </div>
       )}
       {pendingNavDate && (
