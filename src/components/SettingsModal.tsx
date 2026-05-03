@@ -35,12 +35,21 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, dates, onExport, onC
           <h3>Settings</h3>
           <button className="settings-modal-close" onClick={onClose} aria-label="Close settings">×</button>
         </div>
-        <div className="settings-modal-body">
-          <label className="settings-toggle">
-            <input type="checkbox" checked={autoSave} onChange={onAutoSaveToggle} />
-            <span>Auto-save</span>
-          </label>
-          <div className="settings-export">
+        <div className="settings-list">
+          <div className="settings-item">
+            <span className="settings-item-label">Auto-save</span>
+            <button
+              className={`settings-switch ${autoSave ? 'active' : ''}`}
+              onClick={onAutoSaveToggle}
+              role="switch"
+              aria-checked={autoSave}
+            >
+              <span className="settings-switch-thumb" />
+            </button>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-item">
+            <span className="settings-item-label">Export all entries</span>
             <ExportButton dates={dates} onExport={onExport} />
           </div>
         </div>

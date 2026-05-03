@@ -44,16 +44,21 @@ export function ExportButton({ dates, onExport }: ExportButtonProps) {
   }, [exporting, dates.length, onExport])
 
   return (
-    <div className="sidebar-export">
+    <div className="settings-export">
       <button
-        className="btn-export"
+        className="btn-export-modern"
         onClick={handleExport}
         disabled={exporting || dates.length === 0}
         title="Export all diary entries as ZIP file"
       >
-        {exporting && progress
-          ? `Exporting... (${progress.done}/${progress.total})`
-          : 'Export all'}
+        {exporting && progress ? (
+          <span className="btn-export-progress">Exporting... ({progress.done}/{progress.total})</span>
+        ) : (
+          <>
+            <svg className="btn-export-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Export all</span>
+          </>
+        )}
       </button>
     </div>
   )
