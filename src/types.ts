@@ -15,3 +15,9 @@ export interface LoadedDiaryEntry {
   entry: DiaryEntry
   meta: DriveFileMeta
 }
+
+export interface DriveRevisionMeta {
+  id: string
+  modifiedTime: string
+  size?: string
+}

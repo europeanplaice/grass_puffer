@@ -22,7 +22,7 @@ export class DriveHttpError extends Error {
   }
 }
 
-function headers(token: string): Record<string, string> {
+export function headers(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` }
 }
 
@@ -30,7 +30,7 @@ function shouldRetry(status: number): boolean {
   return status === 429 || status >= 500
 }
 
-async function withRetry<T>(fetcher: () => Promise<{ res: Response; parse: () => Promise<T> }>): Promise<T> {
+export async function withRetry<T>(fetcher: () => Promise<{ res: Response; parse: () => Promise<T> }>): Promise<T> {
   const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
     const { res, parse } = await fetcher()

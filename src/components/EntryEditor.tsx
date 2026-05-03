@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import type { LoadedDiaryEntry } from '../types'
 import { todayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
+import { HistoryModal } from './HistoryModal'
 
 interface Props {
   date: string
@@ -16,6 +17,8 @@ interface Props {
   pendingNavDate: string | null
   onPendingNavigate: () => void
   onCancelNavigation: () => void
+  token: string | null
+  onExpired: () => void
 }
 
 function SaveIcon() {
@@ -40,7 +43,7 @@ const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, token, onExpired }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -50,8 +53,10 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [lastModified, setLastModified] = useState<string | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
+  const fileIdRef = useRef<string | null>(null)
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
   const weekday = weekdayLabel(date)
@@ -85,6 +90,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setStatus('')
     setHasConflict(false)
     setConflictRemote(null)
+    fileIdRef.current = null
     getContent(date).then(entry => {
       if (cancelled) return
       const driveText = entry?.entry.content ?? ''
@@ -92,6 +98,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       setSavedText(driveText)
       setBaseVersion(entry?.meta.version ?? null)
       setLastModified(entry?.entry.updated_at ?? null)
+      fileIdRef.current = entry?.meta.id ?? null
     }).catch(() => {
       if (!cancelled) setStatus('Failed to load entry.')
     }).finally(() => {
@@ -125,6 +132,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       setSavedText(currentText)
       setBaseVersion(saved.meta.version ?? null)
       setLastModified(saved.entry.updated_at ?? null)
+      fileIdRef.current = saved.meta.id
       setStatus(SAVED_STATUS)
       return true
     } catch (e) {
@@ -283,6 +291,26 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
 
   return (
     <>
+    {showHistoryModal && fileIdRef.current && token && (
+      <HistoryModal
+        date={date}
+        fileId={fileIdRef.current}
+        token={token}
+        baseVersion={baseVersion}
+        onSave={onSave}
+        onRestored={(result) => {
+          const content = result.entry.content
+          setText(content)
+          setSavedText(content)
+          setBaseVersion(result.meta.version ?? null)
+          setLastModified(result.entry.updated_at ?? null)
+          fileIdRef.current = result.meta.id
+          setShowHistoryModal(false)
+        }}
+        onClose={() => setShowHistoryModal(false)}
+        onExpired={onExpired}
+      />
+    )}
     {showDeleteModal && (
       <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
         <div className="delete-modal" onClick={e => e.stopPropagation()}>
@@ -345,6 +373,11 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
               <button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label="More options">···</button>
               {showMoreMenu && (
                 <div className="more-menu">
+                  {token && fileIdRef.current && (
+                    <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
+                      History
+                    </div>
+                  )}
                   <div className="more-menu-item more-menu-delete" onClick={del}>
                     Delete
                   </div>

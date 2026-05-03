@@ -479,6 +479,8 @@ const { mode: fontMode, toggleFont } = useFont()
           pendingNavDate={pendingDate}
           onPendingNavigate={handlePendingNavigate}
           onCancelNavigation={handleCancelNavigation}
+          token={accessToken}
+          onExpired={onExpired}
         />
       </main>
     </div>
