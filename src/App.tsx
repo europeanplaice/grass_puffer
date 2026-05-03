@@ -8,7 +8,7 @@ import { SessionExpiredModal } from './components/SessionExpiredModal'
 import { CalendarView } from './components/CalendarView'
 import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
-import { ExportButton } from './components/ExportButton'
+import { SettingsModal } from './components/SettingsModal'
 import { AppIcon } from './components/AppIcon'
 import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
 import { TokenExpiredError } from './api/driveEntries'
@@ -147,6 +147,7 @@ const { mode: fontMode, toggleFont } = useFont()
   const [pendingDate, setPendingDate] = useState<string | null>(null)
   const [retrySaveAfterReauth, setRetrySaveAfterReauth] = useState(false)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
   const seededMobileHistoryRef = useRef(false)
@@ -448,14 +449,20 @@ const { mode: fontMode, toggleFont } = useFont()
             </li>
           )})}
         </ul>
-        <div className="sidebar-settings">
-          <label className="sidebar-settings-toggle">
-            <input type="checkbox" checked={autoSave} onChange={handleAutoSaveToggle} />
-            <span>Auto-save</span>
-          </label>
-        </div>
-        <ExportButton dates={diary.dates} onExport={diary.exportAll} />
+        <button className="btn-settings" onClick={() => setSettingsOpen(true)} title="Settings">
+            <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            <span className="btn-text">Settings</span>
+          </button>
       </aside>
+      {settingsOpen && (
+        <SettingsModal
+          autoSave={autoSave}
+          onAutoSaveToggle={handleAutoSaveToggle}
+          dates={diary.dates}
+          onExport={diary.exportAll}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
       <main className="main">
         <EntryEditor
           date={selectedDate}
