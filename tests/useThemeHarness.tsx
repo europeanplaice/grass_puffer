@@ -2,16 +2,6 @@ import { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useTheme } from '../src/hooks/useTheme'
 
-declare global {
-  interface Window {
-    themeHarness: {
-      mode: () => 'light' | 'dark' | 'system'
-      effectiveTheme: () => 'light' | 'dark'
-      toggle: () => void
-    }
-  }
-}
-
 function Harness() {
   const { mode, effectiveTheme, toggleTheme } = useTheme()
 

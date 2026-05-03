@@ -6,21 +6,6 @@ import type { LoadedDiaryEntry } from '../src/types'
 
 type FetchCall = { url: string; method: string }
 type QueuedResponse = { status: number; body: unknown }
-type SaveResult = { ok: true; result: LoadedDiaryEntry } | { ok: false; conflict: unknown; error: string }
-
-declare global {
-  interface Window {
-    diaryHarness: {
-      q: (...responses: QueuedResponse[]) => void
-      calls: () => FetchCall[]
-      clearCalls: () => void
-      start: () => void
-      save: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<SaveResult>
-      triggerGetContent: (date: string) => Promise<void>
-      resetFolderState: () => void
-    }
-  }
-}
 
 const fetchCalls: FetchCall[] = []
 const queue: QueuedResponse[] = []

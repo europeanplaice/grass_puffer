@@ -2,15 +2,6 @@ import { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useFont } from '../src/hooks/useFont'
 
-declare global {
-  interface Window {
-    fontHarness: {
-      mode: () => 'serif' | 'sans'
-      toggle: () => void
-    }
-  }
-}
-
 function Harness() {
   const { mode, toggleFont } = useFont()
 

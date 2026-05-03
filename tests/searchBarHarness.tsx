@@ -2,17 +2,6 @@ import { createRoot } from 'react-dom/client'
 import { SearchBar } from '../src/components/SearchBar'
 import type { IndexingProgress, SearchResult } from '../src/hooks/useDiary'
 
-declare global {
-  interface Window {
-    searchHarness: {
-      render: (opts?: { entriesLoading?: boolean; indexingProgress?: Partial<IndexingProgress> }) => void
-      setSearchResult: (query: string, result: SearchResult) => void
-      calls: () => string[]
-      selectedDates: () => string[]
-    }
-  }
-}
-
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 const callLog: string[] = []
@@ -30,7 +19,7 @@ function render() {
       onSearch={query => {
         callLog.push(query)
         const registered = resultMap.get(query)
-        return registered ?? { results: [], unindexedCount: 0 }
+        return Promise.resolve(registered ?? { results: [], unindexedCount: 0 })
       }}
       onSelect={date => {
         selectedDates.push(date)

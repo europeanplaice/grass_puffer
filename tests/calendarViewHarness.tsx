@@ -1,14 +1,5 @@
-import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { CalendarView } from '../src/components/CalendarView'
-
-declare global {
-  interface Window {
-    calendarHarness: {
-      selectedDates: () => string[]
-    }
-  }
-}
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 const selectedDates: string[] = []

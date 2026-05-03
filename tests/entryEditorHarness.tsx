@@ -9,30 +9,6 @@ type SaveCall = { date: string; content: string; baseVersion: string | null; for
 type DeleteCall = { date: string }
 type NavCall = { date: string | null }
 
-declare global {
-  interface Window {
-    editorHarness: {
-      render: (opts: {
-        date: string
-        initialContent: string
-        version: string | null
-        saveReject?: 'conflict' | 'error'
-        autoSave?: boolean
-        getContentDelayMs?: number
-        pendingNavDate?: string | null
-      }) => void
-      saveCalls: () => SaveCall[]
-      deleteCalls: () => DeleteCall[]
-      pendingNavigateCalls: () => NavCall[]
-      cancelNavigationCalls: () => NavCall[]
-      menuClickCount: () => number
-      dirtyChanges: () => boolean[]
-      clearCalls: () => void
-      EntryConflictError: typeof EntryConflictError
-    }
-  }
-}
-
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 const saveCalls: SaveCall[] = []

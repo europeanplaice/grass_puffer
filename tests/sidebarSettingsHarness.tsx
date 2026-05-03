@@ -2,15 +2,6 @@ import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import '../src/styles.css'
 
-declare global {
-  interface Window {
-    settingsHarness: {
-      render: (opts?: { entryCount?: number }) => void
-      getStoredAutoSave: () => string | null
-    }
-  }
-}
-
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 function App({ entryCount }: { entryCount: number }) {
