@@ -1,6 +1,6 @@
 {
   "name": "Grass Puffer Diary",
-  "short_name": "Grass Puffer",
+  "short_name": "Grass Puffer Diary",
   "description": "A private diary app backed by your Google Drive.",
   "start_url": ".",
   "scope": ".",
