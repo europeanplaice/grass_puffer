@@ -8,6 +8,7 @@ import { SessionExpiredModal } from './components/SessionExpiredModal'
 import { CalendarView } from './components/CalendarView'
 import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
+import { ExportButton } from './components/ExportButton'
 import { AppIcon } from './components/AppIcon'
 import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
 import { TokenExpiredError } from './api/driveEntries'
@@ -453,6 +454,7 @@ const { mode: fontMode, toggleFont } = useFont()
             <span>Auto-save</span>
           </label>
         </div>
+        <ExportButton dates={diary.dates} onExport={diary.exportAll} />
       </aside>
       <main className="main">
         <EntryEditor

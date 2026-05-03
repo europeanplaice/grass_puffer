@@ -17,6 +17,7 @@ export interface DiaryState {
   remove: (date: string) => Promise<void>
   search: (query: string) => Promise<SearchResult>
   retryPendingSave: () => Promise<LoadedDiaryEntry | null>
+  exportAll: (onProgress?: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
 }
 
 export interface SearchResult {
@@ -310,7 +311,30 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
     return save(pending.date, pending.content, pending.baseVersion)
   }, [save])
 
+  const exportAll = useCallback(async (onProgress?: (done: number, total: number) => void): Promise<{ date: string; content: string }[]> => {
+    if (!accessToken) throw new Error('Not signed in')
+
+    const dates = Array.from(cache.keys()).sort((a, b) => a.localeCompare(b))
+    const total = dates.length
+    const results: { date: string; content: string }[] = []
+
+    for (let i = 0; i < total; i++) {
+      const date = dates[i]
+      const loaded = await getContent(date)
+      results.push({
+        date,
+        content: loaded?.entry.content ?? '',
+      })
+      onProgress?.(i + 1, total)
+      if (i < total - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+
+    return results
+  }, [accessToken, cache, getContent])
+
   const dates = Array.from(cache.keys()).sort((a, b) => b.localeCompare(a))
 
-  return { loading, error, dates, getContent, save, remove, search, retryPendingSave }
+  return { loading, error, dates, getContent, save, remove, search, retryPendingSave, exportAll }
 }
