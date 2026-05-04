@@ -14,7 +14,7 @@ function generateState(): string {
 }
 
 export function initTokenClient(
-  onToken: (token: string) => void,
+  onToken: (token: string, expiresIn: number) => void,
   onError: () => void,
 ): void {
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -33,7 +33,8 @@ export function initTokenClient(
         return
       }
       expectedState = null
-      onToken(resp.access_token)
+      const expiresIn = typeof resp.expires_in === 'number' ? resp.expires_in : 3600
+      onToken(resp.access_token, expiresIn)
     },
     error_callback: () => {
       expectedState = null

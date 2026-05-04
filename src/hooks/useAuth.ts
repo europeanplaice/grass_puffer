@@ -59,7 +59,18 @@ export function useAuth(): AuthState {
   const [authReady, setAuthReady] = useState(false)
   const [wasPreviouslySignedIn, setWasPreviouslySignedIn] = useState(hadRestorableSession)
   const [loadFailed, setLoadFailed] = useState(false)
+  const [tokenExpiry, setTokenExpiry] = useState<number | null>(null)
   const pendingSignInRef = useRef<PendingSignIn | null>(null)
+
+  const checkTokenValidity = useCallback(() => {
+    if (accessToken && tokenExpiry && Date.now() >= tokenExpiry) {
+      try {
+        requestToken({ prompt: '' })
+      } catch {
+        // Silent re-auth failed; ignore
+      }
+    }
+  }, [accessToken, tokenExpiry])
 
   useEffect(() => {
     let cancelled = false
@@ -67,11 +78,12 @@ export function useAuth(): AuthState {
     let attempts = 0
     const maxAttempts = GIS_TIMEOUT_MS / GIS_POLL_MS
 
-    const acceptToken = (token: string) => {
+    const acceptToken = (token: string, expiresIn: number) => {
       if (cancelled) return
       rememberRestorableSession()
       setWasPreviouslySignedIn(true)
       setAccessToken(token)
+      setTokenExpiry(Date.now() + expiresIn * 1000)
       setStatus('signedIn')
       const pending = pendingSignInRef.current
       pendingSignInRef.current = null
@@ -83,6 +95,7 @@ export function useAuth(): AuthState {
       forgetRestorableSession()
       setWasPreviouslySignedIn(false)
       setAccessToken(null)
+      setTokenExpiry(null)
       setStatus('signedOut')
       const pending = pendingSignInRef.current
       pendingSignInRef.current = null
@@ -112,6 +125,25 @@ export function useAuth(): AuthState {
     }
   }, [])
 
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkTokenValidity()
+      }
+    }
+    const handleFocus = () => {
+      checkTokenValidity()
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [checkTokenValidity])
+
   const signIn = (config?: TokenRequestConfig) => new Promise<void>((resolve, reject) => {
     if (!authReady) {
       reject(new Error('Google Sign-In is not ready'))
@@ -132,6 +164,7 @@ export function useAuth(): AuthState {
     forgetRestorableSession()
     setWasPreviouslySignedIn(false)
     setAccessToken(null)
+    setTokenExpiry(null)
     setStatus('signedOut')
   }
 
@@ -145,6 +178,7 @@ export function useAuth(): AuthState {
     forgetRestorableSession()
     setWasPreviouslySignedIn(false)
     setAccessToken(null)
+    setTokenExpiry(null)
     setStatus('signedOut')
   }, [])
 

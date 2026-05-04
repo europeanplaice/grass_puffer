@@ -57,7 +57,8 @@ test.describe('Google auth wrapper', () => {
 
   test('routes successful token responses to the token handler when state matches', () => {
     let accessToken: string | null = null
-    initTokenClient(token => { accessToken = token }, () => {})
+    let receivedExpiresIn: number | undefined
+    initTokenClient((token, expiresIn) => { accessToken = token; receivedExpiresIn = expiresIn }, () => {})
 
     requestToken()
     const sentState = tokenRequests[0]?.state as string
@@ -65,9 +66,17 @@ test.describe('Google auth wrapper', () => {
     tokenClientConfig?.callback({
       access_token: 'token-1',
       state: sentState,
-    } as google.accounts.oauth2.TokenResponse)
+      expires_in: 3600,
+      token_type: 'Bearer',
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      prompt: '',
+      hd: '',
+      client_id: '',
+      audiences: [],
+    } as unknown as google.accounts.oauth2.TokenResponse)
 
     expect(accessToken).toBe('token-1')
+    expect(receivedExpiresIn).toBe(3600)
   })
 
   test('calls error handler when state does not match', () => {
@@ -75,7 +84,6 @@ test.describe('Google auth wrapper', () => {
     initTokenClient(() => {}, () => { errors += 1 })
 
     requestToken()
-
     tokenClientConfig?.callback({
       access_token: 'token-1',
       state: 'wrong-state',
@@ -115,4 +123,19 @@ test.describe('Google auth wrapper', () => {
 
     expect(revokedTokens).toEqual(['token-1'])
   })
-})
+
+  test('defaults expires_in to 3600 when missing from response', () => {
+    let receivedExpiresIn: number | undefined
+    initTokenClient((_, expiresIn) => { receivedExpiresIn = expiresIn }, () => {})
+
+    requestToken()
+    const sentState = tokenRequests[0]?.state as string
+
+    tokenClientConfig?.callback({
+      access_token: 'token-1',
+      state: sentState,
+    } as google.accounts.oauth2.TokenResponse)
+
+     expect(receivedExpiresIn).toBe(3600)
+   })
+ })
