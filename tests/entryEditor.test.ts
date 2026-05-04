@@ -13,19 +13,25 @@ async function renderEditor(
     version?: string | null
     saveReject?: 'conflict' | 'error'
     pendingNavDate?: string | null
+    token?: string | null
   } = {},
 ) {
   const date = opts.date ?? '2026-05-01'
   const initialContent = opts.initialContent ?? ''
   const version = opts.version ?? null
   await page.evaluate(
-    ({ date, initialContent, version, saveReject, pendingNavDate }) => {
-      window.editorHarness.render({ date, initialContent, version, saveReject, pendingNavDate })
+    ({ date, initialContent, version, saveReject, pendingNavDate, token }) => {
+      ;(window as any).editorHarness.render({ date, initialContent, version, saveReject, pendingNavDate, token })
     },
-    { date, initialContent, version, saveReject: opts.saveReject, pendingNavDate: opts.pendingNavDate },
+    { date, initialContent, version, saveReject: opts.saveReject, pendingNavDate: opts.pendingNavDate, token: opts.token },
   )
   // Wait for textarea to be visible (loading done)
   await page.waitForSelector('textarea.editor-textarea')
+}
+
+// Helper to access harness methods via any to avoid TypeScript errors
+function harness(page: import('@playwright/test').Page) {
+  return page.evaluate(() => (window as any).editorHarness)
 }
 
 test.describe('EntryEditor — date header', () => {
@@ -411,6 +417,77 @@ test.describe('EntryEditor — unsaved navigation save', () => {
       { date: '2026-05-02' },
     ])
     await expect(page.locator('.unsaved-nav-banner')).toHaveCount(0)
+  })
+})
+
+test.describe('EntryEditor — Open in Drive', () => {
+  test('shows Open in Drive in more menu when token and fileId exist', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    // Set token via harness
+    await page.evaluate(() => {
+      (window as any).editorHarness.render({
+        date: '2026-05-01',
+        initialContent: 'saved content',
+        version: '1',
+        token: 'mock-token',
+      })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    await page.getByRole('button', { name: 'More options' }).click()
+    await expect(page.locator('.more-menu')).toBeVisible()
+    await expect(page.getByText('Open in Drive')).toBeVisible()
+  })
+
+  test('opens Drive URL when clicking Open in Drive', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      (window as any).editorHarness.render({
+        date: '2026-05-01',
+        initialContent: 'saved content',
+        version: '1',
+        token: 'mock-token',
+      })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    await page.getByRole('button', { name: 'More options' }).click()
+    await page.getByText('Open in Drive').click()
+
+    const openCalls = await page.evaluate(() => (window as any).editorHarness.windowOpenCalls())
+    expect(openCalls).toHaveLength(1)
+    expect(openCalls[0].url).toBe('https://drive.google.com/file/d/file-1/view')
+    expect(openCalls[0].target).toBe('_blank')
+  })
+
+  test('does not show Open in Drive when token is null', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    // Default harness renders with token: null
+    await page.getByRole('button', { name: 'More options' }).click()
+    await expect(page.locator('.more-menu')).toBeVisible()
+    await expect(page.getByText('Open in Drive')).toHaveCount(0)
+  })
+
+  test('does not show Open in Drive when fileId is null (no saved entry)', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      (window as any).editorHarness.render({
+        date: '2026-05-01',
+        initialContent: '',
+        version: null,
+        token: 'mock-token',
+      })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    // More options button should not exist when fileId is null (no saved entry)
+    await expect(page.getByRole('button', { name: 'More options' })).toHaveCount(0)
+    // Open in Drive should not exist anywhere
+    await expect(page.getByText('Open in Drive')).toHaveCount(0)
   })
 })
 

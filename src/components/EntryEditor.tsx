@@ -403,6 +403,14 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
                       History
                     </div>
                   )}
+                  {token && fileIdRef.current && (
+                    <div className="more-menu-item" onClick={() => {
+                      setShowMoreMenu(false)
+                      window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')
+                    }}>
+                      Open in Drive
+                    </div>
+                  )}
                   <div className="more-menu-item more-menu-delete" onClick={del}>
                     Delete
                   </div>

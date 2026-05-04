@@ -52,6 +52,19 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, dates, onExport, onC
             <span className="settings-item-label">Export all entries</span>
             <ExportButton dates={dates} onExport={onExport} />
           </div>
+          <div className="settings-divider" />
+          <div className="settings-about">
+            <p className="settings-about-title">About data storage</p>
+            <p className="settings-about-text">
+              Your diary entries are stored in your Google Drive:
+            </p>
+            <ul className="settings-about-list">
+              <li>A folder named <strong>GrassPuffer Diary</strong> is created automatically</li>
+              <li>One JSON file per day: <code>diary-YYYY-MM-DD.json</code></li>
+              <li>Format: <code>{'{ date, content, updated_at }'}</code></li>
+              <li>This app only accesses files it created (scope: drive.file)</li>
+            </ul>
+          </div>
         </div>
       </div>
     </div>

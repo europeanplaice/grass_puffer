@@ -8,25 +8,36 @@ import '../src/styles.css'
 type SaveCall = { date: string; content: string; baseVersion: string | null; force?: boolean }
 type DeleteCall = { date: string }
 type NavCall = { date: string | null }
+type WindowOpenCall = { url: string; target: string }
 
-const root = createRoot(document.getElementById('root') as HTMLElement)
+let root = createRoot(document.getElementById('root') as HTMLElement)
 
-const saveCalls: SaveCall[] = []
-const deleteCalls: DeleteCall[] = []
-const pendingNavigateCalls: NavCall[] = []
-const cancelNavigationCalls: NavCall[] = []
+let saveCalls: SaveCall[] = []
+let deleteCalls: DeleteCall[] = []
+let pendingNavigateCalls: NavCall[] = []
+let cancelNavigationCalls: NavCall[] = []
+let windowOpenCalls: WindowOpenCall[] = []
 let menuClickCount = 0
-const dirtyChanges: boolean[] = []
+let dirtyChanges: boolean[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
+let currentToken: string | null = null
 
-function App({ date, initialContent, version, autoSave, getContentDelayMs, pendingNavDate: initialPendingNavDate }: {
+// Mock window.open
+const originalOpen = window.open.bind(window)
+window.open = (url?: string | URL, target?: string) => {
+  if (url) windowOpenCalls.push({ url: String(url), target: target ?? '' })
+  return null
+}
+
+function App({ date, initialContent, version, autoSave, getContentDelayMs, pendingNavDate: initialPendingNavDate, token }: {
   date: string
   initialContent: string
   version: string | null
   autoSave: boolean
   getContentDelayMs: number
   pendingNavDate: string | null
+  token: string | null
 }) {
   const [pendingNavDate, setPendingNavDate] = useState<string | null>(initialPendingNavDate)
 
@@ -78,29 +89,41 @@ function App({ date, initialContent, version, autoSave, getContentDelayMs, pendi
         setPendingNavDate(null)
       }}
       reauthSaveResult={null}
-      token={null}
+      token={token}
       onExpired={() => {}}
     />
   )
 }
 
-window.editorHarness = {
-  render: ({ date, initialContent, version, saveReject, autoSave, getContentDelayMs, pendingNavDate }) => {
-    saveCalls.splice(0)
-    deleteCalls.splice(0)
-    pendingNavigateCalls.splice(0)
-    cancelNavigationCalls.splice(0)
+(window as any).editorHarness = {
+  render: (opts: {
+    date?: string
+    initialContent?: string
+    version?: string | null
+    saveReject?: 'conflict' | 'error'
+    autoSave?: boolean
+    getContentDelayMs?: number
+    pendingNavDate?: string | null
+    token?: string | null
+  }) => {
+    saveCalls = []
+    deleteCalls = []
+    pendingNavigateCalls = []
+    cancelNavigationCalls = []
+    windowOpenCalls = []
     menuClickCount = 0
-    dirtyChanges.splice(0)
-    currentSaveReject = saveReject
+    dirtyChanges = []
+    currentSaveReject = opts.saveReject
+    currentToken = opts.token ?? null
     root.render(
       <App
-        date={date}
-        initialContent={initialContent}
-        version={version}
-        autoSave={autoSave ?? true}
-        getContentDelayMs={getContentDelayMs ?? 0}
-        pendingNavDate={pendingNavDate ?? null}
+        date={opts.date ?? '2026-05-01'}
+        initialContent={opts.initialContent ?? ''}
+        version={opts.version ?? null}
+        autoSave={opts.autoSave ?? true}
+        getContentDelayMs={opts.getContentDelayMs ?? 0}
+        pendingNavDate={opts.pendingNavDate ?? null}
+        token={currentToken}
       />
     )
   },
@@ -111,12 +134,14 @@ window.editorHarness = {
   menuClickCount: () => menuClickCount,
   dirtyChanges: () => [...dirtyChanges],
   clearCalls: () => {
-    saveCalls.splice(0)
-    deleteCalls.splice(0)
-    pendingNavigateCalls.splice(0)
-    cancelNavigationCalls.splice(0)
+    saveCalls = []
+    deleteCalls = []
+    pendingNavigateCalls = []
+    cancelNavigationCalls = []
+    windowOpenCalls = []
     menuClickCount = 0
-    dirtyChanges.splice(0)
+    dirtyChanges = []
   },
+  windowOpenCalls: () => [...windowOpenCalls],
   EntryConflictError,
 }
