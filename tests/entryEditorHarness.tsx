@@ -10,7 +10,7 @@ type DeleteCall = { date: string }
 type NavCall = { date: string | null }
 type WindowOpenCall = { url: string; target: string }
 
-let root = createRoot(document.getElementById('root') as HTMLElement)
+const root = createRoot(document.getElementById('root') as HTMLElement)
 
 let saveCalls: SaveCall[] = []
 let deleteCalls: DeleteCall[] = []
@@ -24,7 +24,6 @@ let currentSaveReject: 'conflict' | 'error' | undefined
 let currentToken: string | null = null
 
 // Mock window.open
-const originalOpen = window.open.bind(window)
 window.open = (url?: string | URL, target?: string) => {
   if (url) windowOpenCalls.push({ url: String(url), target: target ?? '' })
   return null
@@ -95,7 +94,7 @@ function App({ date, initialContent, version, autoSave, getContentDelayMs, pendi
   )
 }
 
-(window as any).editorHarness = {
+window.editorHarness = {
   render: (opts: {
     date?: string
     initialContent?: string

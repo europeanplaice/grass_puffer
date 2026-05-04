@@ -684,6 +684,36 @@ body {
   background: var(--border);
   margin: 0 1.2rem;
 }
+.settings-about {
+  padding: 0.9rem 1.2rem 1rem;
+}
+.settings-about-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.4rem;
+}
+.settings-about-text {
+  font-size: 0.82rem;
+  color: var(--text-muted, var(--text));
+  margin: 0 0 0.35rem;
+}
+.settings-about-list {
+  font-size: 0.8rem;
+  color: var(--text-muted, var(--text));
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.settings-about-list code {
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+  background: var(--code-bg, var(--border));
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+}
 .settings-export .btn-export-modern {
   display: inline-flex;
   align-items: center;

@@ -21,7 +21,7 @@ async function renderEditor(
   const version = opts.version ?? null
   await page.evaluate(
     ({ date, initialContent, version, saveReject, pendingNavDate, token }) => {
-      ;(window as any).editorHarness.render({ date, initialContent, version, saveReject, pendingNavDate, token })
+      window.editorHarness.render({ date, initialContent, version, saveReject, pendingNavDate, token })
     },
     { date, initialContent, version, saveReject: opts.saveReject, pendingNavDate: opts.pendingNavDate, token: opts.token },
   )
@@ -29,10 +29,6 @@ async function renderEditor(
   await page.waitForSelector('textarea.editor-textarea')
 }
 
-// Helper to access harness methods via any to avoid TypeScript errors
-function harness(page: import('@playwright/test').Page) {
-  return page.evaluate(() => (window as any).editorHarness)
-}
 
 test.describe('EntryEditor — date header', () => {
   test('shows the weekday next to the entry date', async ({ page }) => {
@@ -427,7 +423,7 @@ test.describe('EntryEditor — Open in Drive', () => {
 
     // Set token via harness
     await page.evaluate(() => {
-      (window as any).editorHarness.render({
+      window.editorHarness.render({
         date: '2026-05-01',
         initialContent: 'saved content',
         version: '1',
@@ -444,7 +440,7 @@ test.describe('EntryEditor — Open in Drive', () => {
   test('opens Drive URL when clicking Open in Drive', async ({ page }) => {
     await loadHarness(page)
     await page.evaluate(() => {
-      (window as any).editorHarness.render({
+      window.editorHarness.render({
         date: '2026-05-01',
         initialContent: 'saved content',
         version: '1',
@@ -456,7 +452,7 @@ test.describe('EntryEditor — Open in Drive', () => {
     await page.getByRole('button', { name: 'More options' }).click()
     await page.getByText('Open in Drive').click()
 
-    const openCalls = await page.evaluate(() => (window as any).editorHarness.windowOpenCalls())
+    const openCalls = await page.evaluate(() => window.editorHarness.windowOpenCalls())
     expect(openCalls).toHaveLength(1)
     expect(openCalls[0].url).toBe('https://drive.google.com/file/d/file-1/view')
     expect(openCalls[0].target).toBe('_blank')
@@ -475,7 +471,7 @@ test.describe('EntryEditor — Open in Drive', () => {
   test('does not show Open in Drive when fileId is null (no saved entry)', async ({ page }) => {
     await loadHarness(page)
     await page.evaluate(() => {
-      (window as any).editorHarness.render({
+      window.editorHarness.render({
         date: '2026-05-01',
         initialContent: '',
         version: null,

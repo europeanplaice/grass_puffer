@@ -47,13 +47,14 @@ interface Window {
   }
   editorHarness: {
     render: (opts: {
-      date: string
-      initialContent: string
-      version: string | null
+      date?: string
+      initialContent?: string
+      version?: string | null
       saveReject?: 'conflict' | 'error'
       autoSave?: boolean
       getContentDelayMs?: number
       pendingNavDate?: string | null
+      token?: string | null
     }) => void
     saveCalls: () => { date: string; content: string; baseVersion: string | null; force?: boolean }[]
     deleteCalls: () => { date: string }[]
@@ -62,6 +63,7 @@ interface Window {
     menuClickCount: () => number
     dirtyChanges: () => boolean[]
     clearCalls: () => void
+    windowOpenCalls: () => { url: string; target: string }[]
     EntryConflictError: typeof import('../src/hooks/useDiary').EntryConflictError
   }
   historyHarness: {
