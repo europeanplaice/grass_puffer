@@ -102,6 +102,7 @@ test.describe('HistoryModal — preview', () => {
     await loadHarness(page)
     await renderModal(page)
 
+    // diffWords highlights changed words; the full current content should be visible
     await expect(page.locator('.history-preview-diff')).toContainText(CONTENT_V3.content)
   })
 

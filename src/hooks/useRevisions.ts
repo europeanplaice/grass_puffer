@@ -90,26 +90,20 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
           const prev = await getRevisionContent(token, fileId, prevId)
           if (controller.signal.aborted) return
 
-          const diff = Diff.diffLines(prev.content, currentContent)
+          const diff = Diff.diffWords(prev.content, currentContent)
           const htmlParts = []
           for (const part of diff) {
             const escaped = part.value
               .replace(/&/g, '&amp;')
               .replace(/</g, '&lt;')
               .replace(/>/g, '&gt;')
-            const lines = escaped.split('\n')
-            // Remove last empty element if the text ends with newline
-            if (lines.length > 0 && lines[lines.length - 1] === '') {
-              lines.pop()
-            }
-            for (const line of lines) {
-              if (part.added) {
-                htmlParts.push(`<div class="diff-add">${line}</div>`)
-              } else if (part.removed) {
-                htmlParts.push(`<div class="diff-remove">${line}</div>`)
-              } else {
-                htmlParts.push(`<div>${line}</div>`)
-              }
+              .replace(/\n/g, '<br>')
+            if (part.added) {
+              htmlParts.push(`<span class="diff-add-word">${escaped}</span>`)
+            } else if (part.removed) {
+              htmlParts.push(`<span class="diff-remove-word">${escaped}</span>`)
+            } else {
+              htmlParts.push(escaped)
             }
           }
           setDiffHtml(htmlParts.join(''))
