@@ -464,6 +464,6 @@ test.describe('EntryEditor — editor meta info', () => {
     await loadHarness(page)
     await renderEditor(page, { date: '2026-04-15', initialContent: '', version: null })
 
-    await expect(page.locator('.editor-meta')).toHaveCount(0)
+    await expect(page.locator('.editor-meta')).toBeHidden()
   })
 })

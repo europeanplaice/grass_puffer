@@ -923,6 +923,9 @@ body {
   border-bottom: 1px solid var(--border);
   margin-bottom: 0.5rem;
 }
+.editor-meta:empty {
+  display: none;
+}
 .editor-date-group {
   display: flex;
   align-items: center;

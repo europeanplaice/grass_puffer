@@ -391,15 +391,15 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
           )}
         </div>
       </div>
-      {(isToday || lastModified) && (
-        <div className="editor-meta">
-          {isToday && lastModified
+      <div className="editor-meta">
+        {(isToday || lastModified) && (
+          isToday && lastModified
             ? `Today's entry - Last modified: ${new Date(lastModified).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
             : isToday
             ? "Today's entry"
-            : `Last modified: ${new Date(lastModified!).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`}
-        </div>
-      )}
+            : `Last modified: ${new Date(lastModified!).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
+        )}
+      </div>
       {pendingNavDate && (
         <div className="unsaved-nav-banner">
           <span>Unsaved changes — save before leaving?</span>
