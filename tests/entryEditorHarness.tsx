@@ -77,6 +77,7 @@ function App({ date, initialContent, version, autoSave, getContentDelayMs, pendi
         cancelNavigationCalls.push({ date: pendingNavDate })
         setPendingNavDate(null)
       }}
+      reauthSaveResult={null}
       token={null}
       onExpired={() => {}}
     />

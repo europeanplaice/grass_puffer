@@ -95,11 +95,10 @@ export function useAuth(): AuthState {
       const wasBackground = isBackgroundRefreshRef.current
       isBackgroundRefreshRef.current = false
       if (wasBackground) {
-        // Silent refresh failed — show expired modal without forgetting the session
+        // Silent refresh failed: show the expired modal without tearing down the
+        // in-app state. A successful reauth will replace the stale token.
         tokenExpiryTimeRef.current = null
         setTokenExpired(true)
-        setAccessToken(null)
-        setStatus('signedOut')
         pendingSignInRef.current = null
         return
       }
@@ -219,8 +218,6 @@ export function useAuth(): AuthState {
   const handleExpired = useCallback(() => {
     tokenExpiryTimeRef.current = null
     setTokenExpired(true)
-    setAccessToken(null)
-    setStatus('signedOut')
   }, [])
 
   const retryAfterExpired = useCallback(() => {

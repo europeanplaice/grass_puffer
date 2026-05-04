@@ -12,6 +12,7 @@ import { SettingsModal } from './components/SettingsModal'
 import { AppIcon } from './components/AppIcon'
 import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
 import { TokenExpiredError } from './api/driveEntries'
+import type { LoadedDiaryEntry } from './types'
 
 type RecentPreview = {
   snippet: string
@@ -147,6 +148,7 @@ const { mode: fontMode, toggleFont } = useFont()
   const [autoSave, setAutoSave] = useState(() => localStorage.getItem('grass_puffer_autosave') !== 'false')
   const [pendingDate, setPendingDate] = useState<string | null>(null)
   const [retrySaveAfterReauth, setRetrySaveAfterReauth] = useState(false)
+  const [reauthSaveResult, setReauthSaveResult] = useState<LoadedDiaryEntry | null>(null)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const selectedDateRef = useRef(selectedDate)
@@ -363,6 +365,9 @@ const { mode: fontMode, toggleFont } = useFont()
 
     let cancelled = false
     diary.retryPendingSave()
+      .then(result => {
+        if (!cancelled && result) setReauthSaveResult(result)
+      })
       .catch(e => {
         if (e instanceof TokenExpiredError) return
         if (!cancelled) console.error('Pending save retry failed:', e)
@@ -483,6 +488,7 @@ const { mode: fontMode, toggleFont } = useFont()
           pendingNavDate={pendingDate}
           onPendingNavigate={handlePendingNavigate}
           onCancelNavigation={handleCancelNavigation}
+          reauthSaveResult={reauthSaveResult}
           token={accessToken}
           onExpired={onExpired}
         />

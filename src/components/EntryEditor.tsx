@@ -17,6 +17,7 @@ interface Props {
   pendingNavDate: string | null
   onPendingNavigate: () => void
   onCancelNavigation: () => void
+  reauthSaveResult: LoadedDiaryEntry | null
   token: string | null
   onExpired: () => void
 }
@@ -43,7 +44,7 @@ const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, token, onExpired }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, token, onExpired }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -65,6 +66,8 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   // Use a ref to track the latest onSave without restarting debounce timers
   const onSaveRef = useRef(onSave)
   useEffect(() => { onSaveRef.current = onSave }, [onSave])
+  const getContentRef = useRef(getContent)
+  useEffect(() => { getContentRef.current = getContent }, [getContent])
 
   const textRef = useRef(text)
   const savedTextRef = useRef(savedText)
@@ -91,7 +94,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
     setHasConflict(false)
     setConflictRemote(null)
     fileIdRef.current = null
-    getContent(date).then(entry => {
+    getContentRef.current(date).then(entry => {
       if (cancelled) return
       const driveText = entry?.entry.content ?? ''
       setText(driveText)
@@ -105,13 +108,31 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
       if (!cancelled) setLoading(false)
     })
     return () => { cancelled = true }
-  }, [date, getContent])
+  }, [date])
 
   const isDirty = text !== savedText
 
   useEffect(() => {
     onDirtyChange(isDirty)
   }, [isDirty, onDirtyChange])
+
+  useEffect(() => {
+    if (!reauthSaveResult || reauthSaveResult.entry.date !== date) return
+
+    const content = reauthSaveResult.entry.content
+    const currentText = textRef.current
+    const previousSavedText = savedTextRef.current
+
+    setSavedText(content)
+    setBaseVersion(reauthSaveResult.meta.version ?? null)
+    setLastModified(reauthSaveResult.entry.updated_at ?? null)
+    fileIdRef.current = reauthSaveResult.meta.id
+
+    if (currentText === previousSavedText || currentText === content) {
+      setText(content)
+      setStatus(SAVED_STATUS)
+    }
+  }, [date, reauthSaveResult])
 
   const pendingNavDateRef = useRef(pendingNavDate)
   useEffect(() => { pendingNavDateRef.current = pendingNavDate }, [pendingNavDate])

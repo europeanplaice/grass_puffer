@@ -175,6 +175,8 @@ test('expired save reauth retries with the refreshed token without showing re-lo
     window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
   ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
   await expect.poll(() => uploadTokens).toEqual(['Bearer test-token-2'])
+  await expect(page.locator('.editor-textarea')).toHaveValue('saved after refreshed token')
+  await expect(page.locator('.btn-save')).toBeDisabled()
 })
 
 test('clicking app title navigates to today and refreshes token silently', async ({ page }) => {
