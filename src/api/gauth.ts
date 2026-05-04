@@ -4,6 +4,14 @@ type TokenClient = google.accounts.oauth2.TokenClient
 export type TokenRequestConfig = google.accounts.oauth2.OverridableTokenClientConfig
 
 let tokenClient: TokenClient | null = null
+let expectedState: string | null = null
+
+function generateState(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return Math.random().toString(36).slice(2) + Date.now().toString(36)
+}
 
 export function initTokenClient(
   onToken: (token: string) => void,
@@ -15,18 +23,30 @@ export function initTokenClient(
     prompt: '',
     callback: (resp: google.accounts.oauth2.TokenResponse) => {
       if (resp.error) {
+        expectedState = null
         onError()
         return
       }
+      if (expectedState && resp.state !== expectedState) {
+        expectedState = null
+        onError()
+        return
+      }
+      expectedState = null
       onToken(resp.access_token)
     },
-    error_callback: onError,
+    error_callback: () => {
+      expectedState = null
+      onError()
+    },
   })
 }
 
 export function requestToken(config?: TokenRequestConfig): void {
   if (!tokenClient) throw new Error('Token client not initialized')
-  tokenClient.requestAccessToken(config)
+  const state = generateState()
+  expectedState = state
+  tokenClient.requestAccessToken({ ...config, state })
 }
 
 export function revokeToken(token: string): void {

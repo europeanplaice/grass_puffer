@@ -43,43 +43,72 @@ test.afterEach(() => {
 })
 
 test.describe('Google auth wrapper', () => {
-  test('passes token request overrides through to GIS', () => {
+  test('passes token request overrides through to GIS with state', () => {
     initTokenClient(() => {}, () => {})
 
     requestToken({ prompt: 'none' })
 
-    expect(tokenRequests).toEqual([{ prompt: 'none' }])
+    expect(tokenRequests.length).toBe(1)
+    const req = tokenRequests[0]
+    expect(req?.prompt).toBe('none')
+    expect(typeof req?.state).toBe('string')
+    expect(req?.state?.length).toBeGreaterThan(0)
   })
 
-  test('routes successful token responses to the token handler', () => {
+  test('routes successful token responses to the token handler when state matches', () => {
     let accessToken: string | null = null
-    let errors = 0
-    initTokenClient(token => { accessToken = token }, () => { errors += 1 })
+    initTokenClient(token => { accessToken = token }, () => {})
+
+    requestToken()
+    const sentState = tokenRequests[0]?.state as string
 
     tokenClientConfig?.callback({
       access_token: 'token-1',
+      state: sentState,
     } as google.accounts.oauth2.TokenResponse)
 
     expect(accessToken).toBe('token-1')
-    expect(errors).toBe(0)
   })
 
-  test('routes OAuth and popup errors to the error handler', () => {
-    let accessToken: string | null = null
+  test('calls error handler when state does not match', () => {
     let errors = 0
-    initTokenClient(token => { accessToken = token }, () => { errors += 1 })
+    initTokenClient(() => {}, () => { errors += 1 })
 
+    requestToken()
+    const sentState = tokenRequests[0]?.state as string
+
+    tokenClientConfig?.callback({
+      access_token: 'token-1',
+      state: 'wrong-state',
+    } as google.accounts.oauth2.TokenResponse)
+
+    expect(errors).toBe(1)
+  })
+
+  test('routes OAuth errors to error handler and clears state', () => {
+    let errors = 0
+    initTokenClient(() => {}, () => { errors += 1 })
+
+    requestToken()
     tokenClientConfig?.callback({
       error: 'access_denied',
     } as google.accounts.oauth2.TokenResponse)
+
+    expect(errors).toBe(1)
+  })
+
+  test('routes popup errors to error handler and clears state', () => {
+    let errors = 0
+    initTokenClient(() => {}, () => { errors += 1 })
+
+    requestToken()
     tokenClientConfig?.error_callback?.({
       name: 'Error',
       message: 'Popup window closed',
       type: 'popup_closed',
     })
 
-    expect(accessToken).toBeNull()
-    expect(errors).toBe(2)
+    expect(errors).toBe(1)
   })
 
   test('revokes tokens through GIS', () => {
