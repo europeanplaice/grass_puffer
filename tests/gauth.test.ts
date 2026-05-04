@@ -75,7 +75,6 @@ test.describe('Google auth wrapper', () => {
     initTokenClient(() => {}, () => { errors += 1 })
 
     requestToken()
-    const sentState = tokenRequests[0]?.state as string
 
     tokenClientConfig?.callback({
       access_token: 'token-1',
