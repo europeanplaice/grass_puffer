@@ -22,10 +22,8 @@ type RecentPreview = {
 const DATE_HASH_RE = /^\d{4}-\d{2}-\d{2}$/
 const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
 
-type AppHistoryState = {
-  grassPuffer: true
-  view: 'calendar' | 'entry'
-  date: string
+interface SidebarHistoryState {
+  grassPufferSidebar?: boolean
 }
 
 function dateFromHash(): string | null {
@@ -37,30 +35,9 @@ function isMobileLayout(): boolean {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
 }
 
-function currentPathWithoutHash(): string {
-  return `${window.location.pathname}${window.location.search}`
-}
-
-function entryPath(date: string): string {
-  return `${currentPathWithoutHash()}#${date}`
-}
-
 function firstLinePreview(content: string): string {
   const firstLine = content.split(/\r?\n/).find(line => line.trim())?.trim() ?? ''
   return firstLine.length > 72 ? `${firstLine.slice(0, 69)}...` : firstLine
-}
-
-function appHistoryState(view: AppHistoryState['view'], date: string): AppHistoryState {
-  return { grassPuffer: true, view, date }
-}
-
-function isCalendarHistoryState(state: unknown): state is AppHistoryState {
-  return Boolean(
-    state &&
-    typeof state === 'object' &&
-    (state as Partial<AppHistoryState>).grassPuffer === true &&
-    (state as Partial<AppHistoryState>).view === 'calendar',
-  )
 }
 
 function dismissActiveTextCursor() {
@@ -153,7 +130,6 @@ const { mode: fontMode, toggleFont } = useFont()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
-  const seededMobileHistoryRef = useRef(false)
 
   useEffect(() => {
     selectedDateRef.current = selectedDate
@@ -170,36 +146,27 @@ const { mode: fontMode, toggleFont } = useFont()
   const diary = useDiary(accessToken, onExpired)
 
   useEffect(() => {
-    if (!accessToken) {
-      seededMobileHistoryRef.current = false
-      return
-    }
+    if (!accessToken) return
     const nextDate = dateFromHash() ?? selectedDateRef.current
     setSelectedDate(nextDate)
     selectedDateRef.current = nextDate
-
-    if (isMobileLayout() && !seededMobileHistoryRef.current) {
-      history.replaceState(appHistoryState('calendar', nextDate), '', currentPathWithoutHash())
-      history.pushState(appHistoryState('entry', nextDate), '', entryPath(nextDate))
-      seededMobileHistoryRef.current = true
-      setSidebarOpen(false)
-    }
   }, [accessToken])
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
-      const hashDate = dateFromHash()
-      if (isMobileLayout() && (isCalendarHistoryState(event.state) || !hashDate)) {
-        setSidebarOpen(true)
+      const state = event.state as SidebarHistoryState | null
+      if (state?.grassPufferSidebar) {
+        setSidebarOpen(false)
         return
       }
 
+      const hashDate = dateFromHash()
       if (hashDate) {
         setSelectedDate(hashDate)
         selectedDateRef.current = hashDate
         setSidebarOpen(false)
       } else {
-        setSidebarOpen(true)
+        setSidebarOpen(false)
       }
     }
     window.addEventListener('popstate', handlePopState)
@@ -225,20 +192,15 @@ const { mode: fontMode, toggleFont } = useFont()
   }, [sidebarOpen])
 
   const closeSidebar = useCallback(() => {
-    if (isMobileLayout() && !dateFromHash()) {
-      const date = selectedDateRef.current
-      history.pushState(appHistoryState('entry', date), '', entryPath(date))
+    if (sidebarOpen) {
+      history.back()
+    } else {
+      setSidebarOpen(false)
     }
-    setSidebarOpen(false)
-  }, [])
+  }, [sidebarOpen])
 
   const doNavigateToDate = useCallback((d: string) => {
-    if (isMobileLayout()) {
-      history.replaceState(appHistoryState('calendar', d), '', currentPathWithoutHash())
-      history.pushState(appHistoryState('entry', d), '', entryPath(d))
-    } else {
-      history.pushState(null, '', '#' + d)
-    }
+    history.pushState(null, '', '#' + d)
     setSelectedDate(d)
     selectedDateRef.current = d
     setSidebarOpen(false)
@@ -282,7 +244,6 @@ const { mode: fontMode, toggleFont } = useFont()
   }, [selectDate])
 
   const handleSignOut = useCallback(() => {
-    seededMobileHistoryRef.current = false
     history.replaceState(null, '', '#')
     setPendingDate(null)
     signOut()
@@ -479,7 +440,10 @@ const { mode: fontMode, toggleFont } = useFont()
           onSave={diary.save}
           onDelete={diary.remove}
           onMenuClick={() => {
-            if (isMobileLayout()) setSidebarOpen(true)
+            if (isMobileLayout()) {
+              setSidebarOpen(true)
+              history.pushState({ grassPufferSidebar: true } as SidebarHistoryState, '')
+            }
           }}
           onDirtyChange={setEditorDirty}
           autoSave={autoSave}

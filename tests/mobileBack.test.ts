@@ -46,43 +46,37 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('mobile back from the initial entry opens the calendar instead of leaving the app', async ({ page }) => {
+test('mobile back closes sidebar instead of leaving the app', async ({ page }) => {
   await page.goto(baseUrl)
   await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
   await page.getByRole('button', { name: 'Sign in with Google' }).click()
 
   await expect(page.locator('.editor-textarea')).toBeVisible()
-  const entryHash = await page.evaluate(() => window.location.hash)
-  expect(entryHash).toMatch(/^#\d{4}-\d{2}-\d{2}$/)
 
+  // Set hash to today's date to simulate normal navigation state
+  const today = new Date()
+  const todayHash = `#${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  await page.evaluate((hash) => { window.location.hash = hash }, todayHash)
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(todayHash)
+
+  // Open sidebar via menu button
   await page.locator('.btn-menu').click()
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
   await expect(page.locator('.calendar')).toBeVisible()
 
-  await page.mouse.click(360, 20)
-  await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
-  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(entryHash)
-
-  const editor = page.locator('.editor-textarea')
-  await editor.fill('cursor handle')
-  await editor.evaluate((node: HTMLTextAreaElement) => node.setSelectionRange(6, 6))
-  await expect.poll(() => page.evaluate(() => document.activeElement?.classList.contains('editor-textarea'))).toBe(true)
-  await expect.poll(() => editor.evaluate((node: HTMLTextAreaElement) => node.selectionStart)).toBe(6)
-
+  // Press back button - should close sidebar (standard behavior)
   await page.goBack()
-  await expect(page.locator('.sidebar')).toHaveClass(/open/)
-  await expect(page.locator('.calendar')).toBeVisible()
-  await expect.poll(() => page.evaluate(() => document.activeElement?.classList.contains('editor-textarea'))).toBe(false)
-  await expect.poll(() => editor.evaluate((node: HTMLTextAreaElement) => node.selectionStart)).toBe(0)
-  await expect.poll(() => editor.evaluate((node: HTMLTextAreaElement) => node.selectionEnd)).toBe(0)
-  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe('')
-
-  await page.mouse.click(360, 20)
   await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
-  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(entryHash)
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(todayHash)
 
-  await page.goBack()
+  // Open sidebar again
+  await page.locator('.btn-menu').click()
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
+
+  // Press back button again - should close sidebar
+  await page.goBack()
+  await expect(page.locator('.sidebar')).not.toHaveClass(/open/)
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(todayHash)
 })
 
 test('entry date does not open the calendar on mobile or desktop', async ({ page }) => {
@@ -109,22 +103,28 @@ test('mobile date selection confirms before leaving unsaved edits', async ({ pag
 
   const editor = page.locator('.editor-textarea')
   await expect(editor).toBeVisible()
+
+  // Set a date hash to simulate normal state
+  const today = new Date()
+  const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
+  await page.evaluate((date) => { window.location.hash = '#' + date }, currentDate)
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#${currentDate}`)
+
   await editor.fill('unsaved draft')
 
-  const currentHash = await page.evaluate(() => window.location.hash)
-  const currentDate = currentHash.slice(1)
-  const nextDate = adjacentDate(currentDate)
-
+  // Open sidebar and select a different date
   await page.locator('.btn-menu').click()
   await expect(page.locator('.calendar')).toBeVisible()
 
+  const nextDate = adjacentDate(currentDate)
   await page.getByRole('button', { name: nextDate }).click()
   await expect(page.locator('.unsaved-nav-banner')).toContainText('Unsaved changes')
   await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Cancel' }).click()
-  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(currentHash)
+  await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#${currentDate}`)
   await expect(editor).toHaveValue('unsaved draft')
   await expect(page.locator('.sidebar')).toHaveClass(/open/)
 
+  // Try again and discard changes
   await page.getByRole('button', { name: nextDate }).click()
   await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Discard' }).click()
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#${nextDate}`)
