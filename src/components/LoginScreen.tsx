@@ -72,6 +72,10 @@ export function LoginScreen({
           <a href="/privacy.html" target="_blank" rel="noopener noreferrer">
             Privacy Policy
           </a>
+          {' · '}
+          <a href="/terms-of-service.html" target="_blank" rel="noopener noreferrer">
+            Terms of Service
+          </a>
         </p>
       </div>
     </div>
