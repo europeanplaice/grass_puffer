@@ -1668,6 +1668,10 @@ body {
     font-size: 1rem;
     padding-bottom: calc(1rem + var(--mobile-save-action-space));
     scroll-padding-bottom: calc(1rem + var(--mobile-save-action-space));
+    scrollbar-width: none;
+  }
+  .editor-textarea::-webkit-scrollbar {
+    display: none;
   }
 
   /* Icon-only action buttons on mobile */
