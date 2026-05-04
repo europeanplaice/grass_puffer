@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { useTheme } from './hooks/useTheme'
@@ -320,7 +320,7 @@ const { mode: fontMode, toggleFont } = useFont()
     return () => window.removeEventListener('keydown', handler)
   }, [selectDate, toggleTheme, toggleFont])
 
-  const datesSet = new Set(diary.dates)
+  const datesSet = useMemo(() => new Set(diary.dates), [diary.dates])
   const recentDates = diary.dates.slice(0, 5)
   const todayDate = todayYmd()
 
