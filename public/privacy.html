@@ -42,8 +42,8 @@
     <li>Files in your Google Drive that were created by this app (JSON files inside the <code>GrassPuffer Diary/</code> folder)</li>
   </ul>
   <p>
-    The access token is held in browser memory only — it is never written to <code>localStorage</code>,
-    cookies, or any server. It is discarded when you close the page.
+    The access token is held in browser memory only — it is never written to
+    cookies or any server. It is discarded when you close the page.
   </p>
 
   <h2>3. How We Use Your Information</h2>
@@ -52,23 +52,32 @@
     in Google Drive. It is not used for any other purpose.
   </p>
 
-  <h2>4. Data Sharing</h2>
+  <h2>4. Local Storage</h2>
+  <p>This app uses <code>localStorage</code> to persist a few non-sensitive preferences:</p>
+  <ul>
+    <li><code>grass_puffer_autosave</code> — whether auto-save is enabled</li>
+    <li><code>grass-puffer-auth-restorable</code> — a flag indicating a previous Google session may be restorable (does not store the token)</li>
+    <li>Theme and font preferences</li>
+  </ul>
+  <p>None of these contain diary content or authentication tokens.</p>
+
+  <h2>5. Data Sharing</h2>
   <p>
     We do not share, sell, or transmit your data to any third party.
     All data remains within your own Google Drive account.
   </p>
 
-  <h2>5. OAuth Scope</h2>
+  <h2>6. OAuth Scope</h2>
   <p>
     This app requests only the <code>https://www.googleapis.com/auth/drive.file</code> scope.
     This scope grants access <strong>only to files created by this app</strong> — it does not
     provide access to the rest of your Google Drive.
   </p>
 
-  <h2>6. Analytics &amp; Advertising</h2>
+  <h2>7. Analytics &amp; Advertising</h2>
   <p>This app uses no analytics, advertising, or tracking of any kind.</p>
 
-  <h2>7. Deleting Your Data</h2>
+  <h2>8. Deleting Your Data</h2>
   <p>
     All data created by this app is stored in the <code>GrassPuffer Diary/</code> folder in your
     Google Drive. You can delete it at any time by removing that folder. You can also revoke this
@@ -76,13 +85,13 @@
     <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account → Apps &amp; services</a>.
   </p>
 
-  <h2>8. Security</h2>
+  <h2>9. Security</h2>
   <p>
     Data storage and protection rely on Google Drive's security infrastructure.
     Because this app has no server, there is no server-side data to be breached.
   </p>
 
-  <h2>9. Contact</h2>
+  <h2>10. Contact</h2>
   <p>
     For privacy-related questions, please contact:<br />
     <a href="mailto:europeanplaice@gmail.com">europeanplaice@gmail.com</a>
