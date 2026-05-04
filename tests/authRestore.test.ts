@@ -176,3 +176,35 @@ test('expired save reauth retries with the refreshed token without showing re-lo
   ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
   await expect.poll(() => uploadTokens).toEqual(['Bearer test-token-2'])
 })
+
+test('clicking app title navigates to today and refreshes token silently', async ({ page }) => {
+  await page.addInitScript(installGoogleMock, false)
+
+  await page.goto(baseUrl)
+  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
+
+  await page.getByRole('button', { name: 'Sign in with Google' }).click()
+  await expect(page.locator('.editor-textarea')).toBeVisible()
+
+  const today = await page.evaluate(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })
+
+  // Navigate to a different date (not today) via hash
+  const otherDate = today === '2026-05-01' ? '2026-05-02' : '2026-05-01'
+  await page.evaluate((d) => { window.location.hash = d }, otherDate)
+  await page.waitForSelector(`.entry-date-text:not([data-today])`)
+
+  // Click the app title
+  await page.locator('.app-title').click()
+
+  // Should navigate to today - check URL hash and data-today attribute
+  await expect(page).toHaveURL(new RegExp(`#${today}`))
+  await expect(page.locator('.entry-date-text')).toHaveAttribute('data-today', 'true')
+
+  // Should have triggered a silent token refresh (prompt: '')
+  await expect.poll(() => page.evaluate(() => (
+    window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
+  ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
+})

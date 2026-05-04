@@ -331,6 +331,10 @@ body {
   align-items: center;
   gap: 0.45rem;
   font-size: 1.1rem;
+  cursor: pointer;
+}
+.app-title:hover {
+  opacity: 0.8;
 }
 .app-title-icon {
   width: 1.65rem;

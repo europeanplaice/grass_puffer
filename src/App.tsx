@@ -85,12 +85,12 @@ function dismissActiveTextCursor() {
   window.getSelection()?.removeAllRanges()
 }
 
-function RestoringScreen({ selectedDate }: { selectedDate: string }) {
+function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string; onTitleClick: () => void }) {
   return (
     <div className="app restoring-app">
       <aside className="sidebar restoring-sidebar open">
         <div className="sidebar-top">
-          <h1 className="app-title"><AppIcon className="app-title-icon" /> Diary</h1>
+          <h1 className="app-title" onClick={onTitleClick}><AppIcon className="app-title-icon" /> Diary</h1>
         </div>
         <div className="restoring-search" />
         <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
@@ -253,6 +253,11 @@ const { mode: fontMode, toggleFont } = useFont()
     doNavigateToDate(d)
   }, [doNavigateToDate])
 
+  const handleTitleClick = useCallback(() => {
+    selectDate(todayYmd())
+    signIn({ prompt: '' }).catch(() => {})
+  }, [selectDate, signIn])
+
   const handlePendingNavigate = useCallback(() => {
     if (pendingDate) doNavigateToDate(pendingDate)
   }, [pendingDate, doNavigateToDate])
@@ -375,7 +380,7 @@ const { mode: fontMode, toggleFont } = useFont()
   }, [accessToken, retrySaveAfterReauth, diary.retryPendingSave])
 
   if (status === 'initializing') {
-    return <RestoringScreen selectedDate={selectedDate} />
+    return <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
   }
 
   if (!accessToken && !sessionExpired) {
@@ -399,7 +404,7 @@ const { mode: fontMode, toggleFont } = useFont()
       />
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-top">
-          <h1 className="app-title"><AppIcon className="app-title-icon" /> Diary</h1>
+          <h1 className="app-title" onClick={handleTitleClick}><AppIcon className="app-title-icon" /> Diary</h1>
           <div className="sidebar-actions">
             <button className="btn-close-sidebar" onClick={closeSidebar} title="Close menu" aria-label="Close menu">×</button>
             <button className="btn-theme-toggle" onClick={toggleTheme} title={`Switch to ${effectiveTheme === 'dark' ? 'light' : 'dark'} theme`} aria-label="Toggle theme">
