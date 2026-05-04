@@ -917,7 +917,7 @@ body {
   color: var(--text-muted);
   padding-bottom: 0.35rem;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.5rem;
 }
 .editor-date-group {
   display: flex;
