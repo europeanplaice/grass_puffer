@@ -132,14 +132,15 @@ export default function App() {
     authReady,
     wasPreviouslySignedIn,
     loadFailed,
+    tokenExpired,
     signIn,
     signOut,
     forgetSession,
     handleExpired,
+    retryAfterExpired,
   } = useAuth()
   const { effectiveTheme, toggleTheme } = useTheme()
 const { mode: fontMode, toggleFont } = useFont()
-  const [sessionExpired, setSessionExpired] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
@@ -160,9 +161,41 @@ const { mode: fontMode, toggleFont } = useFont()
     editorDirtyRef.current = editorDirty
   }, [editorDirty])
 
+  // Initialize One Tap (only when not signed in)
+  useEffect(() => {
+    if (typeof google === 'undefined' || !google.accounts?.id) return
+
+    // One Tap for authentication (ID token)
+    google.accounts.id.initialize({
+      client_id: import.meta.env?.VITE_GOOGLE_CLIENT_ID as string,
+      callback: () => {
+        // One Tap succeeded - now request access token for Drive API
+        signIn({ prompt: '' }).catch(() => {})
+      },
+    })
+
+      // Show One Tap when user is not signed in
+      if (!accessToken && status !== 'initializing') {
+        google.accounts.id.prompt((notification) => {
+          // One Tap not displayed - that's okay, user can use the button
+          if (notification.isNotDisplayed()) {
+            const reason = notification.getNotDisplayedReason()
+            // Only log for debugging, user can still use the button
+            if (reason === 'suppressed_by_user') {
+              // User explicitly closed One Tap, don't show again immediately
+            }
+          }
+        })
+      }
+
+    return () => {
+      // Cancel One Tap prompt when component unmounts or dependencies change
+      try { google.accounts.id.cancel() } catch { /* ignore */ }
+    }
+  }, [accessToken, status, signIn])
+
   const onExpired = useCallback(() => {
     handleExpired()
-    setSessionExpired(true)
   }, [handleExpired])
 
   const diary = useDiary(accessToken, onExpired)
@@ -172,8 +205,6 @@ const { mode: fontMode, toggleFont } = useFont()
       seededMobileHistoryRef.current = false
       return
     }
-
-    setSessionExpired(false)
     const nextDate = dateFromHash() ?? selectedDateRef.current
     setSelectedDate(nextDate)
     selectedDateRef.current = nextDate
@@ -383,21 +414,23 @@ const { mode: fontMode, toggleFont } = useFont()
     return <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
   }
 
-  if (!accessToken && !sessionExpired) {
+  if (!accessToken && !tokenExpired) {
     return (
       <LoginScreen
         onSignIn={signIn}
+        onRetry={retryAfterExpired}
         onForgetSession={forgetSession}
         authReady={authReady}
         wasPreviouslySignedIn={wasPreviouslySignedIn}
         loadFailed={loadFailed}
+        tokenExpired={tokenExpired}
       />
     )
   }
 
   return (
     <div className="app">
-      {sessionExpired && <SessionExpiredModal onReauth={handleReauth} />}
+      {tokenExpired && <SessionExpiredModal onReauth={handleReauth} />}
       <div
         className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
         onClick={closeSidebar}

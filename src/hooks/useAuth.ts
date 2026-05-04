@@ -16,10 +16,12 @@ export interface AuthState {
   authReady: boolean
   wasPreviouslySignedIn: boolean
   loadFailed: boolean
+  tokenExpired: boolean
   signIn: (config?: TokenRequestConfig) => Promise<void>
   signOut: () => void
   forgetSession: () => void
   handleExpired: () => void
+  retryAfterExpired: () => void
 }
 
 function canRestoreSession(): boolean {
@@ -59,18 +61,9 @@ export function useAuth(): AuthState {
   const [authReady, setAuthReady] = useState(false)
   const [wasPreviouslySignedIn, setWasPreviouslySignedIn] = useState(hadRestorableSession)
   const [loadFailed, setLoadFailed] = useState(false)
-  const [tokenExpiry, setTokenExpiry] = useState<number | null>(null)
-  const pendingSignInRef = useRef<PendingSignIn | null>(null)
+  const [tokenExpired, setTokenExpired] = useState(false)
 
-  const checkTokenValidity = useCallback(() => {
-    if (accessToken && tokenExpiry && Date.now() >= tokenExpiry) {
-      try {
-        requestToken({ prompt: '' })
-      } catch {
-        // Silent re-auth failed; ignore
-      }
-    }
-  }, [accessToken, tokenExpiry])
+  const pendingSignInRef = useRef<PendingSignIn | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -78,12 +71,12 @@ export function useAuth(): AuthState {
     let attempts = 0
     const maxAttempts = GIS_TIMEOUT_MS / GIS_POLL_MS
 
-    const acceptToken = (token: string, expiresIn: number) => {
+    const acceptToken = (token: string) => {
       if (cancelled) return
       rememberRestorableSession()
       setWasPreviouslySignedIn(true)
       setAccessToken(token)
-      setTokenExpiry(Date.now() + expiresIn * 1000)
+      setTokenExpired(false)
       setStatus('signedIn')
       const pending = pendingSignInRef.current
       pendingSignInRef.current = null
@@ -95,7 +88,7 @@ export function useAuth(): AuthState {
       forgetRestorableSession()
       setWasPreviouslySignedIn(false)
       setAccessToken(null)
-      setTokenExpiry(null)
+      setTokenExpired(false)
       setStatus('signedOut')
       const pending = pendingSignInRef.current
       pendingSignInRef.current = null
@@ -125,25 +118,6 @@ export function useAuth(): AuthState {
     }
   }, [])
 
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        checkTokenValidity()
-      }
-    }
-    const handleFocus = () => {
-      checkTokenValidity()
-    }
-
-    document.addEventListener('visibilitychange', handleVisibilityChange)
-    window.addEventListener('focus', handleFocus)
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange)
-      window.removeEventListener('focus', handleFocus)
-    }
-  }, [checkTokenValidity])
-
   const signIn = (config?: TokenRequestConfig) => new Promise<void>((resolve, reject) => {
     if (!authReady) {
       reject(new Error('Google Sign-In is not ready'))
@@ -164,7 +138,7 @@ export function useAuth(): AuthState {
     forgetRestorableSession()
     setWasPreviouslySignedIn(false)
     setAccessToken(null)
-    setTokenExpiry(null)
+    setTokenExpired(false)
     setStatus('signedOut')
   }
 
@@ -173,14 +147,22 @@ export function useAuth(): AuthState {
     setWasPreviouslySignedIn(false)
   }, [])
 
-  // called when a Drive API call returns 401 (token expired without user action)
+  // Called when a Drive API call returns 401 (token expired)
+  // Instead of immediately signing out, set a flag so UI can prompt re-auth
   const handleExpired = useCallback(() => {
-    forgetRestorableSession()
-    setWasPreviouslySignedIn(false)
+    setTokenExpired(true)
     setAccessToken(null)
-    setTokenExpiry(null)
     setStatus('signedOut')
   }, [])
 
-  return { accessToken, status, authReady, wasPreviouslySignedIn, loadFailed, signIn, signOut, forgetSession, handleExpired }
+  // User chose to retry after expiration - clear flag and trigger sign-in
+  const retryAfterExpired = useCallback(() => {
+    setTokenExpired(false)
+    signIn({ prompt: '' }).catch(() => {
+      // sign-in was cancelled, stay in expired state
+      setTokenExpired(true)
+    })
+  }, [signIn])
+
+  return { accessToken, status, authReady, wasPreviouslySignedIn, loadFailed, tokenExpired, signIn, signOut, forgetSession, handleExpired, retryAfterExpired }
 }

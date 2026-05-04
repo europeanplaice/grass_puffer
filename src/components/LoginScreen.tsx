@@ -1,24 +1,42 @@
+import { useRef, useEffect } from 'react'
 import { AppIcon } from './AppIcon'
 
 interface Props {
   onSignIn: () => void
+  onRetry?: () => void
   onForgetSession?: () => void
   authReady?: boolean
   wasPreviouslySignedIn?: boolean
   sessionExpired?: boolean
   loadFailed?: boolean
+  tokenExpired?: boolean
 }
 
 export function LoginScreen({
   onSignIn,
+  onRetry,
   onForgetSession,
   authReady = true,
   wasPreviouslySignedIn,
   sessionExpired,
   loadFailed,
+  tokenExpired,
 }: Props) {
   const disabled = !authReady || Boolean(loadFailed)
   const buttonLabel = wasPreviouslySignedIn ? 'Continue with Google' : 'Sign in with Google'
+  const googleBtnRef = useRef<HTMLDivElement>(null)
+
+  // Render official Google Sign-In button once GIS is ready
+  useEffect(() => {
+    if (authReady && !loadFailed && googleBtnRef.current && window.google?.accounts?.id) {
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: 'outline',
+        size: 'large',
+        type: 'standard',
+        text: wasPreviouslySignedIn ? 'continue_with' : 'signin_with',
+      })
+    }
+  }, [authReady, loadFailed, wasPreviouslySignedIn])
 
   return (
     <div className="login-screen">
@@ -33,13 +51,22 @@ export function LoginScreen({
         {sessionExpired && (
           <p className="session-expired-msg">Session expired. Please sign in again.</p>
         )}
+        {tokenExpired && (
+          <p className="session-expired-msg">
+            Your session has expired.
+            <button className="btn-retry" onClick={onRetry} type="button">
+              Re-authenticate
+            </button>
+          </p>
+        )}
         {loadFailed && (
           <p className="session-expired-msg">Google Sign-In could not be loaded. Check your network or browser extensions.</p>
         )}
         {!loadFailed && !authReady && (
           <p className="session-expired-msg neutral">Loading Google Sign-In…</p>
         )}
-        <button className="btn-signin-google" onClick={onSignIn} disabled={disabled}>
+        <div ref={googleBtnRef} className="google-btn-container" />
+        <button className="btn-signin-google" onClick={onSignIn} disabled={disabled} style={{ display: 'none' }}>
           <svg
             className="google-logo"
             xmlns="http://www.w3.org/2000/svg"
