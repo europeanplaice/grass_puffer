@@ -1431,6 +1431,9 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+.unsaved-badge {
+  color: var(--warn, #e0a800);
+}
 .history-preview-pane {
   flex: 1;
   display: flex;

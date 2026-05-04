@@ -7,6 +7,10 @@ interface Props {
   fileId: string
   token: string
   baseVersion: string | null
+  text: string
+  savedText: string
+  isDirty: boolean
+  autoSave: boolean
   onSave: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
   onRestored: (result: LoadedDiaryEntry) => void
   onClose: () => void
@@ -32,15 +36,16 @@ function formatRevisionTime(iso: string): string {
   return `${date}, ${time}`
 }
 
-export function HistoryModal({ date, fileId, token, baseVersion, onSave, onRestored, onClose, onExpired }: Props) {
+export function HistoryModal({ date, fileId, token, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onClose, onExpired }: Props) {
   const {
-    revisions, listLoading, listError,
+    revisions, showUnsavedEntry, listLoading, listError,
     selectedId, previewContent, previewLoading, previewError,
     diffHtml, restoring, restoreError,
     selectRevision, restore,
-  } = useRevisions({ token, fileId, date, baseVersion, onSave, onRestored, onExpired })
+  } = useRevisions({ token, fileId, date, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onExpired })
 
   const isCurrentRevision = revisions.length > 0 && selectedId === revisions[0].id
+  const isUnsavedRevision = selectedId === '__unsaved__'
 
   const handleOverlayClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onClose()
@@ -67,6 +72,15 @@ export function HistoryModal({ date, fileId, token, baseVersion, onSave, onResto
             {!listLoading && listError && (
               <div className="history-list-error">{listError}</div>
             )}
+            {showUnsavedEntry && (
+              <div
+                className={`history-revision-item${selectedId === '__unsaved__' ? ' selected' : ''}`}
+                onClick={() => selectRevision('__unsaved__')}
+              >
+                <span className="history-revision-time">Unsaved</span>
+                <span className="history-revision-badge unsaved-badge">Unsaved</span>
+              </div>
+            )}
             {!listLoading && !listError && revisions.map((rev, i) => (
               <div
                 key={rev.id}
@@ -74,7 +88,7 @@ export function HistoryModal({ date, fileId, token, baseVersion, onSave, onResto
                 onClick={() => selectRevision(rev.id)}
               >
                 <span className="history-revision-time">{formatRevisionTime(rev.modifiedTime)}</span>
-                {i === 0 && <span className="history-revision-badge">Current</span>}
+                {i === 0 && !showUnsavedEntry && <span className="history-revision-badge">Current</span>}
               </div>
             ))}
           </div>
@@ -104,7 +118,7 @@ export function HistoryModal({ date, fileId, token, baseVersion, onSave, onResto
               <button
                 className="btn-restore"
                 onClick={restore}
-                disabled={isCurrentRevision || restoring || !previewContent}
+                disabled={isCurrentRevision || isUnsavedRevision || restoring || !previewContent}
               >
                 {restoring ? 'Restoring…' : 'Restore this version'}
               </button>

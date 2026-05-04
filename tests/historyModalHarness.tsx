@@ -38,9 +38,13 @@ interface AppProps {
   fileId: string
   token: string
   baseVersion: string | null
+  text: string
+  savedText: string
+  isDirty: boolean
+  autoSave: boolean
 }
 
-function App({ date, fileId, token, baseVersion }: AppProps) {
+function App({ date, fileId, token, baseVersion, text, savedText, isDirty, autoSave }: AppProps) {
   const [open, setOpen] = useState(true)
 
   if (!open) return <div id="modal-closed">closed</div>
@@ -51,6 +55,10 @@ function App({ date, fileId, token, baseVersion }: AppProps) {
       fileId={fileId}
       token={token}
       baseVersion={baseVersion}
+      text={text}
+      savedText={savedText}
+      isDirty={isDirty}
+      autoSave={autoSave}
       onSave={async (d, content, bv, force) => {
         saveCalls.push({ date: d, content, baseVersion: bv, force })
         if (saveReject === 'conflict') {
@@ -78,7 +86,7 @@ function App({ date, fileId, token, baseVersion }: AppProps) {
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
-type RenderOpts = { date?: string; fileId?: string; token?: string; baseVersion?: string | null }
+type RenderOpts = { date?: string; fileId?: string; token?: string; baseVersion?: string | null; text?: string; savedText?: string; isDirty?: boolean; autoSave?: boolean }
 
 window.historyHarness = {
   q: (...responses: { status: number; body: unknown }[]) => queue.push(...responses),
@@ -95,6 +103,10 @@ window.historyHarness = {
         fileId={opts.fileId ?? 'file-123'}
         token={opts.token ?? 'test-token'}
         baseVersion={opts.baseVersion ?? null}
+        text={opts.text ?? ''}
+        savedText={opts.savedText ?? ''}
+        isDirty={opts.isDirty ?? false}
+        autoSave={opts.autoSave ?? true}
         key={Date.now()}
       />
     )

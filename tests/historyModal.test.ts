@@ -18,7 +18,7 @@ async function loadHarness(page: import('@playwright/test').Page) {
 
 async function renderModal(
   page: import('@playwright/test').Page,
-  opts: { date?: string; fileId?: string; baseVersion?: string | null } = {},
+  opts: { date?: string; fileId?: string; baseVersion?: string | null; text?: string; savedText?: string; isDirty?: boolean; autoSave?: boolean } = {},
 ) {
   // Queue: list revisions, then rev-3 content, then rev-2 content (for diff)
   await page.evaluate(({ revList, contentV3, contentV2, opts }) => {
@@ -336,5 +336,111 @@ test.describe('HistoryModal — API calls', () => {
     expect(calls[0].url).toContain('/drive/v3/files/my-file-id/revisions')
     expect(calls[1].url).toContain('/drive/v3/files/my-file-id/revisions/')
     expect(calls[1].url).toContain('alt=media')
+  })
+})
+
+test.describe('HistoryModal — unsaved entry', () => {
+  test('shows "Unsaved" entry when autoSave=false and isDirty=true', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, {
+      autoSave: false,
+      isDirty: true,
+      text: 'unsaved content edits',
+      savedText: 'saved content',
+    })
+
+    const unsavedItem = page.locator('.history-revision-item').first()
+    await expect(unsavedItem).toContainText('Unsaved')
+    await expect(unsavedItem.locator('.unsaved-badge')).toHaveText('Unsaved')
+  })
+
+  test('selects "Unsaved" entry by default when autoSave=false and isDirty=true', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, {
+      autoSave: false,
+      isDirty: true,
+      text: 'unsaved content edits',
+      savedText: 'saved content',
+    })
+
+    const unsavedItem = page.locator('.history-revision-item').first()
+    await expect(unsavedItem).toHaveClass(/selected/)
+  })
+
+  test('shows diff between saved and current text when "Unsaved" is selected', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, {
+      autoSave: false,
+      isDirty: true,
+      text: 'new unsaved content',
+      savedText: 'old saved content',
+    })
+
+    // Preview should show the current text and diff
+    const preview = page.locator('.history-preview-diff')
+    await expect(preview).toContainText('new unsaved content')
+    // Diff should highlight added/removed words
+    await expect(preview.locator('.diff-add-word')).toBeVisible()
+  })
+
+  test('restore button is disabled when "Unsaved" entry is selected', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, {
+      autoSave: false,
+      isDirty: true,
+      text: 'unsaved content edits',
+      savedText: 'saved content',
+    })
+
+    await expect(page.locator('.btn-restore')).toBeDisabled()
+  })
+
+  test('does not show "Unsaved" entry when autoSave=true', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, {
+      autoSave: true,
+      isDirty: true,
+      text: 'unsaved content edits',
+      savedText: 'saved content',
+    })
+
+    const firstItem = page.locator('.history-revision-item').first()
+    await expect(firstItem).not.toContainText('Unsaved')
+    await expect(firstItem).toHaveClass(/selected/)
+  })
+
+  test('does not show "Unsaved" entry when isDirty=false', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, {
+      autoSave: false,
+      isDirty: false,
+      text: 'saved content',
+      savedText: 'saved content',
+    })
+
+    const firstItem = page.locator('.history-revision-item').first()
+    await expect(firstItem).not.toContainText('Unsaved')
+    await expect(firstItem).toHaveClass(/selected/)
+  })
+
+  test('clicking "Unsaved" entry shows diff', async ({ page }) => {
+    await loadHarness(page)
+    await renderModal(page, {
+      autoSave: false,
+      isDirty: true,
+      text: 'brand new text',
+      savedText: 'original saved text',
+    })
+
+    // Click on a saved revision
+    await page.locator('.history-revision-item').nth(1).click()
+    await page.waitForSelector('.history-preview-diff')
+    await expect(page.locator('.history-revision-item').nth(1)).toHaveClass(/selected/)
+
+    // Click back on "Unsaved"
+    await page.locator('.history-revision-item').first().click()
+    await expect(page.locator('.history-revision-item').first()).toHaveClass(/selected/)
+    const preview = page.locator('.history-preview-diff')
+    await expect(preview).toContainText('brand new text')
   })
 })

@@ -297,6 +297,10 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
         fileId={fileIdRef.current}
         token={token}
         baseVersion={baseVersion}
+        text={text}
+        savedText={savedText}
+        isDirty={isDirty}
+        autoSave={autoSave}
         onSave={onSave}
         onRestored={(result) => {
           const content = result.entry.content

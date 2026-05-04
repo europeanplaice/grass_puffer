@@ -5,8 +5,11 @@ import { TokenExpiredError } from '../api/driveEntries'
 import { EntryConflictError } from './useDiary'
 import * as Diff from 'diff'
 
+const UNSAVED_ID = '__unsaved__'
+
 export interface RevisionsState {
   revisions: DriveRevisionMeta[]
+  showUnsavedEntry: boolean
   listLoading: boolean
   listError: string | null
   selectedId: string | null
@@ -25,12 +28,18 @@ interface Params {
   fileId: string
   date: string
   baseVersion: string | null
+  text: string
+  savedText: string
+  isDirty: boolean
+  autoSave: boolean
   onSave: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
   onRestored: (result: LoadedDiaryEntry) => void
   onExpired: () => void
 }
 
-export function useRevisions({ token, fileId, date, baseVersion, onSave, onRestored, onExpired }: Params): RevisionsState {
+export function useRevisions({ token, fileId, date, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onExpired }: Params): RevisionsState {
+  const showUnsavedEntry = !autoSave && isDirty
+
   const [revisions, setRevisions] = useState<DriveRevisionMeta[]>([])
   const [listLoading, setListLoading] = useState(true)
   const [listError, setListError] = useState<string | null>(null)
@@ -53,7 +62,9 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
     listRevisions(token, fileId).then(list => {
       if (cancelled) return
       setRevisions(list)
-      if (list.length > 0) {
+      if (showUnsavedEntry) {
+        setSelectedId(UNSAVED_ID)
+      } else if (list.length > 0) {
         setSelectedId(list[0].id)
       }
     }).catch(e => {
@@ -64,10 +75,35 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
       if (!cancelled) setListLoading(false)
     })
     return () => { cancelled = true }
-  }, [token, fileId])
+  }, [token, fileId, showUnsavedEntry])
 
   useEffect(() => {
     if (!selectedId) return
+
+    if (selectedId === UNSAVED_ID) {
+      setPreviewLoading(false)
+      setPreviewError(null)
+      setPreviewContent(text)
+      const diff = Diff.diffWords(savedText, text)
+      const htmlParts = []
+      for (const part of diff) {
+        const escaped = part.value
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\n/g, '<br>')
+        if (part.added) {
+          htmlParts.push(`<span class="diff-add-word">${escaped}</span>`)
+        } else if (part.removed) {
+          htmlParts.push(`<span class="diff-remove-word">${escaped}</span>`)
+        } else {
+          htmlParts.push(escaped)
+        }
+      }
+      setDiffHtml(htmlParts.join(''))
+      return
+    }
+
     const idx = revisions.findIndex(r => r.id === selectedId)
     if (idx === -1) return
 
@@ -120,7 +156,7 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
       if (!controller.signal.aborted) setPreviewLoading(false)
     })
     return () => { controller.abort() }
-  }, [token, fileId, selectedId, revisions])
+  }, [token, fileId, selectedId, revisions, text, savedText])
 
   const selectRevision = useCallback((id: string) => {
     setSelectedId(id)
@@ -148,6 +184,7 @@ export function useRevisions({ token, fileId, date, baseVersion, onSave, onResto
 
   return {
     revisions,
+    showUnsavedEntry,
     listLoading,
     listError,
     selectedId,
