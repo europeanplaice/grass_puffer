@@ -18,7 +18,7 @@ function installGoogleMock(restorable: boolean) {
                 const state = window as unknown as { __tokenRequestCount: number }
                 state.__tokenRequestCount += 1
                 ;(window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }).__lastTokenRequestConfig = tokenConfig
-                config.callback?.({ access_token: 'test-token' } as google.accounts.oauth2.TokenResponse)
+                config.callback?.({ access_token: 'test-token', state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
               },
             }
           },
@@ -46,7 +46,7 @@ function installExpiringGoogleMock() {
                 const state = window as unknown as { __tokenRequestCount: number }
                 state.__tokenRequestCount += 1
                 ;(window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }).__lastTokenRequestConfig = tokenConfig
-                config.callback?.({ access_token: `test-token-${state.__tokenRequestCount}` } as google.accounts.oauth2.TokenResponse)
+                config.callback?.({ access_token: `test-token-${state.__tokenRequestCount}`, state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
               },
             }
           },
@@ -85,7 +85,7 @@ test('previous session shows one-click restore without requesting a token on pag
   await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(1)
   await expect.poll(() => page.evaluate(() => (
     window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
-  ).__lastTokenRequestConfig)).toEqual({ prompt: '' })
+  ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
   await expect(page.locator('.editor-textarea')).toBeVisible()
 })
 
@@ -173,6 +173,6 @@ test('expired save reauth retries with the refreshed token without showing re-lo
   await expect(page.getByText('Your session has expired. Please log in again.')).toHaveCount(0)
   await expect.poll(() => page.evaluate(() => (
     window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
-  ).__lastTokenRequestConfig)).toEqual({ prompt: '' })
+  ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
   await expect.poll(() => uploadTokens).toEqual(['Bearer test-token-2'])
 })

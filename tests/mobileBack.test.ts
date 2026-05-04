@@ -22,9 +22,9 @@ test.beforeEach(async ({ page }) => {
             initTokenClient: (config: google.accounts.oauth2.TokenClientConfig) => {
               ;(window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady = true
               return {
-                requestAccessToken: () => {
-                  config.callback?.({ access_token: 'test-token' } as google.accounts.oauth2.TokenResponse)
-                },
+              requestAccessToken: (tokenConfig?: google.accounts.oauth2.OverridableTokenClientConfig) => {
+                   config.callback?.({ access_token: 'test-token', state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
+                 },
               }
             },
             revoke: () => {},
