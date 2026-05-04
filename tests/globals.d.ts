@@ -74,4 +74,12 @@ interface Window {
     expiredCalls: () => number
     setSaveReject: (v: 'conflict' | 'error' | null) => void
   }
+  loginScreenHarness: {
+    render: (opts?: {
+      authReady?: boolean
+      wasPreviouslySignedIn?: boolean
+      sessionExpired?: boolean
+      loadFailed?: boolean
+    }) => void
+  }
 }
