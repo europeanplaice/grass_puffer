@@ -161,39 +161,6 @@ const { mode: fontMode, toggleFont } = useFont()
     editorDirtyRef.current = editorDirty
   }, [editorDirty])
 
-  // Initialize One Tap (only when not signed in)
-  useEffect(() => {
-    if (typeof google === 'undefined' || !google.accounts?.id) return
-
-    // One Tap for authentication (ID token)
-    google.accounts.id.initialize({
-      client_id: import.meta.env?.VITE_GOOGLE_CLIENT_ID as string,
-      callback: () => {
-        // One Tap succeeded - now request access token for Drive API
-        signIn({ prompt: '' }).catch(() => {})
-      },
-    })
-
-      // Show One Tap when user is not signed in
-      if (!accessToken && status !== 'initializing') {
-        google.accounts.id.prompt((notification) => {
-          // One Tap not displayed - that's okay, user can use the button
-          if (notification.isNotDisplayed()) {
-            const reason = notification.getNotDisplayedReason()
-            // Only log for debugging, user can still use the button
-            if (reason === 'suppressed_by_user') {
-              // User explicitly closed One Tap, don't show again immediately
-            }
-          }
-        })
-      }
-
-    return () => {
-      // Cancel One Tap prompt when component unmounts or dependencies change
-      try { google.accounts.id.cancel() } catch { /* ignore */ }
-    }
-  }, [accessToken, status, signIn])
-
   const onExpired = useCallback(() => {
     handleExpired()
   }, [handleExpired])
@@ -286,8 +253,7 @@ const { mode: fontMode, toggleFont } = useFont()
 
   const handleTitleClick = useCallback(() => {
     selectDate(todayYmd())
-    signIn({ prompt: '' }).catch(() => {})
-  }, [selectDate, signIn])
+  }, [selectDate])
 
   const handlePendingNavigate = useCallback(() => {
     if (pendingDate) doNavigateToDate(pendingDate)

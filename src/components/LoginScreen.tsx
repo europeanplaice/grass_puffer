@@ -1,4 +1,3 @@
-import { useRef, useEffect } from 'react'
 import { AppIcon } from './AppIcon'
 
 interface Props {
@@ -24,19 +23,6 @@ export function LoginScreen({
 }: Props) {
   const disabled = !authReady || Boolean(loadFailed)
   const buttonLabel = wasPreviouslySignedIn ? 'Continue with Google' : 'Sign in with Google'
-  const googleBtnRef = useRef<HTMLDivElement>(null)
-
-  // Render official Google Sign-In button once GIS is ready
-  useEffect(() => {
-    if (authReady && !loadFailed && googleBtnRef.current && window.google?.accounts?.id) {
-      window.google.accounts.id.renderButton(googleBtnRef.current, {
-        theme: 'outline',
-        size: 'large',
-        type: 'standard',
-        text: wasPreviouslySignedIn ? 'continue_with' : 'signin_with',
-      })
-    }
-  }, [authReady, loadFailed, wasPreviouslySignedIn])
 
   return (
     <div className="login-screen">
@@ -65,8 +51,7 @@ export function LoginScreen({
         {!loadFailed && !authReady && (
           <p className="session-expired-msg neutral">Loading Google Sign-In…</p>
         )}
-        <div ref={googleBtnRef} className="google-btn-container" />
-        <button className="btn-signin-google" onClick={onSignIn} disabled={disabled} style={{ display: 'none' }}>
+        <button className="btn-signin-google" onClick={onSignIn} disabled={disabled}>
           <svg
             className="google-logo"
             xmlns="http://www.w3.org/2000/svg"
