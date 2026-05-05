@@ -55,6 +55,7 @@ interface Window {
       getContentDelayMs?: number
       pendingNavDate?: string | null
       token?: string | null
+      saveDelayMs?: number
     }) => void
     saveCalls: () => { date: string; content: string; baseVersion: string | null; force?: boolean }[]
     deleteCalls: () => { date: string }[]

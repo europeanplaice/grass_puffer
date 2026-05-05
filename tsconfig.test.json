@@ -13,7 +13,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["google.accounts", "node", "vitest"]
+    "types": ["google.accounts", "node", "vitest/globals"]
   },
   "include": ["tests", "src"]
 }
