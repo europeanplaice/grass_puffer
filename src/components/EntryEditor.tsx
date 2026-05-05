@@ -70,19 +70,21 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const getContentRef = useRef(getContent)
   useEffect(() => { getContentRef.current = getContent }, [getContent])
 
-  const textRef = useRef(text)
-  const savedTextRef = useRef(savedText)
-  const baseVersionRef = useRef(baseVersion)
-  const savingRef = useRef(saving)
-  const hasConflictRef = useRef(hasConflict)
-  const loadingRef = useRef(loading)
+const textRef = useRef(text)
+const savedTextRef = useRef(savedText)
+const baseVersionRef = useRef(baseVersion)
+const savingRef = useRef(saving)
+const hasConflictRef = useRef(hasConflict)
+const loadingRef = useRef(loading)
 
-  useEffect(() => { textRef.current = text }, [text])
-  useEffect(() => { savedTextRef.current = savedText }, [savedText])
-  useEffect(() => { baseVersionRef.current = baseVersion }, [baseVersion])
-  useEffect(() => { savingRef.current = saving }, [saving])
-  useEffect(() => { hasConflictRef.current = hasConflict }, [hasConflict])
-  useEffect(() => { loadingRef.current = loading }, [loading])
+useEffect(() => {
+  textRef.current = text
+  savedTextRef.current = savedText
+  baseVersionRef.current = baseVersion
+  savingRef.current = saving
+  hasConflictRef.current = hasConflict
+  loadingRef.current = loading
+}, [text, savedText, baseVersion, saving, hasConflict, loading])
 
   useEffect(() => {
     let cancelled = false

@@ -1,25 +1,10 @@
 import { useEffect, useState, useRef } from 'react'
-import { todayYmd, ymd as toYmdUtil, daysInMonth as daysInMonthUtil } from '../utils/date'
+import { todayYmd, ymd, daysInMonth as daysInMonthUtil, parseYmd } from '../utils/date'
 
 interface Props {
   dates: Set<string>
   selectedDate: string
   onSelect: (date: string) => void
-}
-
-function toYMD(y: number, m0: number, d: number): string {
-  return toYmdUtil(y, m0 + 1, d)
-}
-
-function dateParts(ymd: string): { year: number; month: number } | null {
-  const match = /^(\d{4})-(\d{2})-\d{2}$/.exec(ymd)
-  if (!match) return null
-
-  const year = Number(match[1])
-  const month = Number(match[2]) - 1
-  if (month < 0 || month > 11) return null
-
-  return { year, month }
 }
 
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
@@ -43,29 +28,29 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
     return () => clearInterval(id)
   }, [])
 
-  const todayParts = dateParts(todayStr)!
-  const selectedParts = dateParts(selectedDate)
-  const todayYear = todayParts.year
-  const [year, setYear] = useState(selectedParts?.year ?? todayYear)
-  const [month, setMonth] = useState(selectedParts?.month ?? todayParts.month)
+  const todayParsed = parseYmd(todayStr)
+  const selectedParsed = parseYmd(selectedDate)
+  const todayYear = todayParsed?.y ?? 0
+  const [year, setYear] = useState(selectedParsed?.y ?? todayYear)
+  const [month, setMonth] = useState((selectedParsed?.m ?? todayParsed?.m ?? 1) - 1)
 
   useEffect(() => {
-    if (!selectedParts) return
-    setYear(selectedParts.year)
-    setMonth(selectedParts.month)
-  }, [selectedParts?.year, selectedParts?.month])
+    if (!selectedParsed) return
+    setYear(selectedParsed.y)
+    setMonth(selectedParsed.m - 1)
+  }, [selectedParsed?.y, selectedParsed?.m])
 
   const firstDay = new Date(year, month, 1).getDay()
   const daysInMonth = daysInMonthUtil(year, month + 1)
   const entryDates = [...dates]
-    .filter(date => dateParts(date))
+    .filter(date => parseYmd(date))
     .sort((a, b) => a.localeCompare(b))
   const yearOptions = (() => {
     const entryYears = entryDates
-      .map(date => dateParts(date)?.year)
+      .map(date => parseYmd(date)?.y)
       .filter((entryYear): entryYear is number => entryYear !== undefined)
-    const minYear = Math.min(todayYear - 100, selectedParts?.year ?? todayYear, ...entryYears)
-    const maxYear = Math.max(todayYear + 10, selectedParts?.year ?? todayYear, ...entryYears)
+    const minYear = Math.min(todayYear - 100, selectedParsed?.y ?? todayYear, ...entryYears)
+    const maxYear = Math.max(todayYear + 10, selectedParsed?.y ?? todayYear, ...entryYears)
 
     return Array.from({ length: maxYear - minYear + 1 }, (_, index) => minYear + index)
   })()
@@ -78,10 +63,12 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
     if (month === 11) { setYear(y => y + 1); setMonth(0) }
     else setMonth(m => m + 1)
   }
-const goToToday = () => {
-  setYear(todayParts.year)
-  setMonth(todayParts.month)
-}
+  const goToToday = () => {
+    if (todayParsed) {
+      setYear(todayParsed.y)
+      setMonth(todayParsed.m - 1)
+    }
+  }
 
   const cells: (number | null)[] = [...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
@@ -121,22 +108,22 @@ const goToToday = () => {
         {DAYS.map(d => <div key={d} className="cal-day-label">{d}</div>)}
         {cells.map((day, i) => {
           if (day === null) return <div key={`empty-${i}`} />
-          const ymd = toYMD(year, month, day)
-          const hasEntry = dates.has(ymd)
-          const isSelected = ymd === selectedDate
-          const isToday = ymd === todayStr
+          const dateStr = ymd(year, month + 1, day)
+          const hasEntry = dates.has(dateStr)
+          const isSelected = dateStr === selectedDate
+          const isToday = dateStr === todayStr
           return (
             <div
-              key={ymd}
+              key={dateStr}
               role="button"
               tabIndex={0}
-              aria-label={ymd}
+              aria-label={dateStr}
               className={['cal-day', hasEntry ? 'has-entry' : '', isSelected ? 'selected' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
-              onClick={() => onSelect(ymd)}
+              onClick={() => onSelect(dateStr)}
               onKeyDown={event => {
                 if (event.key === 'Enter' || event.key === ' ') {
                   event.preventDefault()
-                  onSelect(ymd)
+                  onSelect(dateStr)
                 }
               }}
             >

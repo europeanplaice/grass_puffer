@@ -11,7 +11,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
-    "types": ["google.accounts", "node"]
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "types": ["google.accounts", "node", "vitest"]
   },
   "include": ["tests", "src"]
 }
