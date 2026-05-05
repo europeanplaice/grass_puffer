@@ -62,11 +62,12 @@ test.describe('HistoryModal — revision list', () => {
     await loadHarness(page)
 
     await page.evaluate(({ content }) => {
-      const now = Date.now()
+      const now = new Date()
+      const todayNoon = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0).getTime()
       window.historyHarness.q(
         { status: 200, body: { revisions: [
-          { id: 'rev-2', modifiedTime: new Date(now - 60_000).toISOString() },
-          { id: 'rev-1', modifiedTime: new Date(now - 3_600_000).toISOString() },
+          { id: 'rev-2', modifiedTime: new Date(todayNoon - 60_000).toISOString() },
+          { id: 'rev-1', modifiedTime: new Date(todayNoon - 3_600_000).toISOString() },
         ] } },
         { status: 200, body: content },
         { status: 200, body: content },
