@@ -4,12 +4,16 @@ import { ExportButton } from './ExportButton'
 interface SettingsModalProps {
   autoSave: boolean
   onAutoSaveToggle: () => void
+  effectiveTheme: 'light' | 'dark'
+  onThemeToggle: () => void
+  fontMode: 'serif' | 'sans'
+  onFontToggle: () => void
   dates: string[]
   onExport: (onProgress: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
   onClose: () => void
 }
 
-export function SettingsModal({ autoSave, onAutoSaveToggle, dates, onExport, onClose }: SettingsModalProps) {
+export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onThemeToggle, fontMode, onFontToggle, dates, onExport, onClose }: SettingsModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
 
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
@@ -36,6 +40,30 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, dates, onExport, onC
           <button className="settings-modal-close" onClick={onClose} aria-label="Close settings">×</button>
         </div>
         <div className="settings-list">
+          <div className="settings-item">
+            <span className="settings-item-label">Dark theme</span>
+            <button
+              className={`settings-switch ${effectiveTheme === 'dark' ? 'active' : ''}`}
+              onClick={onThemeToggle}
+              role="switch"
+              aria-checked={effectiveTheme === 'dark'}
+            >
+              <span className="settings-switch-thumb" />
+            </button>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-item">
+            <span className="settings-item-label">Serif font</span>
+            <button
+              className={`settings-switch ${fontMode === 'serif' ? 'active' : ''}`}
+              onClick={onFontToggle}
+              role="switch"
+              aria-checked={fontMode === 'serif'}
+            >
+              <span className="settings-switch-thumb" />
+            </button>
+          </div>
+          <div className="settings-divider" />
           <div className="settings-item">
             <span className="settings-item-label">Auto-save</span>
             <button

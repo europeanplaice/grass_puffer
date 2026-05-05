@@ -38,6 +38,20 @@ function CheckIcon() {
   )
 }
 
+function formatLastModified(isoDate: string): string {
+  const modified = new Date(isoDate)
+  const now = new Date()
+  const modDay = new Date(modified.getFullYear(), modified.getMonth(), modified.getDate()).getTime()
+  const todayDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const timeStr = modified.toLocaleTimeString(undefined, { timeStyle: 'short' })
+  if (modDay === todayDay) return timeStr
+  const isSameYear = modified.getFullYear() === now.getFullYear()
+  const dateStr = modified.toLocaleDateString(undefined, isSameYear
+    ? { month: 'short', day: 'numeric' }
+    : { month: 'short', day: 'numeric', year: 'numeric' })
+  return `${dateStr}, ${timeStr}`
+}
+
 const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
@@ -393,41 +407,36 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
               : status === SAVED_STATUS ? <CheckIcon /> : <SaveIcon />}
             <span className="btn-text">{saving ? 'Saving…' : status === SAVED_STATUS ? 'Saved' : 'Save'}</span>
           </button>
-          {savedText && (
-            <div className="more-menu-container" ref={moreMenuRef}>
-              <button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label="More options">···</button>
-              {showMoreMenu && (
-                <div className="more-menu">
-                  {token && fileIdRef.current && (
-                    <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
-                      History
-                    </div>
-                  )}
-                  {token && fileIdRef.current && (
-                    <div className="more-menu-item" onClick={() => {
-                      setShowMoreMenu(false)
-                      window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')
-                    }}>
-                      Open in Drive
-                    </div>
-                  )}
-                  <div className="more-menu-item more-menu-delete" onClick={del}>
-                    Delete
+          <div className="more-menu-container" ref={moreMenuRef}>
+            <button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label="More options">···</button>
+            {showMoreMenu && (
+              <div className="more-menu">
+                {token && fileIdRef.current && (
+                  <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
+                    History
                   </div>
+                )}
+                {token && fileIdRef.current && (
+                  <div className="more-menu-item" onClick={() => {
+                    setShowMoreMenu(false)
+                    window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')
+                  }}>
+                    Open in Drive
+                  </div>
+                )}
+                <div
+                  className={`more-menu-item more-menu-delete${!fileIdRef.current ? ' more-menu-item-disabled' : ''}`}
+                  onClick={fileIdRef.current ? del : undefined}
+                >
+                  Delete
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="editor-meta">
-        {(isToday || lastModified) && (
-          isToday && lastModified
-            ? `Today's entry - Last modified: ${new Date(lastModified).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
-            : isToday
-            ? "Today's entry"
-            : `Last modified: ${new Date(lastModified!).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}`
-        )}
+        {lastModified && `Last modified: ${formatLastModified(lastModified)}`}
       </div>
       {pendingNavDate && (
         <div className="unsaved-nav-banner">

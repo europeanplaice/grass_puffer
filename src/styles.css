@@ -1111,6 +1111,7 @@ body {
   cursor: pointer;
 }
 .more-menu-item:hover { background: var(--border); }
+.more-menu-item-disabled { opacity: 0.4; cursor: default; pointer-events: none; }
 .more-menu-delete { color: var(--danger); }
 .conflict-panel {
   display: flex;
