@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { todayYmd, ymd, parseYmd, dateFromYmd, weekdayLabel, diaryDateLabel, daysInMonth, addMonths } from '../../src/utils/date'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { todayYmd, ymd, parseYmd, dateFromYmd, weekdayLabel, diaryDateLabel, daysInMonth, addMonths, formatRevisionTime } from '../../src/utils/date'
 
 describe('date utils', () => {
   describe('todayYmd', () => {
@@ -139,6 +139,49 @@ describe('date utils', () => {
     it('handles multi-year transitions', () => {
       expect(addMonths(2026, 1, 25)).toEqual({ year: 2028, month: 2 })
       expect(addMonths(2026, 12, -13)).toEqual({ year: 2025, month: 11 })
+    })
+  })
+
+  describe('formatRevisionTime', () => {
+    const NOW = new Date('2026-05-15T14:30:00')
+
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(NOW)
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('shows "Today" for same-day revisions', () => {
+      const result = formatRevisionTime('2026-05-15T09:15:00')
+      expect(result).toMatch(/^Today \d{1,2}:\d{2} [AP]M$/)
+    })
+
+    it('shows "Yesterday" for previous day revisions', () => {
+      const result = formatRevisionTime('2026-05-14T18:45:00')
+      expect(result).toMatch(/^Yesterday \d{1,2}:\d{2} [AP]M$/)
+    })
+
+    it('shows "Mon DD, time" for same-year but not today/yesterday', () => {
+      const result = formatRevisionTime('2026-05-10T10:00:00')
+      expect(result).toMatch(/^May 10, \d{1,2}:\d{2} [AP]M$/)
+    })
+
+    it('shows full date with year for previous years', () => {
+      const result = formatRevisionTime('2025-12-25T08:30:00')
+      expect(result).toMatch(/^Dec 25, 2025, \d{1,2}:\d{2} [AP]M$/)
+    })
+
+    it('uses local day boundaries (timezone-safe)', () => {
+      // Just before midnight - should NOT be "Today"
+      const justBeforeMidnight = formatRevisionTime('2026-05-14T23:59:59')
+      expect(justBeforeMidnight).toMatch(/^Yesterday/)
+
+      // Just after midnight - should be "Today"
+      const justAfterMidnight = formatRevisionTime('2026-05-15T00:00:01')
+      expect(justAfterMidnight).toMatch(/^Today/)
     })
   })
 })

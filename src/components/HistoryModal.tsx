@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react'
 import type { LoadedDiaryEntry } from '../types'
 import { useRevisions } from '../hooks/useRevisions'
+import { formatRevisionTime } from '../utils/date'
 
 interface Props {
   date: string
@@ -15,25 +16,6 @@ interface Props {
   onRestored: (result: LoadedDiaryEntry) => void
   onClose: () => void
   onExpired: () => void
-}
-
-function formatRevisionTime(iso: string): string {
-  const d = new Date(iso)
-  const now = new Date()
-  const todayStr = now.toDateString()
-  const yesterday = new Date(now)
-  yesterday.setDate(yesterday.getDate() - 1)
-
-  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-
-  if (d.toDateString() === todayStr) return `Today ${time}`
-  if (d.toDateString() === yesterday.toDateString()) return `Yesterday ${time}`
-  if (d.getFullYear() === now.getFullYear()) {
-    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    return `${date}, ${time}`
-  }
-  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  return `${date}, ${time}`
 }
 
 export function HistoryModal({ date, fileId, token, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onClose, onExpired }: Props) {
