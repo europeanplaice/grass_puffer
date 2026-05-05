@@ -52,6 +52,22 @@ async function pullTextarea(page: import('@playwright/test').Page, startY = 80, 
   }, { startY, endY })
 }
 
+async function pullTextareaWithTouch(page: import('@playwright/test').Page, startY = 80, endY = 230) {
+  await page.locator('textarea.editor-textarea').evaluate((textarea, points) => {
+    const touchEvent = (type: string, clientY: number) => {
+      const event = new Event(type, { bubbles: true, cancelable: true })
+      Object.defineProperty(event, 'touches', {
+        value: type === 'touchend' || type === 'touchcancel' ? [] : [{ clientY }],
+      })
+      textarea.dispatchEvent(event)
+    }
+
+    touchEvent('touchstart', points.startY)
+    touchEvent('touchmove', points.endY)
+    touchEvent('touchend', points.endY)
+  }, { startY, endY })
+}
+
 
 test.describe('EntryEditor — date header', () => {
   test('shows the weekday next to the entry date', async ({ page }) => {
@@ -348,6 +364,24 @@ test.describe('EntryEditor — refresh entry', () => {
     await pullTextarea(page)
 
     await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from drive')
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
+      { date: '2026-05-01' },
+    ])
+  })
+
+  test('supports mobile touch events for pull-to-refresh', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from touch', '2')
+    })
+
+    await pullTextareaWithTouch(page)
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from touch')
     await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
       { date: '2026-05-01' },
     ])

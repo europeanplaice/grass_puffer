@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import type { PointerEvent, TouchEvent } from 'react'
+import type { PointerEvent } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import type { LoadedDiaryEntry } from '../types'
 import { todayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
@@ -414,13 +414,13 @@ useEffect(() => {
     )
   }, [showDeleteModal, showHistoryModal])
 
-  const handleTouchStart = useCallback((e: TouchEvent<HTMLTextAreaElement>) => {
+  const handleTouchStart = useCallback((e: globalThis.TouchEvent) => {
     if (!canStartPullRefresh()) return
     pullStartYRef.current = e.touches[0]?.clientY ?? null
     pullActiveRef.current = pullStartYRef.current !== null
   }, [canStartPullRefresh])
 
-  const handleTouchMove = useCallback((e: TouchEvent<HTMLTextAreaElement>) => {
+  const handleTouchMove = useCallback((e: globalThis.TouchEvent) => {
     if (!pullActiveRef.current || pullStartYRef.current === null) return
     const textarea = textareaRef.current
     if (!textarea || textarea.scrollTop > 1) {
@@ -452,6 +452,23 @@ useEffect(() => {
     setPullDistance(0)
     if (shouldRefresh) void refreshEntry()
   }, [refreshEntry])
+
+  useEffect(() => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    textarea.addEventListener('touchstart', handleTouchStart, { passive: true })
+    textarea.addEventListener('touchmove', handleTouchMove, { passive: false })
+    textarea.addEventListener('touchend', finishPullRefresh)
+    textarea.addEventListener('touchcancel', finishPullRefresh)
+
+    return () => {
+      textarea.removeEventListener('touchstart', handleTouchStart)
+      textarea.removeEventListener('touchmove', handleTouchMove)
+      textarea.removeEventListener('touchend', finishPullRefresh)
+      textarea.removeEventListener('touchcancel', finishPullRefresh)
+    }
+  }, [loading, handleTouchStart, handleTouchMove, finishPullRefresh])
 
   const handlePointerDown = useCallback((e: PointerEvent<HTMLTextAreaElement>) => {
     if (e.pointerType !== 'touch' || !canStartPullRefresh()) return
@@ -683,10 +700,6 @@ useEffect(() => {
             setText(e.target.value)
             if (status && status !== SAVED_STATUS) setStatus('')
           }}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={finishPullRefresh}
-          onTouchCancel={finishPullRefresh}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={finishPullRefresh}
