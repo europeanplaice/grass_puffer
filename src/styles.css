@@ -1603,6 +1603,15 @@ body {
 
   body { overflow: hidden; }
 
+  /* モバイルでスクロールバーを非表示にしてUX向上 */
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
   .login-card {
     padding: 2.5rem 1.8rem;
     margin: 1rem;
