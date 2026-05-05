@@ -51,6 +51,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [explicitSaving, setExplicitSaving] = useState(false)
   const [status, setStatus] = useState('')
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
@@ -74,6 +75,7 @@ const textRef = useRef(text)
 const savedTextRef = useRef(savedText)
 const baseVersionRef = useRef(baseVersion)
 const savingRef = useRef(saving)
+const explicitSavingRef = useRef(explicitSaving)
 const hasConflictRef = useRef(hasConflict)
 const loadingRef = useRef(loading)
 
@@ -82,9 +84,10 @@ useEffect(() => {
   savedTextRef.current = savedText
   baseVersionRef.current = baseVersion
   savingRef.current = saving
+  explicitSavingRef.current = explicitSaving
   hasConflictRef.current = hasConflict
   loadingRef.current = loading
-}, [text, savedText, baseVersion, saving, hasConflict, loading])
+}, [text, savedText, baseVersion, saving, explicitSaving, hasConflict, loading])
 
   useEffect(() => {
     let cancelled = false
@@ -146,6 +149,7 @@ useEffect(() => {
     if (savingRef.current) return false
     setSaving(true)
     if (explicit) {
+      setExplicitSaving(true)
       setStatus('')
       setHasConflict(false)
       setConflictRemote(null)
@@ -175,6 +179,7 @@ useEffect(() => {
       return false
     } finally {
       setSaving(false)
+      if (explicit) setExplicitSaving(false)
     }
   }, [date])
 
@@ -212,6 +217,7 @@ useEffect(() => {
 
   const overwriteRemote = async () => {
     setSaving(true)
+    setExplicitSaving(true)
     setStatus('')
     try {
       const currentText = textRef.current
@@ -225,6 +231,7 @@ useEffect(() => {
       setStatus('Save failed.')
     } finally {
       setSaving(false)
+      setExplicitSaving(false)
     }
   }
 
@@ -364,7 +371,7 @@ useEffect(() => {
         </div>
       </div>
     )}
-    {saving && (
+    {explicitSaving && (
       <div className="saving-overlay">
         <div className="saving-modal">
           <span className="saving-spinner" aria-hidden="true" />
