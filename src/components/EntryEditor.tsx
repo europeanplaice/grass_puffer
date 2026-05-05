@@ -38,19 +38,6 @@ function CheckIcon() {
   )
 }
 
-function formatLastModified(isoDate: string): string {
-  const modified = new Date(isoDate)
-  const now = new Date()
-  const modDay = new Date(modified.getFullYear(), modified.getMonth(), modified.getDate()).getTime()
-  const todayDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  const timeStr = modified.toLocaleTimeString(undefined, { timeStyle: 'short' })
-  if (modDay === todayDay) return timeStr
-  const isSameYear = modified.getFullYear() === now.getFullYear()
-  const dateStr = modified.toLocaleDateString(undefined, isSameYear
-    ? { month: 'short', day: 'numeric' }
-    : { month: 'short', day: 'numeric', year: 'numeric' })
-  return `${dateStr}, ${timeStr}`
-}
 
 const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
@@ -436,7 +423,9 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
         </div>
       </div>
       <div className="editor-meta">
-        {lastModified && `Last modified: ${formatLastModified(lastModified)}`}
+        {lastModified && (
+          <>Last modified: <relative-time datetime={lastModified} /></>
+        )}
       </div>
       {pendingNavDate && (
         <div className="unsaved-nav-banner">
