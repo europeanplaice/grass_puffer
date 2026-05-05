@@ -9,6 +9,7 @@ type SaveCall = { date: string; content: string; baseVersion: string | null; for
 type DeleteCall = { date: string }
 type NavCall = { date: string | null }
 type WindowOpenCall = { url: string; target: string }
+type GetContentCall = { date: string }
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
@@ -17,12 +18,15 @@ let deleteCalls: DeleteCall[] = []
 let pendingNavigateCalls: NavCall[] = []
 let cancelNavigationCalls: NavCall[] = []
 let windowOpenCalls: WindowOpenCall[] = []
+let getContentCalls: GetContentCall[] = []
 let menuClickCount = 0
 let dirtyChanges: boolean[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
 let currentToken: string | null = null
 let currentSaveDelayMs = 0
+let currentRemoteContent = ''
+let currentRemoteVersion: string | null = null
 
 function delaySave(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -34,10 +38,8 @@ window.open = (url?: string | URL, target?: string) => {
   return null
 }
 
-function App({ date, initialContent, version, autoSave, getContentDelayMs, pendingNavDate: initialPendingNavDate, token }: {
+function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPendingNavDate, token }: {
   date: string
-  initialContent: string
-  version: string | null
   autoSave: boolean
   getContentDelayMs: number
   pendingNavDate: string | null
@@ -49,14 +51,15 @@ function App({ date, initialContent, version, autoSave, getContentDelayMs, pendi
     <EntryEditor
       date={date}
       autoSave={autoSave}
-      getContent={async () => {
+      getContent={async (d) => {
+        getContentCalls.push({ date: d })
         if (getContentDelayMs > 0) {
           await new Promise(resolve => setTimeout(resolve, getContentDelayMs))
         }
-        if (!initialContent && version === null) return null
+        if (!currentRemoteContent && currentRemoteVersion === null) return null
         return {
-          entry: { date, content: initialContent, updated_at: new Date().toISOString() },
-          meta: { id: 'file-1', name: `diary-${date}.json`, version: version ?? undefined },
+          entry: { date, content: currentRemoteContent, updated_at: new Date().toISOString() },
+          meta: { id: 'file-1', name: `diary-${date}.json`, version: currentRemoteVersion ?? undefined },
         }
       }}
       onSave={async (d, content, baseVer, force) => {
@@ -119,16 +122,17 @@ window.editorHarness = {
     pendingNavigateCalls = []
     cancelNavigationCalls = []
     windowOpenCalls = []
+    getContentCalls = []
     menuClickCount = 0
     dirtyChanges = []
     currentSaveReject = opts.saveReject
     currentToken = opts.token ?? null
     currentSaveDelayMs = opts.saveDelayMs ?? 0
+    currentRemoteContent = opts.initialContent ?? ''
+    currentRemoteVersion = opts.version ?? null
     root.render(
       <App
         date={opts.date ?? '2026-05-01'}
-        initialContent={opts.initialContent ?? ''}
-        version={opts.version ?? null}
         autoSave={opts.autoSave ?? true}
         getContentDelayMs={opts.getContentDelayMs ?? 0}
         pendingNavDate={opts.pendingNavDate ?? null}
@@ -137,6 +141,11 @@ window.editorHarness = {
     )
   },
   saveCalls: () => [...saveCalls],
+  getContentCalls: () => [...getContentCalls],
+  setRemoteEntry: (content, version) => {
+    currentRemoteContent = content
+    currentRemoteVersion = version
+  },
   deleteCalls: () => [...deleteCalls],
   pendingNavigateCalls: () => [...pendingNavigateCalls],
   cancelNavigationCalls: () => [...cancelNavigationCalls],
@@ -148,6 +157,7 @@ window.editorHarness = {
     pendingNavigateCalls = []
     cancelNavigationCalls = []
     windowOpenCalls = []
+    getContentCalls = []
     menuClickCount = 0
     dirtyChanges = []
   },

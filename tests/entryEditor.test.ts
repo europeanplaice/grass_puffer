@@ -29,6 +29,29 @@ async function renderEditor(
   await page.waitForSelector('textarea.editor-textarea')
 }
 
+async function pullTextarea(page: import('@playwright/test').Page, startY = 80, endY = 230) {
+  await page.locator('textarea.editor-textarea').evaluate((textarea, points) => {
+    textarea.dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true,
+      cancelable: true,
+      clientY: points.startY,
+      pointerType: 'touch',
+    }))
+    textarea.dispatchEvent(new PointerEvent('pointermove', {
+      bubbles: true,
+      cancelable: true,
+      clientY: points.endY,
+      pointerType: 'touch',
+    }))
+    textarea.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true,
+      cancelable: true,
+      clientY: points.endY,
+      pointerType: 'touch',
+    }))
+  }, { startY, endY })
+}
+
 
 test.describe('EntryEditor — date header', () => {
   test('shows the weekday next to the entry date', async ({ page }) => {
@@ -223,6 +246,106 @@ test.describe('EntryEditor — date header', () => {
     )
 
     expect(loadedHeaderBottom).toBe(loadingHeaderBottom)
+  })
+})
+
+test.describe('EntryEditor — refresh entry', () => {
+  test('shows a desktop refresh button that reloads the current entry', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await expect(page.getByRole('button', { name: 'Refresh entry' })).toBeVisible()
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from drive', '2')
+    })
+
+    await page.getByRole('button', { name: 'Refresh entry' }).click()
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from drive')
+    await expect(page.getByRole('status')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
+      { date: '2026-05-01' },
+    ])
+  })
+
+  test('blocks desktop refresh when there are unsaved edits', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.locator('textarea.editor-textarea').fill('unsaved local edit')
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from drive', '2')
+    })
+
+    await page.getByRole('button', { name: 'Refresh entry' }).click()
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('unsaved local edit')
+    await expect(page.getByRole('status')).toHaveText('Save or discard changes before refreshing.')
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
+  })
+
+  test('hides the refresh button on mobile and uses pull-to-refresh at the top of the textarea', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await expect(page.getByRole('button', { name: 'Refresh entry' })).toBeHidden()
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from drive', '2')
+    })
+
+    await pullTextarea(page)
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from drive')
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
+      { date: '2026-05-01' },
+    ])
+  })
+
+  test('does not pull-to-refresh when mobile textarea is scrolled away from the top', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 500 })
+    await loadHarness(page)
+    await renderEditor(page, {
+      date: '2026-05-01',
+      initialContent: Array.from({ length: 80 }, (_, i) => `line ${i + 1}`).join('\n'),
+      version: '1',
+    })
+
+    await page.locator('textarea.editor-textarea').evaluate(textarea => {
+      textarea.scrollTop = 120
+    })
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from drive', '2')
+    })
+
+    await pullTextarea(page)
+
+    await expect(page.locator('textarea.editor-textarea')).not.toHaveValue('fresh from drive')
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
+  })
+
+  test('blocks pull-to-refresh when there are unsaved edits', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.locator('textarea.editor-textarea').fill('unsaved local edit')
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from drive', '2')
+    })
+
+    await pullTextarea(page)
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('unsaved local edit')
+    await expect(page.getByRole('status')).toHaveText('Save or discard changes before refreshing.')
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
   })
 })
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import type { PointerEvent, TouchEvent } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import type { LoadedDiaryEntry } from '../types'
 import { todayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
@@ -44,6 +45,29 @@ const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
+const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
+const REFRESH_BLOCKED_STATUS = 'Save or discard changes before refreshing.'
+const PULL_REFRESH_THRESHOLD = 72
+const PULL_REFRESH_MAX = 96
+
+function RefreshIcon() {
+  return (
+    <svg className="btn-icon" aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
+      <path d="M3 21v-5h5" />
+      <path d="M3 12A9 9 0 0 1 18.5 5.7L21 8" />
+      <path d="M21 3v5h-5" />
+    </svg>
+  )
+}
+
+function SpinnerIcon() {
+  return <span className="btn-saving-spinner" aria-hidden="true" />
+}
+
+function isMobileLayout(): boolean {
+  return window.matchMedia(MOBILE_MEDIA_QUERY).matches
+}
 
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, token, onExpired }: Props) {
   const [text, setText] = useState('')
@@ -59,9 +83,12 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [lastModified, setLastModified] = useState<string | null>(null)
   const moreMenuRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileIdRef = useRef<string | null>(null)
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
+  const [pullDistance, setPullDistance] = useState(0)
   const weekday = weekdayLabel(date)
   const isToday = date === todayYmd()
 
@@ -78,6 +105,8 @@ const savingRef = useRef(saving)
 const explicitSavingRef = useRef(explicitSaving)
 const hasConflictRef = useRef(hasConflict)
 const loadingRef = useRef(loading)
+const refreshingRef = useRef(refreshing)
+const pullDistanceRef = useRef(pullDistance)
 
 useEffect(() => {
   textRef.current = text
@@ -87,7 +116,18 @@ useEffect(() => {
   explicitSavingRef.current = explicitSaving
   hasConflictRef.current = hasConflict
   loadingRef.current = loading
-}, [text, savedText, baseVersion, saving, explicitSaving, hasConflict, loading])
+  refreshingRef.current = refreshing
+  pullDistanceRef.current = pullDistance
+}, [text, savedText, baseVersion, saving, explicitSaving, hasConflict, loading, refreshing, pullDistance])
+
+  const applyLoadedEntry = useCallback((entry: LoadedDiaryEntry | null) => {
+    const driveText = entry?.entry.content ?? ''
+    setText(driveText)
+    setSavedText(driveText)
+    setBaseVersion(entry?.meta.version ?? null)
+    setLastModified(entry?.entry.updated_at ?? null)
+    fileIdRef.current = entry?.meta.id ?? null
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -102,19 +142,14 @@ useEffect(() => {
     fileIdRef.current = null
     getContentRef.current(date).then(entry => {
       if (cancelled) return
-      const driveText = entry?.entry.content ?? ''
-      setText(driveText)
-      setSavedText(driveText)
-      setBaseVersion(entry?.meta.version ?? null)
-      setLastModified(entry?.entry.updated_at ?? null)
-      fileIdRef.current = entry?.meta.id ?? null
+      applyLoadedEntry(entry)
     }).catch(() => {
       if (!cancelled) setStatus('Failed to load entry.')
     }).finally(() => {
       if (!cancelled) setLoading(false)
     })
     return () => { cancelled = true }
-  }, [date])
+  }, [date, applyLoadedEntry])
 
   const isDirty = text !== savedText
 
@@ -235,6 +270,27 @@ useEffect(() => {
     }
   }
 
+  const refreshEntry = useCallback(async () => {
+    if (loadingRef.current || savingRef.current || refreshingRef.current || hasConflictRef.current) return
+    if (textRef.current !== savedTextRef.current) {
+      setStatus(REFRESH_BLOCKED_STATUS)
+      return
+    }
+
+    setRefreshing(true)
+    setStatus('')
+    try {
+      const entry = await getContentRef.current(date)
+      applyLoadedEntry(entry)
+      setHasConflict(false)
+      setConflictRemote(null)
+    } catch {
+      setStatus('Failed to refresh entry.')
+    } finally {
+      setRefreshing(false)
+    }
+  }, [date, applyLoadedEntry])
+
   const del = async () => {
     setDeleteInput('')
     setShowDeleteModal(true)
@@ -319,6 +375,91 @@ useEffect(() => {
     return () => document.removeEventListener('mousedown', handler)
   }, [showMoreMenu])
 
+  const pullStartYRef = useRef<number | null>(null)
+  const pullActiveRef = useRef(false)
+
+  const canStartPullRefresh = useCallback(() => {
+    const textarea = textareaRef.current
+    return Boolean(
+      isMobileLayout() &&
+      textarea &&
+      textarea.scrollTop <= 1 &&
+      !loadingRef.current &&
+      !savingRef.current &&
+      !refreshingRef.current &&
+      !hasConflictRef.current &&
+      !showDeleteModal &&
+      !showHistoryModal,
+    )
+  }, [showDeleteModal, showHistoryModal])
+
+  const handleTouchStart = useCallback((e: TouchEvent<HTMLTextAreaElement>) => {
+    if (!canStartPullRefresh()) return
+    pullStartYRef.current = e.touches[0]?.clientY ?? null
+    pullActiveRef.current = pullStartYRef.current !== null
+  }, [canStartPullRefresh])
+
+  const handleTouchMove = useCallback((e: TouchEvent<HTMLTextAreaElement>) => {
+    if (!pullActiveRef.current || pullStartYRef.current === null) return
+    const textarea = textareaRef.current
+    if (!textarea || textarea.scrollTop > 1) {
+      pullActiveRef.current = false
+      pullDistanceRef.current = 0
+      setPullDistance(0)
+      return
+    }
+
+    const distance = (e.touches[0]?.clientY ?? pullStartYRef.current) - pullStartYRef.current
+    if (distance <= 0) {
+      pullDistanceRef.current = 0
+      setPullDistance(0)
+      return
+    }
+
+    if (e.cancelable) e.preventDefault()
+    const nextDistance = Math.min(PULL_REFRESH_MAX, distance * 0.55)
+    pullDistanceRef.current = nextDistance
+    setPullDistance(nextDistance)
+  }, [])
+
+  const finishPullRefresh = useCallback(() => {
+    if (!pullActiveRef.current) return
+    const shouldRefresh = pullDistanceRef.current >= PULL_REFRESH_THRESHOLD
+    pullStartYRef.current = null
+    pullActiveRef.current = false
+    pullDistanceRef.current = 0
+    setPullDistance(0)
+    if (shouldRefresh) void refreshEntry()
+  }, [refreshEntry])
+
+  const handlePointerDown = useCallback((e: PointerEvent<HTMLTextAreaElement>) => {
+    if (e.pointerType !== 'touch' || !canStartPullRefresh()) return
+    pullStartYRef.current = e.clientY
+    pullActiveRef.current = true
+  }, [canStartPullRefresh])
+
+  const handlePointerMove = useCallback((e: PointerEvent<HTMLTextAreaElement>) => {
+    if (e.pointerType !== 'touch' || !pullActiveRef.current || pullStartYRef.current === null) return
+    const textarea = textareaRef.current
+    if (!textarea || textarea.scrollTop > 1) {
+      pullActiveRef.current = false
+      pullDistanceRef.current = 0
+      setPullDistance(0)
+      return
+    }
+
+    const distance = e.clientY - pullStartYRef.current
+    if (distance <= 0) {
+      pullDistanceRef.current = 0
+      setPullDistance(0)
+      return
+    }
+
+    if (e.cancelable) e.preventDefault()
+    const nextDistance = Math.min(PULL_REFRESH_MAX, distance * 0.55)
+    pullDistanceRef.current = nextDistance
+    setPullDistance(nextDistance)
+  }, [])
 
   return (
     <>
@@ -380,6 +521,13 @@ useEffect(() => {
       </div>
     )}
     <div className="editor">
+      <div
+        className={`pull-refresh-indicator${pullDistance >= PULL_REFRESH_THRESHOLD ? ' ready' : ''}${refreshing ? ' refreshing' : ''}`}
+        style={{ transform: `translate(-50%, ${refreshing ? 0 : Math.round(pullDistance - PULL_REFRESH_MAX)}px)` }}
+        aria-hidden="true"
+      >
+        <span className="pull-refresh-spinner" />
+      </div>
       <div className="editor-header">
         <div className="editor-date-group">
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
@@ -399,6 +547,16 @@ useEffect(() => {
           <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>
         </div>
         <div className="editor-actions">
+          <button
+            className="btn-refresh-entry"
+            onClick={refreshEntry}
+            disabled={loading || saving || refreshing}
+            aria-busy={refreshing}
+            aria-label={refreshing ? 'Refreshing entry' : 'Refresh entry'}
+            title="Refresh entry"
+          >
+            {refreshing ? <SpinnerIcon /> : <RefreshIcon />}
+          </button>
           <button
             className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
             onClick={handleExplicitSave}
@@ -450,6 +608,9 @@ useEffect(() => {
           <>Last modified: <relative-time datetime={lastModified} /></>
         )}
       </div>
+      {status && status !== SAVED_STATUS && (
+        <div className="editor-status-line" role="status">{status}</div>
+      )}
       {pendingNavDate && (
         <div className="unsaved-nav-banner">
           <span>Unsaved changes — save before leaving?</span>
@@ -484,12 +645,21 @@ useEffect(() => {
         </div>
       ) : (
         <textarea
+          ref={textareaRef}
           className="editor-textarea"
           value={text}
           onChange={e => {
             setText(e.target.value)
             if (status && status !== SAVED_STATUS) setStatus('')
           }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={finishPullRefresh}
+          onTouchCancel={finishPullRefresh}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={finishPullRefresh}
+          onPointerCancel={finishPullRefresh}
           placeholder="Write your thoughts…"
           autoFocus
         />

@@ -58,6 +58,8 @@ interface Window {
       saveDelayMs?: number
     }) => void
     saveCalls: () => { date: string; content: string; baseVersion: string | null; force?: boolean }[]
+    getContentCalls: () => { date: string }[]
+    setRemoteEntry: (content: string, version: string | null) => void
     deleteCalls: () => { date: string }[]
     pendingNavigateCalls: () => { date: string | null }[]
     cancelNavigationCalls: () => { date: string | null }[]
