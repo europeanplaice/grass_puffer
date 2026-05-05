@@ -1073,6 +1073,38 @@ body {
 @keyframes save-spinner {
   to { transform: rotate(360deg); }
 }
+.saving-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.saving-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 2rem 3rem;
+  box-shadow: 0 8px 24px var(--shadow-heavy);
+}
+.saving-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 3px solid var(--spinner-border);
+  border-top-color: var(--save-success-bg);
+  border-radius: 50%;
+  animation: save-spinner 0.75s linear infinite;
+}
+.saving-text {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
 @keyframes saved-status-in {
   from { transform: translateX(6px); }
   to { transform: translateX(0); }

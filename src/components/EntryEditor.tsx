@@ -364,6 +364,14 @@ useEffect(() => {
         </div>
       </div>
     )}
+    {saving && (
+      <div className="saving-overlay">
+        <div className="saving-modal">
+          <span className="saving-spinner" aria-hidden="true" />
+          <span className="saving-text">Saving…</span>
+        </div>
+      </div>
+    )}
     <div className="editor">
       <div className="editor-header">
         <div className="editor-date-group">
