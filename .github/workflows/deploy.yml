@@ -30,7 +30,21 @@ jobs:
 
       - run: npm run lint
 
-  test:
+  unit-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run test:unit
+
+  e2e-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -54,7 +68,7 @@ jobs:
           retention-days: 7
 
   deploy:
-    needs: [lint, test]
+    needs: [lint, unit-test, e2e-test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
