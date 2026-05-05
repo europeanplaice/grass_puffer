@@ -31,6 +31,26 @@ async function renderEditor(
 
 
 test.describe('EntryEditor — date header', () => {
+  test('notifies when the visible entry finishes loading', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'loaded content', version: '7' })
+
+    const calls = await page.evaluate(() => window.editorHarness.loadCompleteCalls())
+    expect(calls).toEqual([
+      { date: '2026-05-01', content: 'loaded content', version: '7' },
+    ])
+  })
+
+  test('notifies when an empty visible entry finishes loading', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-02', initialContent: '', version: null })
+
+    const calls = await page.evaluate(() => window.editorHarness.loadCompleteCalls())
+    expect(calls).toEqual([
+      { date: '2026-05-02', content: null, version: null },
+    ])
+  })
+
   test('shows the weekday next to the entry date', async ({ page }) => {
     await loadHarness(page)
     await renderEditor(page, { date: '2026-05-01', initialContent: '' })

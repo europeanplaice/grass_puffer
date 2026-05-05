@@ -21,6 +21,7 @@ type RecentPreview = {
 
 const DATE_HASH_RE = /^\d{4}-\d{2}-\d{2}$/
 const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
+const RECENT_PREVIEW_DELAY_MS = 75
 
 interface SidebarHistoryState {
   grassPufferSidebar?: boolean
@@ -127,6 +128,7 @@ const { mode: fontMode, toggleFont } = useFont()
   const [retrySaveAfterReauth, setRetrySaveAfterReauth] = useState(false)
   const [reauthSaveResult, setReauthSaveResult] = useState<LoadedDiaryEntry | null>(null)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
+  const [loadedEntryDate, setLoadedEntryDate] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
@@ -144,6 +146,10 @@ const { mode: fontMode, toggleFont } = useFont()
   }, [handleExpired])
 
   const diary = useDiary(accessToken, onExpired)
+
+  useEffect(() => {
+    setLoadedEntryDate(null)
+  }, [selectedDate])
 
   useEffect(() => {
     if (!accessToken) return
@@ -219,6 +225,21 @@ const { mode: fontMode, toggleFont } = useFont()
     selectDate(todayYmd())
   }, [selectDate])
 
+  const handleEntryLoadComplete = useCallback((loadedDate: string, loaded: LoadedDiaryEntry | null) => {
+    if (loadedDate !== selectedDateRef.current) return
+
+    setLoadedEntryDate(loadedDate)
+    setRecentPreviews(prev => {
+      const next = new Map(prev)
+      const content = loaded?.entry.content ?? ''
+      next.set(loadedDate, {
+        snippet: firstLinePreview(content),
+        hasContent: Boolean(content.trim()),
+      })
+      return next
+    })
+  }, [])
+
   const handlePendingNavigate = useCallback(() => {
     if (pendingDate) doNavigateToDate(pendingDate)
   }, [pendingDate, doNavigateToDate])
@@ -287,14 +308,21 @@ const { mode: fontMode, toggleFont } = useFont()
 
   useEffect(() => {
     let cancelled = false
+    let timerId: number | null = null
 
     if (!accessToken || recentDates.length === 0) {
       setRecentPreviews(new Map())
       return
     }
 
-    Promise.all(
-      recentDates.map(async date => {
+    if (loadedEntryDate !== selectedDate) return
+
+    const previewDates = recentDates.filter(date => date !== selectedDateRef.current)
+    if (previewDates.length === 0) return
+
+    timerId = window.setTimeout(() => {
+      Promise.all(
+        previewDates.map(async date => {
         const loaded = await diary.getContent(date)
         return [
           date,
@@ -303,18 +331,24 @@ const { mode: fontMode, toggleFont } = useFont()
             hasContent: Boolean(loaded?.entry.content.trim()),
           },
         ] as const
-      }),
-    ).then(previews => {
-      if (cancelled) return
-      setRecentPreviews(new Map(previews))
-    }).catch(() => {
-      if (!cancelled) setRecentPreviews(new Map())
-    })
+        }),
+      ).then(previews => {
+        if (cancelled) return
+        setRecentPreviews(prev => {
+          const next = new Map(prev)
+          for (const [date, preview] of previews) next.set(date, preview)
+          return next
+        })
+      }).catch(() => {
+        if (!cancelled) setRecentPreviews(new Map())
+      })
+    }, RECENT_PREVIEW_DELAY_MS)
 
     return () => {
       cancelled = true
+      if (timerId !== null) window.clearTimeout(timerId)
     }
-  }, [accessToken, diary.getContent, recentDates.join('|')])
+  }, [accessToken, diary.getContent, recentDates.join('|'), loadedEntryDate, selectedDate])
 
   const handleReauth = useCallback(async () => {
     await signIn()
@@ -445,6 +479,7 @@ const { mode: fontMode, toggleFont } = useFont()
           reauthSaveResult={reauthSaveResult}
           token={accessToken}
           onExpired={onExpired}
+          onLoadComplete={handleEntryLoadComplete}
         />
       </main>
     </div>
