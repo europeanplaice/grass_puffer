@@ -49,7 +49,7 @@ export default defineConfig({
               content: [
                 "default-src 'self'",
                 "connect-src 'self' https://www.googleapis.com https://accounts.google.com https://oauth2.googleapis.com",
-                "script-src 'self' https://accounts.google.com 'unsafe-inline'",
+                "script-src 'self' https://accounts.google.com 'sha256-Kz0u0O53XaV0Qz1DA6HEir3A5kHGdfePxv3vt8BbFis='",
                 "style-src 'self' 'unsafe-inline'",
                 "img-src 'self' data: blob:",
                 "worker-src 'self'",
