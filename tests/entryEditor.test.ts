@@ -284,8 +284,54 @@ test.describe('EntryEditor — refresh entry', () => {
     await page.getByRole('button', { name: 'Refresh entry' }).click()
 
     await expect(page.locator('textarea.editor-textarea')).toHaveValue('unsaved local edit')
-    await expect(page.getByRole('status')).toHaveText('Save or discard changes before refreshing.')
+    await expect(page.locator('.unsaved-nav-banner')).toContainText('Unsaved changes')
+    await expect(page.locator('.unsaved-nav-banner')).toContainText('save before refreshing?')
     await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
+  })
+
+  test('refresh confirmation can save before reloading', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.locator('textarea.editor-textarea').fill('unsaved local edit')
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from drive', '2')
+    })
+
+    await page.getByRole('button', { name: 'Refresh entry' }).click()
+    await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('unsaved local edit')
+    await expect(page.locator('.unsaved-nav-banner')).toHaveCount(0)
+    expect(await page.evaluate(() => window.editorHarness.saveCalls())).toEqual([
+      { date: '2026-05-01', content: 'unsaved local edit', baseVersion: '1' },
+    ])
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
+      { date: '2026-05-01' },
+    ])
+  })
+
+  test('refresh confirmation can discard local edits before reloading', async ({ page }) => {
+    await page.setViewportSize({ width: 900, height: 700 })
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.locator('textarea.editor-textarea').fill('unsaved local edit')
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('fresh from drive', '2')
+    })
+
+    await page.getByRole('button', { name: 'Refresh entry' }).click()
+    await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Discard' }).click()
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from drive')
+    await expect(page.locator('.unsaved-nav-banner')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
+      { date: '2026-05-01' },
+    ])
   })
 
   test('hides the refresh button on mobile and uses pull-to-refresh at the top of the textarea', async ({ page }) => {
@@ -344,7 +390,8 @@ test.describe('EntryEditor — refresh entry', () => {
     await pullTextarea(page)
 
     await expect(page.locator('textarea.editor-textarea')).toHaveValue('unsaved local edit')
-    await expect(page.getByRole('status')).toHaveText('Save or discard changes before refreshing.')
+    await expect(page.locator('.unsaved-nav-banner')).toContainText('Unsaved changes')
+    await expect(page.locator('.unsaved-nav-banner')).toContainText('save before refreshing?')
     await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
   })
 })

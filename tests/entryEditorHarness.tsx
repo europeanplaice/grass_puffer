@@ -77,9 +77,11 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
         if (currentSaveReject === 'error') {
           throw new Error('Network error')
         }
+        currentRemoteContent = content
+        currentRemoteVersion = '2'
         return {
           entry: { date: d, content, updated_at: new Date().toISOString() },
-          meta: { id: 'file-1', name: `diary-${d}.json`, version: '2' },
+          meta: { id: 'file-1', name: `diary-${d}.json`, version: currentRemoteVersion },
         }
       }}
       onDelete={async (d) => {

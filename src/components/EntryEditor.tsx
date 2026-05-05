@@ -46,7 +46,6 @@ const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 3000
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
-const REFRESH_BLOCKED_STATUS = 'Save or discard changes before refreshing.'
 const PULL_REFRESH_THRESHOLD = 72
 const PULL_REFRESH_MAX = 96
 
@@ -88,6 +87,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const weekday = weekdayLabel(date)
   const isToday = date === todayYmd()
@@ -139,6 +139,7 @@ useEffect(() => {
     setStatus('')
     setHasConflict(false)
     setConflictRemote(null)
+    setShowRefreshConfirm(false)
     fileIdRef.current = null
     getContentRef.current(date).then(entry => {
       if (cancelled) return
@@ -197,6 +198,7 @@ useEffect(() => {
       setLastModified(saved.entry.updated_at ?? null)
       fileIdRef.current = saved.meta.id
       setStatus(SAVED_STATUS)
+      setShowRefreshConfirm(false)
       return true
     } catch (e) {
       if (!explicit) {
@@ -270,14 +272,9 @@ useEffect(() => {
     }
   }
 
-  const refreshEntry = useCallback(async () => {
-    if (loadingRef.current || savingRef.current || refreshingRef.current || hasConflictRef.current) return
-    if (textRef.current !== savedTextRef.current) {
-      setStatus(REFRESH_BLOCKED_STATUS)
-      return
-    }
-
+  const loadFreshEntry = useCallback(async () => {
     setRefreshing(true)
+    setShowRefreshConfirm(false)
     setStatus('')
     try {
       const entry = await getContentRef.current(date)
@@ -290,6 +287,30 @@ useEffect(() => {
       setRefreshing(false)
     }
   }, [date, applyLoadedEntry])
+
+  const refreshEntry = useCallback(async () => {
+    if (loadingRef.current || savingRef.current || refreshingRef.current || hasConflictRef.current) return
+    if (textRef.current !== savedTextRef.current) {
+      setShowRefreshConfirm(true)
+      setStatus('')
+      return
+    }
+
+    await loadFreshEntry()
+  }, [loadFreshEntry])
+
+  const handleSaveAndRefresh = useCallback(async () => {
+    const ok = await save(true)
+    if (ok) {
+      await loadFreshEntry()
+    }
+  }, [save, loadFreshEntry])
+
+  const handleDiscardAndRefresh = useCallback(async () => {
+    setText(savedTextRef.current)
+    setShowRefreshConfirm(false)
+    await loadFreshEntry()
+  }, [loadFreshEntry])
 
   const del = async () => {
     setDeleteInput('')
@@ -618,6 +639,16 @@ useEffect(() => {
             <button onClick={handleSaveAndNavigate} disabled={saving}>Save</button>
             <button onClick={onPendingNavigate}>Discard</button>
             <button onClick={onCancelNavigation}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {showRefreshConfirm && !pendingNavDate && (
+        <div className="unsaved-nav-banner">
+          <span>Unsaved changes — save before refreshing?</span>
+          <div className="unsaved-nav-actions">
+            <button onClick={handleSaveAndRefresh} disabled={saving || refreshing}>Save</button>
+            <button onClick={handleDiscardAndRefresh} disabled={refreshing}>Discard</button>
+            <button onClick={() => setShowRefreshConfirm(false)}>Cancel</button>
           </div>
         </div>
       )}
