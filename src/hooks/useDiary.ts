@@ -186,6 +186,9 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
     // runs against the cache, which only the current tab updates.
     const prev = saveQueueRef.current.get(date) ?? Promise.resolve()
     const run = prev.catch(() => {}).then(async (): Promise<LoadedDiaryEntry> => {
+      // NOTE: `date` is a local calendar date (YYYY-MM-DD) while `updated_at` is UTC ISO string.
+      // This is intentional: the diary date represents the user's local calendar day,
+      // while updated_at uses UTC for unambiguous timestamp storage.
       const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
       try {
         return await withFolderRetry(async folderId => {

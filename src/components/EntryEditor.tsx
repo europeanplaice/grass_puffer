@@ -423,7 +423,13 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
         </div>
       </div>
       <div className="editor-meta">
-        {lastModified && (
+        {isToday && !lastModified && (
+          <>Today's entry</>
+        )}
+        {isToday && lastModified && (
+          <>Today's entry - Last modified: <relative-time datetime={lastModified} /></>
+        )}
+        {!isToday && lastModified && (
           <>Last modified: <relative-time datetime={lastModified} /></>
         )}
       </div>

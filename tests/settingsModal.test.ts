@@ -21,7 +21,7 @@ test.describe('SettingsModal — auto-save toggle', () => {
     await page.evaluate(() => localStorage.removeItem('grass_puffer_autosave'))
     await render(page)
 
-    const toggle = page.locator('.settings-switch')
+    const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
     await expect(toggle).toHaveClass(/active/)
   })
 
@@ -30,11 +30,7 @@ test.describe('SettingsModal — auto-save toggle', () => {
     await page.evaluate(() => localStorage.setItem('grass_puffer_autosave', 'false'))
     await render(page, { autoSave: false })
 
-    await page.waitForFunction(() => {
-      const el = document.querySelector('.settings-switch')
-      return el && !el.classList.contains('active')
-    })
-    const toggle = page.locator('.settings-switch')
+    const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
     await expect(toggle).not.toHaveClass(/active/)
   })
 
@@ -43,11 +39,12 @@ test.describe('SettingsModal — auto-save toggle', () => {
     await page.evaluate(() => localStorage.removeItem('grass_puffer_autosave'))
     await render(page)
 
-    await page.locator('.settings-switch').click()
+    const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
+    await toggle.click()
 
     const stored = await page.evaluate(() => window.settingsHarness.getStoredAutoSave())
     expect(stored).toBe('false')
-    await expect(page.locator('.settings-switch')).not.toHaveClass(/active/)
+    await expect(toggle).not.toHaveClass(/active/)
   })
 
   test('toggling on persists true to localStorage', async ({ page }) => {
@@ -55,19 +52,20 @@ test.describe('SettingsModal — auto-save toggle', () => {
     await page.evaluate(() => localStorage.setItem('grass_puffer_autosave', 'false'))
     await render(page, { autoSave: false })
 
-    await page.locator('.settings-switch').click()
+    const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
+    await toggle.click()
     await page.waitForFunction(() => localStorage.getItem('grass_puffer_autosave') === 'true')
 
     const stored = await page.evaluate(() => window.settingsHarness.getStoredAutoSave())
     expect(stored).toBe('true')
-    await expect(page.locator('.settings-switch')).toHaveClass(/active/)
+    await expect(toggle).toHaveClass(/active/)
   })
 
   test('switch has correct aria attributes', async ({ page }) => {
     await loadHarness(page)
     await render(page, { autoSave: true })
 
-    const toggle = page.locator('.settings-switch')
+    const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
     await expect(toggle).toHaveAttribute('role', 'switch')
     await expect(toggle).toHaveAttribute('aria-checked', 'true')
   })

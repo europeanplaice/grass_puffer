@@ -480,10 +480,10 @@ test.describe('EntryEditor — Open in Drive', () => {
     })
     await page.waitForSelector('textarea.editor-textarea')
 
-    // More options button should not exist when fileId is null (no saved entry)
-    await expect(page.getByRole('button', { name: 'More options' })).toHaveCount(0)
-    // Open in Drive should not exist anywhere
+    // More options button should exist but Open in Drive should not be in the menu
+    await page.getByRole('button', { name: 'More options' }).click()
     await expect(page.getByText('Open in Drive')).toHaveCount(0)
+    await expect(page.getByText('History')).toHaveCount(0)
   })
 })
 

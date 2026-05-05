@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { todayYmd, ymd as toYmdUtil, daysInMonth as daysInMonthUtil } from '../utils/date'
 
 interface Props {
@@ -27,7 +27,22 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December']
 
 export function CalendarView({ dates, selectedDate, onSelect }: Props) {
-  const todayStr = todayYmd()
+  const [todayStr, setTodayStr] = useState(todayYmd)
+  const todayRef = useRef(todayStr)
+  todayRef.current = todayStr
+
+  useEffect(() => {
+    const tick = () => {
+      const next = todayYmd()
+      if (next !== todayRef.current) {
+        todayRef.current = next
+        setTodayStr(next)
+      }
+    }
+    const id = setInterval(tick, 60_000)
+    return () => clearInterval(id)
+  }, [])
+
   const todayParts = dateParts(todayStr)!
   const selectedParts = dateParts(selectedDate)
   const todayYear = todayParts.year

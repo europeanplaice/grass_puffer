@@ -10,7 +10,13 @@ export function ymd(year: number, month1to12: number, day: number): string {
 export function parseYmd(s: string): { y: number; m: number; d: number } | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
   if (!match) return null
-  return { y: Number(match[1]), m: Number(match[2]), d: Number(match[3]) }
+  const y = Number(match[1])
+  const m = Number(match[2])
+  const d = Number(match[3])
+  // Validate: create local date and verify components match (rejects 2026-02-30 etc.)
+  const date = new Date(y, m - 1, d)
+  if (date.getFullYear() !== y || date.getMonth() !== m - 1 || date.getDate() !== d) return null
+  return { y, m, d }
 }
 
 export function dateFromYmd(s: string): Date | null {

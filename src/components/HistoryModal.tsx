@@ -24,15 +24,15 @@ function formatRevisionTime(iso: string): string {
   const yesterday = new Date(now)
   yesterday.setDate(yesterday.getDate() - 1)
 
-  const time = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  const time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
   if (d.toDateString() === todayStr) return `Today ${time}`
   if (d.toDateString() === yesterday.toDateString()) return `Yesterday ${time}`
   if (d.getFullYear() === now.getFullYear()) {
-    const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     return `${date}, ${time}`
   }
-  const date = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+  const date = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   return `${date}, ${time}`
 }
 
