@@ -75,7 +75,7 @@ export function LoginScreen({
           <div className="privacy-body">
             <ul>
               <li>Stored only in your own Google Drive — this app has no backend server</li>
-              <li>Browser's Content Security Policy only allows connections to Google services (<code>googleapis.com</code>, <code>accounts.google.com</code>, <code>oauth2.googleapis.com</code>) and this website.</li>
+              <li>Browser's Content Security Policy only allows connections to Google services (googleapis.com, accounts.google.com, oauth2.googleapis.com) and this website.</li>
               <li>Verify: open DevTools → Network tab — every request goes to Google only</li>
             </ul>
           </div>
