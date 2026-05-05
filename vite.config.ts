@@ -40,25 +40,39 @@ export default defineConfig({
       name: 'csp-production',
       apply: 'build',
       transformIndexHtml(html) {
+        // Extract inline scripts (no src attribute)
+        const scriptRegex = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi
+        const hashes: string[] = []
+        let match: RegExpExecArray | null
+        while ((match = scriptRegex.exec(html)) !== null) {
+          const content = match[1].trim()
+          if (content) {
+            const hash = createHash('sha256').update(content).digest('base64')
+            hashes.push(`'sha256-${hash}'`)
+          }
+        }
+
+        const cspContent = [
+          "default-src 'self'",
+          `script-src 'self' https://accounts.google.com ${hashes.join(' ')}`,
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob:",
+          "worker-src 'self'",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "connect-src 'self' https://www.googleapis.com https://accounts.google.com https://oauth2.googleapis.com",
+          "frame-src 'self' https://accounts.google.com",
+          "form-action 'self'",
+          "manifest-src 'self'",
+        ].join('; ')
+
         return {
           html,
           tags: [{
             tag: 'meta',
             attrs: {
               'http-equiv': 'Content-Security-Policy',
-              content: [
-                "default-src 'self'",
-                "connect-src 'self' https://www.googleapis.com https://accounts.google.com https://oauth2.googleapis.com",
-                "script-src 'self' https://accounts.google.com 'sha256-Kz0u0O53XaV0Qz1DA6HEir3A5kHGdfePxv3vt8BbFis='",
-                "style-src 'self' 'unsafe-inline'",
-                "img-src 'self' data: blob:",
-                "worker-src 'self'",
-                "object-src 'none'",
-                "base-uri 'self'",
-                "frame-src 'self' https://accounts.google.com",
-                "form-action 'self'",
-                "manifest-src 'self'",
-              ].join('; '),
+              content: cspContent,
             },
             injectTo: 'head-prepend',
           }],
