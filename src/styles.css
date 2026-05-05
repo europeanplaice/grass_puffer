@@ -576,7 +576,7 @@ body {
   align-items: center;
   gap: 0.4rem;
   width: 100%;
-  background: none;
+  background: var(--sidebar-bg);
   border: none;
   color: var(--text-muted);
   cursor: pointer;
@@ -585,6 +585,19 @@ body {
   padding: 0.5rem 1rem;
   border-top: 1px solid var(--border);
   margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+.btn-settings::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 1.5rem;
+  background: linear-gradient(transparent, var(--sidebar-bg));
+  pointer-events: none;
 }
 .btn-settings:hover {
   background: var(--border);
