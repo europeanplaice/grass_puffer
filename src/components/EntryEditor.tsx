@@ -259,7 +259,7 @@ useEffect(() => {
   // Ctrl+S / Cmd+S explicit save
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         e.preventDefault()
         if (isDirty) handleExplicitSave()
       }

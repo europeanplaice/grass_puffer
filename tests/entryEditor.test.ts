@@ -487,6 +487,91 @@ test.describe('EntryEditor — Open in Drive', () => {
   })
 })
 
+test.describe('EntryEditor — saving overlay', () => {
+  test('shows saving overlay on explicit save button click', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      window.editorHarness.render({
+        date: '2026-05-01',
+        initialContent: 'saved content',
+        version: '1',
+        saveDelayMs: 500,
+      })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    await page.fill('textarea.editor-textarea', 'new content')
+    await page.locator('button.btn-save').click()
+
+    // Overlay should appear while saving
+    await expect(page.locator('.saving-overlay')).toBeVisible()
+    await expect(page.locator('.saving-spinner')).toBeVisible()
+    await expect(page.locator('.saving-text')).toHaveText('Saving…')
+
+    // Wait for save to complete
+    await page.waitForSelector('.saving-overlay', { state: 'hidden' })
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+  })
+
+  test('shows saving overlay on Ctrl+S save', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      window.editorHarness.render({
+        date: '2026-05-01',
+        initialContent: 'saved content',
+        version: '1',
+        saveDelayMs: 3000,
+      })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    await page.fill('textarea.editor-textarea', 'keyboard save')
+    await expect(page.locator('button.btn-save')).toBeEnabled()
+
+    await page.keyboard.press('Control+S')
+
+    // Wait for the save button to enter saving state (aria-busy="true")
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-busy', 'true', { timeout: 2000 })
+
+    // Overlay should be visible while saving
+    await expect(page.locator('.saving-overlay')).toBeVisible()
+
+    // Wait for save to complete
+    await page.waitForSelector('.saving-overlay', { state: 'hidden', timeout: 5000 })
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+  })
+
+  test('does not show saving overlay on auto-save', async ({ page }) => {
+    await loadHarness(page)
+    await page.clock.install({ time: 0 })
+    await page.evaluate(() => {
+      window.editorHarness.render({
+        date: '2026-05-01',
+        initialContent: 'saved content',
+        version: '1',
+        autoSave: true,
+        saveDelayMs: 500,
+      })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    await page.fill('textarea.editor-textarea', 'auto-save content')
+    // Ensure React registers the timer
+    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 0)))
+
+    // Advance past auto-save threshold
+    await page.clock.fastForward(3001)
+    await page.waitForFunction(() => window.editorHarness.saveCalls().length > 0)
+
+    // Overlay should NOT appear during auto-save
+    await expect(page.locator('.saving-overlay')).toHaveCount(0)
+
+    const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
+    expect(saveCalls).toHaveLength(1)
+    expect(saveCalls[0].content).toBe('auto-save content')
+  })
+})
+
 test.describe('EntryEditor — editor meta info', () => {
   test('shows last modified timestamp for saved entries', async ({ page }) => {
     await loadHarness(page)

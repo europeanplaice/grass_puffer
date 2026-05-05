@@ -22,6 +22,11 @@ let dirtyChanges: boolean[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
 let currentToken: string | null = null
+let currentSaveDelayMs = 0
+
+function delaySave(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 // Mock window.open
 window.open = (url?: string | URL, target?: string) => {
@@ -55,6 +60,9 @@ function App({ date, initialContent, version, autoSave, getContentDelayMs, pendi
         }
       }}
       onSave={async (d, content, baseVer, force) => {
+        if (currentSaveDelayMs > 0) {
+          await delaySave(currentSaveDelayMs)
+        }
         saveCalls.push({ date: d, content, baseVersion: baseVer, force })
         if (currentSaveReject === 'conflict' && !force) {
           const remote: LoadedDiaryEntry = {
@@ -104,6 +112,7 @@ window.editorHarness = {
     getContentDelayMs?: number
     pendingNavDate?: string | null
     token?: string | null
+    saveDelayMs?: number
   }) => {
     saveCalls = []
     deleteCalls = []
@@ -114,6 +123,7 @@ window.editorHarness = {
     dirtyChanges = []
     currentSaveReject = opts.saveReject
     currentToken = opts.token ?? null
+    currentSaveDelayMs = opts.saveDelayMs ?? 0
     root.render(
       <App
         date={opts.date ?? '2026-05-01'}
