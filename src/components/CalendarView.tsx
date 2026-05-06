@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { motion } from 'motion/react'
 import { todayYmd, ymd, daysInMonth as daysInMonthUtil, parseYmd } from '../utils/date'
 
 interface Props {
@@ -113,7 +114,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
           const isSelected = dateStr === selectedDate
           const isToday = dateStr === todayStr
           return (
-            <div
+            <motion.div
               key={dateStr}
               role="button"
               tabIndex={0}
@@ -126,10 +127,12 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
                   onSelect(dateStr)
                 }
               }}
+              whileTap={{ scale: 0.82 }}
+              transition={{ type: 'spring', stiffness: 600, damping: 25 }}
             >
               {day}
               {hasEntry && <span className="dot" />}
-            </div>
+            </motion.div>
           )
         })}
       </div>

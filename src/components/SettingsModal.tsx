@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { motion } from 'motion/react'
 import { ExportButton } from './ExportButton'
 
 interface SettingsModalProps {
@@ -33,8 +34,18 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
   }, [onClose])
 
   return (
-    <div className="settings-overlay" ref={overlayRef} onClick={handleOverlayClick}>
-      <div className="settings-modal">
+    <motion.div className="settings-overlay" ref={overlayRef} onClick={handleOverlayClick}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div className="settings-modal"
+        initial={{ opacity: 0, y: 14, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+      >
         <div className="settings-modal-header">
           <h3>Settings</h3>
           <button className="settings-modal-close" onClick={onClose} aria-label="Close settings">×</button>
@@ -94,7 +105,7 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
             </ul>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { AnimatePresence, MotionConfig } from 'motion/react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { useTheme } from './hooks/useTheme'
@@ -395,8 +396,11 @@ const { mode: fontMode, toggleFont } = useFont()
   }
 
   return (
+    <MotionConfig reducedMotion="user">
     <div className="app">
-      {tokenExpired && <SessionExpiredModal onReauth={handleReauth} />}
+      <AnimatePresence>
+        {tokenExpired && <SessionExpiredModal onReauth={handleReauth} />}
+      </AnimatePresence>
       <div
         className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
         onClick={closeSidebar}
@@ -444,19 +448,21 @@ const { mode: fontMode, toggleFont } = useFont()
             <span className="btn-text">Settings</span>
           </button>
       </aside>
-      {settingsOpen && (
-        <SettingsModal
-          autoSave={autoSave}
-          onAutoSaveToggle={handleAutoSaveToggle}
-          effectiveTheme={effectiveTheme}
-          onThemeToggle={toggleTheme}
-          fontMode={fontMode}
-          onFontToggle={toggleFont}
-          dates={diary.dates}
-          onExport={diary.exportAll}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {settingsOpen && (
+          <SettingsModal
+            autoSave={autoSave}
+            onAutoSaveToggle={handleAutoSaveToggle}
+            effectiveTheme={effectiveTheme}
+            onThemeToggle={toggleTheme}
+            fontMode={fontMode}
+            onFontToggle={toggleFont}
+            dates={diary.dates}
+            onExport={diary.exportAll}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
+      </AnimatePresence>
       <main className="main">
         <EntryEditor
           date={selectedDate}
@@ -483,5 +489,6 @@ const { mode: fontMode, toggleFont } = useFont()
         />
       </main>
     </div>
+    </MotionConfig>
   )
 }

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import type { SearchResult, IndexingProgress } from '../hooks/useDiary'
 import { diaryDateLabel } from '../utils/date'
 
@@ -93,16 +94,23 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
       {running && hasQuery && (
         <div className="search-status">Indexing… {done}/{total}</div>
       )}
-      {results.length > 0 && (
-        <ul className="search-results">
-          {results.map(r => (
-            <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setSearched(false) }}>
-              <span className="search-date">{diaryDateLabel(r.date)}</span>
-              <span className="search-snippet">…{r.snippet}…</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <AnimatePresence>
+        {results.length > 0 && (
+          <motion.ul className="search-results"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.14, ease: 'easeOut' }}
+          >
+            {results.map(r => (
+              <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setSearched(false) }}>
+                <span className="search-date">{diaryDateLabel(r.date)}</span>
+                <span className="search-snippet">…{r.snippet}…</span>
+              </li>
+            ))}
+          </motion.ul>
+        )}
+      </AnimatePresence>
       {searched && hasQuery && !entriesLoading && !isSearching && results.length === 0 && (
         <>
           <div className="search-status">No results</div>

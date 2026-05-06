@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
 import type { PointerEvent } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import type { LoadedDiaryEntry } from '../types'
@@ -40,6 +41,12 @@ function CheckIcon() {
   )
 }
 
+
+const entryVariants = {
+  enter: (dir: number) => ({ x: dir * 20, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: dir * -20, opacity: 0 }),
+}
 
 const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
@@ -155,6 +162,13 @@ useEffect(() => {
     })
     return () => { cancelled = true }
   }, [date, applyLoadedEntry])
+
+  const directionRef = useRef(0)
+  const prevDateRef = useRef(date)
+  if (date !== prevDateRef.current) {
+    directionRef.current = date > prevDateRef.current ? 1 : -1
+    prevDateRef.current = date
+  }
 
   const isDirty = text !== savedText
 
@@ -505,8 +519,9 @@ useEffect(() => {
 
   return (
     <>
-    {showHistoryModal && fileIdRef.current && token && (
-      <HistoryModal
+    <AnimatePresence>
+      {showHistoryModal && fileIdRef.current && token && (
+        <HistoryModal
         date={date}
         fileId={fileIdRef.current}
         token={token}
@@ -528,40 +543,62 @@ useEffect(() => {
         onClose={() => setShowHistoryModal(false)}
         onExpired={onExpired}
       />
-    )}
-    {showDeleteModal && (
-      <div className="delete-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-        <div className="delete-modal" onClick={e => e.stopPropagation()}>
-          <h3>Delete entry?</h3>
-          <p>The entry for {diaryDateLabel(date)} will be permanently deleted and cannot be undone.</p>
-          <p className="delete-modal-hint">Type <strong>confirm</strong> to proceed</p>
-          <input
-            className="delete-modal-input"
-            value={deleteInput}
-            onChange={e => setDeleteInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && deleteInput === 'confirm') confirmDelete() }}
-            autoFocus
-            placeholder="confirm"
-          />
-          <div className="delete-modal-actions">
-            <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
-            <button
-              className="btn-delete"
-              onClick={confirmDelete}
-              disabled={deleteInput !== 'confirm'}
-            >Delete</button>
+      )}
+    </AnimatePresence>
+    <AnimatePresence>
+      {showDeleteModal && (
+        <motion.div className="delete-modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <motion.div className="delete-modal"
+            initial={{ opacity: 0, y: 14, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.97 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3>Delete entry?</h3>
+            <p>The entry for {diaryDateLabel(date)} will be permanently deleted and cannot be undone.</p>
+            <p className="delete-modal-hint">Type <strong>confirm</strong> to proceed</p>
+            <input
+              className="delete-modal-input"
+              value={deleteInput}
+              onChange={e => setDeleteInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && deleteInput === 'confirm') confirmDelete() }}
+              autoFocus
+              placeholder="confirm"
+            />
+            <div className="delete-modal-actions">
+              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+              <button
+                className="btn-delete"
+                onClick={confirmDelete}
+                disabled={deleteInput !== 'confirm'}
+              >Delete</button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    <AnimatePresence>
+      {explicitSaving && (
+        <motion.div className="saving-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+        >
+          <div className="saving-modal">
+            <span className="saving-spinner" aria-hidden="true" />
+            <span className="saving-text">Saving…</span>
           </div>
-        </div>
-      </div>
-    )}
-    {explicitSaving && (
-      <div className="saving-overlay">
-        <div className="saving-modal">
-          <span className="saving-spinner" aria-hidden="true" />
-          <span className="saving-text">Saving…</span>
-        </div>
-      </div>
-    )}
+        </motion.div>
+      )}
+    </AnimatePresence>
     <div className="editor">
       <div
         className={`pull-refresh-indicator${pullDistance >= PULL_REFRESH_THRESHOLD ? ' ready' : ''}${refreshing ? ' refreshing' : ''}`}
@@ -573,7 +610,10 @@ useEffect(() => {
       <div className="editor-header">
         <div className="editor-date-group">
           <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
-          <button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day">‹</button>
+          <motion.button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day"
+            whileTap={{ scale: 0.82 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 25 }}
+          >‹</motion.button>
           <h2>
             <span
               className="entry-date-text"
@@ -586,56 +626,73 @@ useEffect(() => {
               {weekday && <span className="entry-date-weekday">{weekday}</span>}
             </span>
           </h2>
-          <button className="btn-day-nav" onClick={onNextDay} aria-label="Next day">›</button>
+          <motion.button className="btn-day-nav" onClick={onNextDay} aria-label="Next day"
+            whileTap={{ scale: 0.82 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 25 }}
+          >›</motion.button>
         </div>
         <div className="editor-actions">
-          <button
+          <motion.button
             className="btn-refresh-entry"
             onClick={refreshEntry}
             disabled={loading || saving || refreshing}
             aria-busy={refreshing}
             aria-label={refreshing ? 'Refreshing entry' : 'Refresh entry'}
             title="Refresh entry"
+            whileTap={{ scale: 0.88 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >
             {refreshing ? <SpinnerIcon /> : <RefreshIcon />}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
             onClick={handleExplicitSave}
             disabled={saving || !isDirty}
             aria-busy={saving}
             aria-label={saving ? 'Saving' : status === SAVED_STATUS ? 'Saved' : 'Save'}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >
             {saving
               ? <span className="btn-saving-spinner" aria-hidden="true" />
               : status === SAVED_STATUS ? <CheckIcon /> : <SaveIcon />}
             <span className="btn-text">{saving ? 'Saving…' : status === SAVED_STATUS ? 'Saved' : 'Save'}</span>
-          </button>
+          </motion.button>
           <div className="more-menu-container" ref={moreMenuRef}>
-            <button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label="More options">···</button>
-            {showMoreMenu && (
-              <div className="more-menu">
-                {token && fileIdRef.current && (
-                  <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
-                    History
-                  </div>
-                )}
-                {token && fileIdRef.current && (
-                  <div className="more-menu-item" onClick={() => {
-                    setShowMoreMenu(false)
-                    window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')
-                  }}>
-                    Open in Drive
-                  </div>
-                )}
-                <div
-                  className={`more-menu-item more-menu-delete${!fileIdRef.current ? ' more-menu-item-disabled' : ''}`}
-                  onClick={fileIdRef.current ? del : undefined}
+            <motion.button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label="More options"
+              whileTap={{ scale: 0.88 }}
+              transition={{ type: 'spring', stiffness: 600, damping: 25 }}
+            >···</motion.button>
+            <AnimatePresence>
+              {showMoreMenu && (
+                <motion.div className="more-menu"
+                  initial={{ opacity: 0, scale: 0.91, y: -6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.91, y: -6 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 >
-                  Delete
-                </div>
-              </div>
-            )}
+                  {token && fileIdRef.current && (
+                    <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
+                      History
+                    </div>
+                  )}
+                  {token && fileIdRef.current && (
+                    <div className="more-menu-item" onClick={() => {
+                      setShowMoreMenu(false)
+                      window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')
+                    }}>
+                      Open in Drive
+                    </div>
+                  )}
+                  <div
+                    className={`more-menu-item more-menu-delete${!fileIdRef.current ? ' more-menu-item-disabled' : ''}`}
+                    onClick={fileIdRef.current ? del : undefined}
+                  >
+                    Delete
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -686,32 +743,48 @@ useEffect(() => {
           </div>
         </div>
       )}
-      {loading ? (
-        <div className="entry-skeleton" aria-label="Loading entry" aria-live="polite">
-          <div className="entry-skeleton-row short" />
-          <div className="entry-skeleton-row" />
-          <div className="entry-skeleton-row medium" />
-          <div className="entry-skeleton-row" />
-          <div className="entry-skeleton-row long" />
-          <div className="entry-skeleton-row medium" />
-        </div>
-      ) : (
-        <textarea
-          ref={textareaRef}
-          className="editor-textarea"
-          value={text}
-          onChange={e => {
-            setText(e.target.value)
-            if (status && status !== SAVED_STATUS) setStatus('')
-          }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={finishPullRefresh}
-          onPointerCancel={finishPullRefresh}
-          placeholder="Write your thoughts…"
-          autoFocus
-        />
-      )}
+      <AnimatePresence initial={false} custom={directionRef.current}>
+        <motion.div
+          key={date}
+          custom={directionRef.current}
+          variants={entryVariants}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+        >
+          {loading ? (
+            <div className="entry-skeleton" aria-label="Loading entry" aria-live="polite">
+              <div className="entry-skeleton-row short" />
+              <div className="entry-skeleton-row" />
+              <div className="entry-skeleton-row medium" />
+              <div className="entry-skeleton-row" />
+              <div className="entry-skeleton-row long" />
+              <div className="entry-skeleton-row medium" />
+            </div>
+          ) : (
+            <motion.textarea
+              ref={textareaRef}
+              className="editor-textarea"
+              value={text}
+              onChange={e => {
+                setText(e.target.value)
+                if (status && status !== SAVED_STATUS) setStatus('')
+              }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={finishPullRefresh}
+              onPointerCancel={finishPullRefresh}
+              placeholder="Write your thoughts…"
+              autoFocus
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
     </>
   )

@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from 'react'
+import { motion } from 'motion/react'
 import type { LoadedDiaryEntry } from '../types'
 import { useRevisions } from '../hooks/useRevisions'
 import { formatRevisionTime } from '../utils/date'
@@ -40,8 +41,18 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
   }, [onClose])
 
   return (
-    <div className="history-overlay" onClick={handleOverlayClick}>
-      <div className="history-modal" role="dialog" aria-modal="true" aria-label="Version History">
+    <motion.div className="history-overlay" onClick={handleOverlayClick}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div className="history-modal" role="dialog" aria-modal="true" aria-label="Version History"
+        initial={{ opacity: 0, y: 14, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.97 }}
+        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+      >
         <div className="history-modal-header">
           <h3>Version History</h3>
           <button className="history-modal-close" onClick={onClose} aria-label="Close">×</button>
@@ -107,7 +118,7 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
