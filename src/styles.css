@@ -619,7 +619,7 @@ body {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  width: min(340px, 90vw);
+  width: min(440px, 90vw);
   box-shadow: 0 8px 32px var(--shadow-heavy);
   overflow: hidden;
   display: flex;
