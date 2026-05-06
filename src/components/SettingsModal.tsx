@@ -113,8 +113,8 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
               {shareMsg ?? 'Share'}
             </button>
           </div>
-          <div className="settings-divider" />
-          <div className="settings-about">
+          <div className="settings-divider settings-shortcuts-section" />
+          <div className="settings-about settings-shortcuts-section">
             <p className="settings-about-title">Keyboard shortcuts</p>
             <div className="settings-shortcuts">
               <div className="settings-shortcut-row">

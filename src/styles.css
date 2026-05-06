@@ -1769,6 +1769,8 @@ body {
 
   body { overflow: hidden; }
 
+  .settings-shortcuts-section { display: none; }
+
   /* モバイルでスクロールバーを非表示にしてUX向上 */
   * {
     -ms-overflow-style: none;
