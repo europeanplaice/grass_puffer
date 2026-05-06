@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { ExportButton } from './ExportButton'
+import { shareApp } from '../utils/share'
 
 interface SettingsModalProps {
   autoSave: boolean
@@ -16,6 +17,19 @@ interface SettingsModalProps {
 
 export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onThemeToggle, fontMode, onFontToggle, dates, onExport, onClose }: SettingsModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null)
+  const [shareMsg, setShareMsg] = useState<string | null>(null)
+
+  async function handleShareApp() {
+    try {
+      const result = await shareApp()
+      if (result === 'copied') {
+        setShareMsg('URL copied')
+        setTimeout(() => setShareMsg(null), 2000)
+      }
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') console.error(e)
+    }
+  }
 
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
     if (e.target === overlayRef.current) {
@@ -90,6 +104,14 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
           <div className="settings-item">
             <span className="settings-item-label">Export all entries</span>
             <ExportButton dates={dates} onExport={onExport} />
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-item">
+            <span className="settings-item-label">Share this app</span>
+            <button className="settings-action-btn" onClick={handleShareApp}>
+              <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+              {shareMsg ?? 'Share'}
+            </button>
           </div>
           <div className="settings-divider" />
           <div className="settings-about">
