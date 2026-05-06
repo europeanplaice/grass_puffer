@@ -114,7 +114,7 @@ const dictionaries = {
       moreOptions: 'More options',
       history: 'History',
       openInDrive: 'Open in Drive',
-      shareEntry: 'Share entry',
+      shareEntry: 'Share Entry',
       todaysEntry: "Today's entry",
       yesterdaysEntry: "Yesterday's entry",
       lastModified: 'Last modified:',
