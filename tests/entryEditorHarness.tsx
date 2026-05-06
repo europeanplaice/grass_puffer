@@ -10,6 +10,7 @@ type DeleteCall = { date: string }
 type NavCall = { date: string | null }
 type WindowOpenCall = { url: string; target: string }
 type GetContentCall = { date: string }
+type LoadCompleteCall = { date: string; content: string | null; version: string | null }
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
@@ -21,6 +22,7 @@ let windowOpenCalls: WindowOpenCall[] = []
 let getContentCalls: GetContentCall[] = []
 let menuClickCount = 0
 let dirtyChanges: boolean[] = []
+let loadCompleteCalls: LoadCompleteCall[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
 let currentToken: string | null = null
@@ -89,6 +91,13 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
       }}
       onMenuClick={() => { menuClickCount++ }}
       onDirtyChange={(isDirty) => { dirtyChanges.push(isDirty) }}
+      onLoadComplete={(loadedDate, loaded) => {
+        loadCompleteCalls.push({
+          date: loadedDate,
+          content: loaded?.entry.content ?? null,
+          version: loaded?.meta.version ?? null,
+        })
+      }}
       onPrevDay={() => {}}
       onNextDay={() => {}}
       pendingNavDate={pendingNavDate}
@@ -127,6 +136,7 @@ window.editorHarness = {
     getContentCalls = []
     menuClickCount = 0
     dirtyChanges = []
+    loadCompleteCalls = []
     currentSaveReject = opts.saveReject
     currentToken = opts.token ?? null
     currentSaveDelayMs = opts.saveDelayMs ?? 0
@@ -162,7 +172,9 @@ window.editorHarness = {
     getContentCalls = []
     menuClickCount = 0
     dirtyChanges = []
+    loadCompleteCalls = []
   },
   windowOpenCalls: () => [...windowOpenCalls],
+  loadCompleteCalls: () => [...loadCompleteCalls],
   EntryConflictError,
 }

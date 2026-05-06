@@ -99,6 +99,109 @@ test('first-time visitors still see the normal Google sign-in action', async ({ 
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
 })
 
+test('prioritizes the visible entry load before recent preview content after sign-in', async ({ page }) => {
+  await page.addInitScript(installGoogleMock, false)
+  await page.addInitScript(() => {
+    const RealDate = Date
+    const fixedNow = new RealDate('2026-05-01T12:00:00+09:00').getTime()
+    class MockDate extends RealDate {
+      constructor(...args: []) {
+        if (args.length === 0) {
+          super(fixedNow)
+        } else {
+          super(...args)
+        }
+      }
+
+      static now() {
+        return fixedNow
+      }
+    }
+    Object.defineProperty(window, 'Date', { configurable: true, value: MockDate })
+  })
+
+  const selectedDate = '2026-05-01'
+  const olderDate = '2026-04-30'
+  const requestLog: string[] = []
+  let releaseSelectedMedia!: () => void
+  const selectedMediaGate = new Promise<void>(resolve => {
+    releaseSelectedMedia = resolve
+  })
+
+  await page.route('https://www.googleapis.com/drive/v3/files**', async route => {
+    const url = decodeURIComponent(route.request().url())
+
+    if (url.includes("mimeType='application/vnd.google-apps.folder'")) {
+      await route.fulfill({ json: { files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] } })
+      return
+    }
+
+    if (url.includes(`name='diary-${selectedDate}.json'`)) {
+      await route.fulfill({
+        json: {
+          files: [
+            { id: 'file-selected', name: `diary-${selectedDate}.json`, version: '11', modifiedTime: '2026-05-01T00:00:00.000Z' },
+          ],
+        },
+      })
+      return
+    }
+
+    if (url.includes("'folder-1' in parents") && url.includes("mimeType='application/json'") && !url.includes("name='diary-")) {
+      await route.fulfill({
+        json: {
+          files: [
+            { id: 'file-selected', name: `diary-${selectedDate}.json`, version: '11', modifiedTime: '2026-05-01T00:00:00.000Z' },
+            { id: 'file-older', name: `diary-${olderDate}.json`, version: '10', modifiedTime: '2026-04-30T00:00:00.000Z' },
+          ],
+        },
+      })
+      return
+    }
+
+    if (url.includes('/files/file-selected?alt=media')) {
+      requestLog.push('selected:media')
+      await selectedMediaGate
+      await route.fulfill({
+        json: { date: selectedDate, content: 'selected entry content', updated_at: '2026-05-01T00:00:00.000Z' },
+      })
+      return
+    }
+
+    if (url.includes('/files/file-older')) {
+      requestLog.push('older:content')
+      await route.fulfill({
+        json: url.includes('alt=media')
+          ? { date: olderDate, content: 'older entry content', updated_at: '2026-04-30T00:00:00.000Z' }
+          : { id: 'file-older', name: `diary-${olderDate}.json`, version: '10', modifiedTime: '2026-04-30T00:00:00.000Z' },
+      })
+      return
+    }
+
+    if (url.includes('/files/file-selected')) {
+      requestLog.push('selected:meta')
+      await route.fulfill({
+        json: { id: 'file-selected', name: `diary-${selectedDate}.json`, version: '11', modifiedTime: '2026-05-01T00:00:00.000Z' },
+      })
+      return
+    }
+
+    await route.fulfill({ json: { files: [] } })
+  })
+
+  await page.goto(baseUrl)
+  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
+  await page.getByRole('button', { name: 'Sign in with Google' }).click()
+
+  await expect.poll(() => requestLog).toContain('selected:media')
+  await page.waitForTimeout(150)
+  expect(requestLog.every(item => item.startsWith('selected:'))).toBe(true)
+
+  releaseSelectedMedia()
+  await expect(page.locator('.editor-textarea')).toHaveValue('selected entry content')
+  await expect.poll(() => requestLog).toContain('older:content')
+})
+
 test('previous session can be forgotten before requesting a token', async ({ page }) => {
   await page.addInitScript(installGoogleMock, true)
 

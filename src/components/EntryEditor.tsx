@@ -21,6 +21,7 @@ interface Props {
   reauthSaveResult: LoadedDiaryEntry | null
   token: string | null
   onExpired: () => void
+  onLoadComplete?: (date: string, entry: LoadedDiaryEntry | null) => void
 }
 
 function SaveIcon() {
@@ -68,7 +69,7 @@ function isMobileLayout(): boolean {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
 }
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, token, onExpired }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, token, onExpired, onLoadComplete }: Props) {
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -97,6 +98,8 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   useEffect(() => { onSaveRef.current = onSave }, [onSave])
   const getContentRef = useRef(getContent)
   useEffect(() => { getContentRef.current = getContent }, [getContent])
+  const onLoadCompleteRef = useRef(onLoadComplete)
+  useEffect(() => { onLoadCompleteRef.current = onLoadComplete }, [onLoadComplete])
 
 const textRef = useRef(text)
 const savedTextRef = useRef(savedText)
@@ -144,6 +147,7 @@ useEffect(() => {
     getContentRef.current(date).then(entry => {
       if (cancelled) return
       applyLoadedEntry(entry)
+      onLoadCompleteRef.current?.(date, entry)
     }).catch(() => {
       if (!cancelled) setStatus('Failed to load entry.')
     }).finally(() => {

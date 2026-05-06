@@ -67,6 +67,7 @@ interface Window {
     dirtyChanges: () => boolean[]
     clearCalls: () => void
     windowOpenCalls: () => { url: string; target: string }[]
+    loadCompleteCalls: () => { date: string; content: string | null; version: string | null }[]
     EntryConflictError: typeof import('../src/hooks/useDiary').EntryConflictError
   }
   historyHarness: {
