@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { ExportButton } from './ExportButton'
 import { shareApp } from '../utils/share'
+import { useI18n } from '../i18n'
 
 interface SettingsModalProps {
   autoSave: boolean
@@ -16,6 +17,7 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onThemeToggle, fontMode, onFontToggle, dates, onExport, onClose }: SettingsModalProps) {
+  const { t, language, setLanguage } = useI18n()
   const overlayRef = useRef<HTMLDivElement>(null)
   const [shareMsg, setShareMsg] = useState<string | null>(null)
 
@@ -23,7 +25,7 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
     try {
       const result = await shareApp()
       if (result === 'copied') {
-        setShareMsg('URL copied')
+        setShareMsg(t.settings.urlCopied)
         setTimeout(() => setShareMsg(null), 2000)
       }
     } catch (e) {
@@ -61,12 +63,12 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
       >
         <div className="settings-modal-header">
-          <h3>Settings</h3>
-          <button className="settings-modal-close" onClick={onClose} aria-label="Close settings">×</button>
+          <h3>{t.settings.title}</h3>
+          <button className="settings-modal-close" onClick={onClose} aria-label={t.settings.close}>×</button>
         </div>
         <div className="settings-list">
           <div className="settings-item">
-            <span className="settings-item-label">Dark theme</span>
+            <span className="settings-item-label">{t.settings.darkTheme}</span>
             <button
               className={`settings-switch ${effectiveTheme === 'dark' ? 'active' : ''}`}
               onClick={onThemeToggle}
@@ -78,7 +80,7 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
           </div>
           <div className="settings-divider" />
           <div className="settings-item">
-            <span className="settings-item-label">Serif font</span>
+            <span className="settings-item-label">{t.settings.serifFont}</span>
             <button
               className={`settings-switch ${fontMode === 'serif' ? 'active' : ''}`}
               onClick={onFontToggle}
@@ -90,7 +92,7 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
           </div>
           <div className="settings-divider" />
           <div className="settings-item">
-            <span className="settings-item-label">Auto-save</span>
+            <span className="settings-item-label">{t.settings.autoSave}</span>
             <button
               className={`settings-switch ${autoSave ? 'active' : ''}`}
               onClick={onAutoSaveToggle}
@@ -102,54 +104,64 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
           </div>
           <div className="settings-divider" />
           <div className="settings-item">
-            <span className="settings-item-label">Export all entries</span>
+            <span className="settings-item-label">{t.settings.exportAllEntries}</span>
             <ExportButton dates={dates} onExport={onExport} />
           </div>
           <div className="settings-divider" />
           <div className="settings-item">
-            <span className="settings-item-label">Share this app</span>
+            <span className="settings-item-label">{t.common.language}</span>
+            <select
+              className="settings-language-select"
+              aria-label={t.common.language}
+              value={language}
+              onChange={event => setLanguage(event.target.value === 'en' ? 'en' : 'ja')}
+            >
+              <option value="ja">{t.common.japanese}</option>
+              <option value="en">{t.common.english}</option>
+            </select>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-item">
+            <span className="settings-item-label">{t.settings.shareThisApp}</span>
             <button className="settings-action-btn" onClick={handleShareApp}>
               <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-              {shareMsg ?? 'Share'}
+              {shareMsg ?? t.settings.share}
             </button>
           </div>
           <div className="settings-divider settings-shortcuts-section" />
           <div className="settings-about settings-shortcuts-section">
-            <p className="settings-about-title">Keyboard shortcuts</p>
+            <p className="settings-about-title">{t.settings.keyboardShortcuts}</p>
             <div className="settings-shortcuts">
               <div className="settings-shortcut-row">
-                <span className="settings-shortcut-desc">Save entry</span>
+                <span className="settings-shortcut-desc">{t.settings.saveEntry}</span>
                 <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>S</kbd></span>
               </div>
               <div className="settings-shortcut-row">
-                <span className="settings-shortcut-desc">Previous / Next day</span>
+                <span className="settings-shortcut-desc">{t.settings.previousNextDay}</span>
                 <span className="settings-shortcut-keys"><kbd>Alt</kbd><span>+</span><kbd>←</kbd><span>/</span><kbd>→</kbd></span>
               </div>
               <div className="settings-shortcut-row">
-                <span className="settings-shortcut-desc">Go to today</span>
+                <span className="settings-shortcut-desc">{t.settings.goToToday}</span>
                 <span className="settings-shortcut-keys"><kbd>Alt</kbd><span>+</span><kbd>↑</kbd></span>
               </div>
               <div className="settings-shortcut-row">
-                <span className="settings-shortcut-desc">Toggle dark theme</span>
+                <span className="settings-shortcut-desc">{t.settings.toggleDarkTheme}</span>
                 <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>D</kbd></span>
               </div>
               <div className="settings-shortcut-row">
-                <span className="settings-shortcut-desc">Toggle serif font</span>
+                <span className="settings-shortcut-desc">{t.settings.toggleSerifFont}</span>
                 <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>F</kbd></span>
               </div>
             </div>
           </div>
           <div className="settings-divider" />
           <div className="settings-about">
-            <p className="settings-about-title">About data storage</p>
+            <p className="settings-about-title">{t.settings.aboutDataStorage}</p>
             <p className="settings-about-text">
-              Your diary entries are stored in your Google Drive:
+              {t.settings.storageIntro}
             </p>
             <ul className="settings-about-list">
-              <li>A folder named <strong>GrassPuffer Diary</strong> is created automatically</li>
-              <li>One JSON file per day: <code>diary-YYYY-MM-DD.json</code></li>
-              <li>Format: <code>{'{ date, content, updated_at }'}</code></li>
-              <li>This app only accesses files it created (scope: drive.file)</li>
+              {t.settings.storageItems.map(item => <li key={item}>{item}</li>)}
             </ul>
           </div>
         </div>

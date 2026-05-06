@@ -1,4 +1,5 @@
 import { AppIcon } from './AppIcon'
+import { useI18n } from '../i18n'
 
 interface Props {
   onSignIn: () => void
@@ -21,8 +22,9 @@ export function LoginScreen({
   loadFailed,
   tokenExpired,
 }: Props) {
+  const { t } = useI18n()
   const disabled = !authReady || Boolean(loadFailed)
-  const buttonLabel = wasPreviouslySignedIn ? 'Continue with Google' : 'Sign in with Google'
+  const buttonLabel = wasPreviouslySignedIn ? t.login.continueWithGoogle : t.login.signInWithGoogle
 
   return (
     <div className="login-screen">
@@ -31,25 +33,25 @@ export function LoginScreen({
         <h1>Grass Puffer Diary</h1>
         <p>
           {wasPreviouslySignedIn
-            ? 'Continue with your previous Google session.'
-            : 'Your private diary, stored in your Google Drive.'}
+            ? t.login.continuePrevious
+            : t.login.privateDiary}
         </p>
         {sessionExpired && (
-          <p className="session-expired-msg">Session expired. Please sign in again.</p>
+          <p className="session-expired-msg">{t.login.sessionExpired}</p>
         )}
         {tokenExpired && (
           <p className="session-expired-msg">
-            Your session has expired.
+            {t.login.sessionExpiredShort}
             <button className="btn-retry" onClick={onRetry} type="button">
-              Re-authenticate
+              {t.login.reauthenticate}
             </button>
           </p>
         )}
         {loadFailed && (
-          <p className="session-expired-msg">Google Sign-In could not be loaded. Check your network or browser extensions.</p>
+          <p className="session-expired-msg">{t.login.signInLoadFailed}</p>
         )}
         {!loadFailed && !authReady && (
-          <p className="session-expired-msg neutral">Loading Google Sign-In…</p>
+          <p className="session-expired-msg neutral">{t.login.loadingSignIn}</p>
         )}
         <button className="btn-signin-google" onClick={onSignIn} disabled={disabled}>
           <svg
@@ -67,26 +69,24 @@ export function LoginScreen({
         </button>
         {wasPreviouslySignedIn && onForgetSession && (
           <button className="btn-use-another-account" type="button" onClick={onForgetSession}>
-            Use another account
+            {t.login.useAnotherAccount}
           </button>
         )}
         <details className="privacy-details">
-          <summary>How your data is stored</summary>
+          <summary>{t.login.dataStorageSummary}</summary>
           <div className="privacy-body">
             <ul>
-              <li>Stored only in your own Google Drive — this app has no backend server</li>
-              <li>Browser's Content Security Policy only allows connections to Google services (googleapis.com, accounts.google.com, oauth2.googleapis.com) and this website.</li>
-              <li>Verify: open DevTools → Network tab — every request goes to Google only</li>
+              {t.login.dataStorageItems.map(item => <li key={item}>{item}</li>)}
             </ul>
           </div>
         </details>
         <p className="login-footer">
           <a href="/privacy.html" target="_blank" rel="noopener noreferrer">
-            Privacy Policy
+            {t.login.privacyPolicy}
           </a>
           {' · '}
           <a href="/terms-of-service.html" target="_blank" rel="noopener noreferrer">
-            Terms of Service
+            {t.login.termsOfService}
           </a>
         </p>
       </div>

@@ -14,6 +14,7 @@ import { AppIcon } from './components/AppIcon'
 import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
 import { TokenExpiredError } from './api/driveEntries'
 import type { LoadedDiaryEntry } from './types'
+import { useI18n } from './i18n'
 
 type RecentPreview = {
   snippet: string
@@ -66,15 +67,17 @@ function dismissActiveTextCursor() {
 }
 
 function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string; onTitleClick: () => void }) {
+  const { t, locale } = useI18n()
+
   return (
     <div className="app restoring-app">
       <aside className="sidebar restoring-sidebar open">
         <div className="sidebar-top">
-          <h1 className="app-title" onClick={onTitleClick}><AppIcon className="app-title-icon" /> Diary</h1>
+          <h1 className="app-title" onClick={onTitleClick}><AppIcon className="app-title-icon" /> {t.appTitle}</h1>
         </div>
         <div className="restoring-search" />
         <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
-        <div className="sidebar-status">Restoring your session…</div>
+        <div className="sidebar-status">{t.app.restoringSession}</div>
         <ul className="entry-list restoring-entry-list">
           <li />
           <li />
@@ -84,8 +87,8 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
       <main className="main">
         <div className="editor restoring-editor">
           <div className="editor-header">
-            <h2>{diaryDateLabel(selectedDate)}</h2>
-            <span className="editor-status">Signing in…</span>
+            <h2>{diaryDateLabel(selectedDate, true, 'long', locale)}</h2>
+            <span className="editor-status">{t.app.signingIn}</span>
           </div>
           <div className="restoring-lines">
             <span />
@@ -106,6 +109,7 @@ function shiftDate(date: string, days: number): string {
 }
 
 export default function App() {
+  const { t, locale } = useI18n()
   const {
     accessToken,
     status,
@@ -406,22 +410,22 @@ const { mode: fontMode, toggleFont } = useFont()
       />
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-top">
-          <h1 className="app-title" onClick={handleTitleClick}><AppIcon className="app-title-icon" /> Diary</h1>
+          <h1 className="app-title" onClick={handleTitleClick}><AppIcon className="app-title-icon" /> {t.appTitle}</h1>
           <div className="sidebar-actions">
-            <button className="btn-close-sidebar" onClick={closeSidebar} title="Close menu" aria-label="Close menu">×</button>
-            <button className="btn-signout" onClick={handleSignOut} title="Sign out">↩</button>
+            <button className="btn-close-sidebar" onClick={closeSidebar} title={t.app.closeMenu} aria-label={t.app.closeMenu}>×</button>
+            <button className="btn-signout" onClick={handleSignOut} title={t.app.signOut}>↩</button>
           </div>
         </div>
         <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
-        {diary.loading && <div className="sidebar-status">Loading entries…</div>}
+        {diary.loading && <div className="sidebar-status">{t.app.loadingEntries}</div>}
         {diary.error && <div className="sidebar-status error">{diary.error}</div>}
-        {recentDates.length > 0 && <h2 className="entry-list-heading">Recent</h2>}
+        {recentDates.length > 0 && <h2 className="entry-list-heading">{t.app.recent}</h2>}
         <ul className="entry-list">
           {recentDates.map(d => {
             const preview = recentPreviews.get(d)
             const isToday = d === todayDate
-            const weekday = weekdayLabel(d)
+            const weekday = weekdayLabel(d, locale)
             return (
             <li
               key={d}
@@ -431,20 +435,20 @@ const { mode: fontMode, toggleFont } = useFont()
               <span
                 className="entry-list-date"
                 data-today={isToday || undefined}
-                aria-label={isToday ? `${diaryDateLabel(d, false)}${weekday ? ` ${weekday}` : ''}, Today` : undefined}
+                aria-label={isToday ? `${diaryDateLabel(d, false, 'long', locale)}${weekday ? ` ${weekday}` : ''}, ${t.common.today}` : undefined}
               >
-                <span>{diaryDateLabel(d, false)}</span>
+                <span>{diaryDateLabel(d, false, 'long', locale)}</span>
                 {weekday && <span className="entry-list-weekday">{weekday}</span>}
               </span>
               <span className="entry-list-preview">
-                {preview?.hasContent ? preview.snippet : 'No text yet'}
+                {preview?.hasContent ? preview.snippet : t.app.noTextYet}
               </span>
             </li>
           )})}
         </ul>
-        <button className="btn-settings" onClick={() => setSettingsOpen(true)} title="Settings">
+        <button className="btn-settings" onClick={() => setSettingsOpen(true)} title={t.common.settings}>
             <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            <span className="btn-text">Settings</span>
+            <span className="btn-text">{t.common.settings}</span>
           </button>
       </aside>
       <AnimatePresence>

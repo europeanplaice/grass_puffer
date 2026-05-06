@@ -35,9 +35,22 @@ interface Params {
   onSave: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
   onRestored: (result: LoadedDiaryEntry) => void
   onExpired: () => void
+  messages?: {
+    failedToLoadHistory: string
+    failedToLoadVersion: string
+    restoreConflict: string
+    restoreFailed: string
+  }
 }
 
-export function useRevisions({ token, fileId, date, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onExpired }: Params): RevisionsState {
+const DEFAULT_MESSAGES = {
+  failedToLoadHistory: '履歴を読み込めませんでした。',
+  failedToLoadVersion: 'このバージョンを読み込めませんでした。',
+  restoreConflict: '復元できませんでした。日記が変更されています。先に保存してください。',
+  restoreFailed: '復元に失敗しました。',
+}
+
+export function useRevisions({ token, fileId, date, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onExpired, messages = DEFAULT_MESSAGES }: Params): RevisionsState {
   const showUnsavedEntry = !autoSave && isDirty
 
   const [revisions, setRevisions] = useState<DriveRevisionMeta[]>([])
@@ -70,12 +83,12 @@ export function useRevisions({ token, fileId, date, baseVersion, text, savedText
     }).catch(e => {
       if (cancelled) return
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
-      setListError('Failed to load history.')
+      setListError(messages.failedToLoadHistory)
     }).finally(() => {
       if (!cancelled) setListLoading(false)
     })
     return () => { cancelled = true }
-  }, [token, fileId, showUnsavedEntry])
+  }, [token, fileId, showUnsavedEntry, messages.failedToLoadHistory])
 
   useEffect(() => {
     if (!selectedId) return
@@ -151,12 +164,12 @@ export function useRevisions({ token, fileId, date, baseVersion, text, savedText
     }).catch(e => {
       if (controller.signal.aborted) return
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
-      setPreviewError('Failed to load this version.')
+      setPreviewError(messages.failedToLoadVersion)
     }).finally(() => {
       if (!controller.signal.aborted) setPreviewLoading(false)
     })
     return () => { controller.abort() }
-  }, [token, fileId, selectedId, revisions, text, savedText])
+  }, [token, fileId, selectedId, revisions, text, savedText, messages.failedToLoadVersion])
 
   const selectRevision = useCallback((id: string) => {
     setSelectedId(id)
@@ -173,14 +186,14 @@ export function useRevisions({ token, fileId, date, baseVersion, text, savedText
     } catch (e) {
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
       if (e instanceof EntryConflictError) {
-        setRestoreError('Could not restore — entry was changed. Please save first.')
+        setRestoreError(messages.restoreConflict)
       } else {
-        setRestoreError('Restore failed.')
+        setRestoreError(messages.restoreFailed)
       }
     } finally {
       setRestoring(false)
     }
-  }, [previewContent, date, baseVersion, onSave, onRestored])
+  }, [previewContent, date, baseVersion, onSave, onRestored, messages.restoreConflict, messages.restoreFailed])
 
   return {
     revisions,

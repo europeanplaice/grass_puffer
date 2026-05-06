@@ -3,6 +3,7 @@ import { motion } from 'motion/react'
 import type { LoadedDiaryEntry } from '../types'
 import { useRevisions } from '../hooks/useRevisions'
 import { formatRevisionTime } from '../utils/date'
+import { useI18n } from '../i18n'
 
 interface Props {
   date: string
@@ -20,12 +21,31 @@ interface Props {
 }
 
 export function HistoryModal({ date, fileId, token, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onClose, onExpired }: Props) {
+  const { t, locale } = useI18n()
   const {
     revisions, showUnsavedEntry, listLoading, listError,
     selectedId, previewContent, previewLoading, previewError,
     diffHtml, restoring, restoreError,
     selectRevision, restore,
-  } = useRevisions({ token, fileId, date, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onExpired })
+  } = useRevisions({
+    token,
+    fileId,
+    date,
+    baseVersion,
+    text,
+    savedText,
+    isDirty,
+    autoSave,
+    onSave,
+    onRestored,
+    onExpired,
+    messages: {
+      failedToLoadHistory: t.history.failedToLoadHistory,
+      failedToLoadVersion: t.history.failedToLoadVersion,
+      restoreConflict: t.history.restoreConflict,
+      restoreFailed: t.history.restoreFailed,
+    },
+  })
 
   const isCurrentRevision = revisions.length > 0 && selectedId === revisions[0].id
   const isUnsavedRevision = selectedId === '__unsaved__'
@@ -47,15 +67,15 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
       exit={{ opacity: 0 }}
       transition={{ duration: 0.18 }}
     >
-      <motion.div className="history-modal" role="dialog" aria-modal="true" aria-label="Version History"
+      <motion.div className="history-modal" role="dialog" aria-modal="true" aria-label={t.history.title}
         initial={{ opacity: 0, y: 14, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.97 }}
         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
       >
         <div className="history-modal-header">
-          <h3>Version History</h3>
-          <button className="history-modal-close" onClick={onClose} aria-label="Close">×</button>
+          <h3>{t.history.title}</h3>
+          <button className="history-modal-close" onClick={onClose} aria-label={t.common.close}>×</button>
         </div>
         <div className="history-modal-body">
           <div className="history-revision-list">
@@ -70,8 +90,8 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
                 className={`history-revision-item${selectedId === '__unsaved__' ? ' selected' : ''}`}
                 onClick={() => selectRevision('__unsaved__')}
               >
-                <span className="history-revision-time">Unsaved</span>
-                <span className="history-revision-badge unsaved-badge">Unsaved</span>
+                <span className="history-revision-time">{t.history.unsaved}</span>
+                <span className="history-revision-badge unsaved-badge">{t.history.unsaved}</span>
               </div>
             )}
             {!listLoading && !listError && revisions.map((rev, i) => (
@@ -80,8 +100,8 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
                 className={`history-revision-item${selectedId === rev.id ? ' selected' : ''}`}
                 onClick={() => selectRevision(rev.id)}
               >
-                <span className="history-revision-time">{formatRevisionTime(rev.modifiedTime)}</span>
-                {i === 0 && !showUnsavedEntry && <span className="history-revision-badge">Current</span>}
+                <span className="history-revision-time">{formatRevisionTime(rev.modifiedTime, locale, t.dates)}</span>
+                {i === 0 && !showUnsavedEntry && <span className="history-revision-badge">{t.history.current}</span>}
               </div>
             ))}
           </div>
@@ -113,7 +133,7 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
                 onClick={restore}
                 disabled={isCurrentRevision || isUnsavedRevision || restoring || !previewContent}
               >
-                {restoring ? 'Restoring…' : 'Restore this version'}
+                {restoring ? t.history.restoring : t.history.restoreThisVersion}
               </button>
             </div>
           </div>

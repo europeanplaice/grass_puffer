@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { SearchResult, IndexingProgress } from '../hooks/useDiary'
 import { diaryDateLabel } from '../utils/date'
+import { useI18n } from '../i18n'
 
 interface Result {
   date: string
@@ -18,6 +19,7 @@ interface Props {
 const SEARCH_DEBOUNCE_MS = 250
 
 export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress }: Props) {
+  const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
   const [searched, setSearched] = useState(false)
@@ -81,18 +83,18 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
     <div className="search-bar">
       <input
         type="search"
-        placeholder="Search entries..."
+        placeholder={t.search.placeholder}
         value={query}
         onChange={e => setQuery(e.target.value)}
       />
       {isSearching && hasQuery && (
-        <div className="search-status">Searching…</div>
+        <div className="search-status">{t.search.searching}</div>
       )}
       {entriesLoading && hasQuery && !isSearching && (
-        <div className="search-status">Loading entries…</div>
+        <div className="search-status">{t.search.loadingEntries}</div>
       )}
       {running && hasQuery && (
-        <div className="search-status">Indexing… {done}/{total}</div>
+        <div className="search-status">{t.search.indexing(done, total)}</div>
       )}
       <AnimatePresence>
         {results.length > 0 && (
@@ -104,7 +106,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
           >
             {results.map(r => (
               <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setSearched(false) }}>
-                <span className="search-date">{diaryDateLabel(r.date)}</span>
+                <span className="search-date">{diaryDateLabel(r.date, true, 'long', locale)}</span>
                 <span className="search-snippet">…{r.snippet}…</span>
               </li>
             ))}
@@ -113,9 +115,9 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
       </AnimatePresence>
       {searched && hasQuery && !entriesLoading && !isSearching && results.length === 0 && (
         <>
-          <div className="search-status">No results</div>
+          <div className="search-status">{t.search.noResults}</div>
           {unindexedCount > 0 && (
-            <div className="search-status">Indexing {unindexedCount} remaining entries…</div>
+            <div className="search-status">{t.search.remaining(unindexedCount)}</div>
           )}
         </>
       )}

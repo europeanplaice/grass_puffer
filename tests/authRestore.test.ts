@@ -3,6 +3,7 @@ import { baseUrl } from './baseUrl'
 
 function installGoogleMock(restorable: boolean) {
   window.localStorage.clear()
+  window.localStorage.setItem('grass_puffer_language', 'en')
   if (restorable) window.localStorage.setItem('grass-puffer-auth-restorable', '1')
 
   Object.defineProperty(window, 'google', {
@@ -31,6 +32,7 @@ function installGoogleMock(restorable: boolean) {
 
 function installExpiringGoogleMock() {
   window.localStorage.clear()
+  window.localStorage.setItem('grass_puffer_language', 'en')
   window.localStorage.setItem('grass_puffer_autosave', 'false')
 
   Object.defineProperty(window, 'google', {

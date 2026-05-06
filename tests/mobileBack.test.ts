@@ -14,6 +14,7 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.addInitScript(() => {
     window.localStorage.clear()
+    window.localStorage.setItem('grass_puffer_language', 'en')
     Object.defineProperty(window, 'google', {
       configurable: true,
       value: {

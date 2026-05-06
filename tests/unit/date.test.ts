@@ -112,9 +112,13 @@ describe('date utils', () => {
 
   describe('weekdayLabel', () => {
     it('returns correct weekday abbreviation', () => {
-      expect(weekdayLabel('2026-05-15')).toBe('Fri') // May 15, 2026 is Friday
-      expect(weekdayLabel('2026-05-16')).toBe('Sat')
-      expect(weekdayLabel('2026-05-17')).toBe('Sun')
+      expect(weekdayLabel('2026-05-15')).toBe('金') // May 15, 2026 is Friday
+      expect(weekdayLabel('2026-05-16')).toBe('土')
+      expect(weekdayLabel('2026-05-17')).toBe('日')
+    })
+
+    it('supports English locale', () => {
+      expect(weekdayLabel('2026-05-15', 'en-US')).toBe('Fri')
     })
 
     it('returns empty string for invalid date', () => {
@@ -125,14 +129,21 @@ describe('date utils', () => {
   describe('diaryDateLabel', () => {
     it('formats date with long month by default', () => {
       const result = diaryDateLabel('2026-05-15')
-      expect(result).toContain('May')
+      expect(result).toContain('5月')
       expect(result).toContain('15')
       expect(result).toContain('2026')
     })
 
     it('can use short month format', () => {
       const result = diaryDateLabel('2026-05-15', true, 'short')
+      expect(result).toContain('5月')
+    })
+
+    it('supports English locale', () => {
+      const result = diaryDateLabel('2026-05-15', true, 'long', 'en-US')
       expect(result).toContain('May')
+      expect(result).toContain('15')
+      expect(result).toContain('2026')
     })
 
     it('omits year when includeYear is false', () => {
@@ -190,34 +201,39 @@ describe('date utils', () => {
       vi.useRealTimers()
     })
 
-    it('shows "Today" for same-day revisions', () => {
+    it('shows localized today for same-day revisions', () => {
       const result = formatRevisionTime('2026-05-15T09:15:00')
-      expect(result).toMatch(/^Today \d{1,2}:\d{2} [AP]M$/)
+      expect(result).toMatch(/^今日 \d{2}:\d{2}$/)
     })
 
-    it('shows "Yesterday" for previous day revisions', () => {
+    it('shows localized yesterday for previous day revisions', () => {
       const result = formatRevisionTime('2026-05-14T18:45:00')
-      expect(result).toMatch(/^Yesterday \d{1,2}:\d{2} [AP]M$/)
+      expect(result).toMatch(/^昨日 \d{2}:\d{2}$/)
     })
 
-    it('shows "Mon DD, time" for same-year but not today/yesterday', () => {
+    it('shows localized date and time for same-year but not today/yesterday', () => {
       const result = formatRevisionTime('2026-05-10T10:00:00')
-      expect(result).toMatch(/^May 10, \d{1,2}:\d{2} [AP]M$/)
+      expect(result).toMatch(/^5月10日, \d{2}:\d{2}$/)
     })
 
     it('shows full date with year for previous years', () => {
       const result = formatRevisionTime('2025-12-25T08:30:00')
-      expect(result).toMatch(/^Dec 25, 2025, \d{1,2}:\d{2} [AP]M$/)
+      expect(result).toMatch(/^2025年12月25日, \d{2}:\d{2}$/)
+    })
+
+    it('supports English locale and labels', () => {
+      const result = formatRevisionTime('2026-05-15T09:15:00', 'en-US', { today: 'Today', yesterday: 'Yesterday' })
+      expect(result).toMatch(/^Today \d{1,2}:\d{2} [AP]M$/)
     })
 
     it('uses local day boundaries (timezone-safe)', () => {
       // Just before midnight - should NOT be "Today"
       const justBeforeMidnight = formatRevisionTime('2026-05-14T23:59:59')
-      expect(justBeforeMidnight).toMatch(/^Yesterday/)
+      expect(justBeforeMidnight).toMatch(/^昨日/)
 
       // Just after midnight - should be "Today"
       const justAfterMidnight = formatRevisionTime('2026-05-15T00:00:01')
-      expect(justAfterMidnight).toMatch(/^Today/)
+      expect(justAfterMidnight).toMatch(/^今日/)
     })
   })
 })

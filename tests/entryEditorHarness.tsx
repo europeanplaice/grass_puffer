@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { EntryEditor } from '../src/components/EntryEditor'
 import { EntryConflictError } from '../src/hooks/useDiary'
 import type { LoadedDiaryEntry } from '../src/types'
+import { I18nProvider } from '../src/i18n'
 import '../src/styles.css'
 
 type SaveCall = { date: string; content: string; baseVersion: string | null; force?: boolean }
@@ -143,13 +144,15 @@ window.editorHarness = {
     currentRemoteContent = opts.initialContent ?? ''
     currentRemoteVersion = opts.version ?? null
     root.render(
-      <App
-        date={opts.date ?? '2026-05-01'}
-        autoSave={opts.autoSave ?? true}
-        getContentDelayMs={opts.getContentDelayMs ?? 0}
-        pendingNavDate={opts.pendingNavDate ?? null}
-        token={currentToken}
-      />
+      <I18nProvider>
+        <App
+          date={opts.date ?? '2026-05-01'}
+          autoSave={opts.autoSave ?? true}
+          getContentDelayMs={opts.getContentDelayMs ?? 0}
+          pendingNavDate={opts.pendingNavDate ?? null}
+          token={currentToken}
+        />
+      </I18nProvider>
     )
   },
   saveCalls: () => [...saveCalls],

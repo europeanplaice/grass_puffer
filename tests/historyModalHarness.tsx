@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { HistoryModal } from '../src/components/HistoryModal'
 import { EntryConflictError } from '../src/hooks/useDiary'
 import type { LoadedDiaryEntry } from '../src/types'
+import { I18nProvider } from '../src/i18n'
 import '../src/styles.css'
 
 type FetchCall = { url: string; method: string }
@@ -98,17 +99,19 @@ window.historyHarness = {
     expiredCalls = 0
     saveReject = null
     root.render(
-      <App
-        date={opts.date ?? '2026-05-01'}
-        fileId={opts.fileId ?? 'file-123'}
-        token={opts.token ?? 'test-token'}
-        baseVersion={opts.baseVersion ?? null}
-        text={opts.text ?? ''}
-        savedText={opts.savedText ?? ''}
-        isDirty={opts.isDirty ?? false}
-        autoSave={opts.autoSave ?? true}
-        key={Date.now()}
-      />
+      <I18nProvider>
+        <App
+          date={opts.date ?? '2026-05-01'}
+          fileId={opts.fileId ?? 'file-123'}
+          token={opts.token ?? 'test-token'}
+          baseVersion={opts.baseVersion ?? null}
+          text={opts.text ?? ''}
+          savedText={opts.savedText ?? ''}
+          isDirty={opts.isDirty ?? false}
+          autoSave={opts.autoSave ?? true}
+          key={Date.now()}
+        />
+      </I18nProvider>
     )
   },
   calls: () => [...fetchCalls],

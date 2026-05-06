@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { SettingsModal } from '../src/components/SettingsModal'
+import { I18nProvider } from '../src/i18n'
 import '../src/styles.css'
 
 type ExportCall = { onProgress: (done: number, total: number) => void }[]
@@ -60,11 +61,13 @@ window.settingsHarness = {
     exportCalls.splice(0)
     exportReject = false
     root.render(
-      <App
-        autoSave={initialAutoSave ?? true}
-        modalOpen={initialOpen ?? true}
-        key={Date.now()}
-      />
+      <I18nProvider>
+        <App
+          autoSave={initialAutoSave ?? true}
+          modalOpen={initialOpen ?? true}
+          key={Date.now()}
+        />
+      </I18nProvider>
     )
   },
   getStoredAutoSave: () => localStorage.getItem('grass_puffer_autosave'),

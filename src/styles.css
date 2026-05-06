@@ -699,6 +699,15 @@ body {
 .settings-switch.active .settings-switch-thumb {
   transform: translateX(18px);
 }
+.settings-language-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.6rem;
+}
 .settings-divider {
   height: 1px;
   background: var(--border);

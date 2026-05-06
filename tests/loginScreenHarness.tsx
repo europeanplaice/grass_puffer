@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { LoginScreen } from '../src/components/LoginScreen'
+import { I18nProvider } from '../src/i18n'
 import '../src/styles.css'
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
@@ -38,13 +39,15 @@ function App({ authReady, wasPreviouslySignedIn, sessionExpired, loadFailed }: A
 window.loginScreenHarness = {
   render: ({ authReady, wasPreviouslySignedIn, sessionExpired, loadFailed }: AppProps = {}) => {
     root.render(
-      <App
-        authReady={authReady}
-        wasPreviouslySignedIn={wasPreviouslySignedIn}
-        sessionExpired={sessionExpired}
-        loadFailed={loadFailed}
-        key={Date.now()}
-      />
+      <I18nProvider>
+        <App
+          authReady={authReady}
+          wasPreviouslySignedIn={wasPreviouslySignedIn}
+          sessionExpired={sessionExpired}
+          loadFailed={loadFailed}
+          key={Date.now()}
+        />
+      </I18nProvider>
     )
   },
 }

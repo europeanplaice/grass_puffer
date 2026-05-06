@@ -6,6 +6,7 @@ import type { LoadedDiaryEntry } from '../types'
 import { todayYmd, yesterdayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
 import { HistoryModal } from './HistoryModal'
 import { shareEntry } from '../utils/share'
+import { useI18n } from '../i18n'
 
 interface Props {
   date: string
@@ -49,7 +50,6 @@ const entryVariants = {
   exit: (dir: number) => ({ x: dir * -20, opacity: 0 }),
 }
 
-const SAVED_STATUS = 'Saved.'
 const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 3000
@@ -78,6 +78,8 @@ function isMobileLayout(): boolean {
 }
 
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, token, onExpired, onLoadComplete }: Props) {
+  const { t, locale } = useI18n()
+  const savedStatus = t.entry.savedStatus
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
@@ -98,7 +100,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [refreshing, setRefreshing] = useState(false)
   const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
-  const weekday = weekdayLabel(date)
+  const weekday = weekdayLabel(date, locale)
   const isToday = date === todayYmd()
   const isYesterday = date === yesterdayYmd()
 
@@ -158,7 +160,7 @@ useEffect(() => {
       applyLoadedEntry(entry)
       onLoadCompleteRef.current?.(date, entry)
     }).catch(() => {
-      if (!cancelled) setStatus('Failed to load entry.')
+      if (!cancelled) setStatus(t.entry.failedToLoad)
     }).finally(() => {
       if (!cancelled) setLoading(false)
     })
@@ -192,9 +194,9 @@ useEffect(() => {
 
     if (currentText === previousSavedText || currentText === content) {
       setText(content)
-      setStatus(SAVED_STATUS)
+      setStatus(savedStatus)
     }
-  }, [date, reauthSaveResult])
+  }, [date, reauthSaveResult, savedStatus])
 
   const pendingNavDateRef = useRef(pendingNavDate)
   useEffect(() => { pendingNavDateRef.current = pendingNavDate }, [pendingNavDate])
@@ -217,7 +219,7 @@ useEffect(() => {
       setBaseVersion(saved.meta.version ?? null)
       setLastModified(saved.entry.updated_at ?? null)
       fileIdRef.current = saved.meta.id
-      setStatus(SAVED_STATUS)
+      setStatus(savedStatus)
       setShowRefreshConfirm(false)
       return true
     } catch (e) {
@@ -229,16 +231,16 @@ useEffect(() => {
       if (e instanceof EntryConflictError) {
         setHasConflict(true)
         setConflictRemote(e.remote)
-        setStatus('This entry changed on another device.')
+        setStatus(t.entry.changedElsewhere)
       } else {
-        setStatus('Save failed.')
+        setStatus(t.entry.saveFailed)
       }
       return false
     } finally {
       setSaving(false)
       if (explicit) setExplicitSaving(false)
     }
-  }, [date])
+  }, [date, savedStatus, t])
 
   const handleExplicitSave = useCallback(async () => {
     const ok = await save(true)
@@ -263,13 +265,13 @@ useEffect(() => {
     setBaseVersion(conflictRemote?.meta.version ?? null)
     setHasConflict(false)
     setConflictRemote(null)
-    setStatus(conflictRemote ? 'Loaded latest version.' : 'Remote entry was deleted.')
+    setStatus(conflictRemote ? t.entry.loadedLatest : t.entry.remoteDeleted)
   }
 
   const keepLocal = () => {
     setHasConflict(false)
     setConflictRemote(null)
-    setStatus('Local edits kept.')
+    setStatus(t.entry.localKept)
   }
 
   const overwriteRemote = async () => {
@@ -283,9 +285,9 @@ useEffect(() => {
       setBaseVersion(saved.meta.version ?? null)
       setHasConflict(false)
       setConflictRemote(null)
-      setStatus(SAVED_STATUS)
+      setStatus(savedStatus)
     } catch {
-      setStatus('Save failed.')
+      setStatus(t.entry.saveFailed)
     } finally {
       setSaving(false)
       setExplicitSaving(false)
@@ -302,7 +304,7 @@ useEffect(() => {
       setHasConflict(false)
       setConflictRemote(null)
     } catch {
-      setStatus('Failed to refresh entry.')
+      setStatus(t.entry.failedToRefresh)
     } finally {
       setRefreshing(false)
     }
@@ -366,16 +368,16 @@ useEffect(() => {
   }, [isDirty, handleExplicitSave])
 
   useEffect(() => {
-    if (status !== SAVED_STATUS) return
+    if (status !== savedStatus) return
 
     const clearTimeout = window.setTimeout(() => {
-      setStatus(current => current === SAVED_STATUS ? '' : current)
+      setStatus(current => current === savedStatus ? '' : current)
     }, SAVED_STATUS_VISIBLE_MS + SAVED_STATUS_EXIT_MS)
 
     return () => {
       window.clearTimeout(clearTimeout)
     }
-  }, [status])
+  }, [status, savedStatus])
 
   useEffect(() => {
     const viewport = window.visualViewport
@@ -420,7 +422,7 @@ useEffect(() => {
 
   async function handleShareEntry() {
     setShowMoreMenu(false)
-    const label = diaryDateLabel(date)
+    const label = diaryDateLabel(date, true, 'long', locale)
     try {
       const result = await shareEntry(date, text, label)
       if (result === 'copied') {
@@ -579,24 +581,24 @@ useEffect(() => {
             transition={{ type: 'spring', stiffness: 420, damping: 32 }}
             onClick={e => e.stopPropagation()}
           >
-            <h3>Delete entry?</h3>
-            <p>The entry for {diaryDateLabel(date)} will be permanently deleted and cannot be undone.</p>
-            <p className="delete-modal-hint">Type <strong>confirm</strong> to proceed</p>
+            <h3>{t.entry.deleteTitle}</h3>
+            <p>{t.entry.deleteDescription(diaryDateLabel(date, true, 'long', locale))}</p>
+            <p className="delete-modal-hint">{t.entry.deleteHint}</p>
             <input
               className="delete-modal-input"
               value={deleteInput}
               onChange={e => setDeleteInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && deleteInput === 'confirm') confirmDelete() }}
+              onKeyDown={e => { if (e.key === 'Enter' && deleteInput === t.entry.confirmKeyword) confirmDelete() }}
               autoFocus
-              placeholder="confirm"
+              placeholder={t.entry.confirmKeyword}
             />
             <div className="delete-modal-actions">
-              <button onClick={() => setShowDeleteModal(false)}>Cancel</button>
+              <button onClick={() => setShowDeleteModal(false)}>{t.common.cancel}</button>
               <button
                 className="btn-delete"
                 onClick={confirmDelete}
-                disabled={deleteInput !== 'confirm'}
-              >Delete</button>
+                disabled={deleteInput !== t.entry.confirmKeyword}
+              >{t.common.delete}</button>
             </div>
           </motion.div>
         </motion.div>
@@ -612,7 +614,7 @@ useEffect(() => {
         >
           <div className="saving-modal">
             <span className="saving-spinner" aria-hidden="true" />
-            <span className="saving-text">Saving…</span>
+            <span className="saving-text">{t.entry.savingOverlay}</span>
           </div>
         </motion.div>
       )}
@@ -627,8 +629,8 @@ useEffect(() => {
       </div>
       <div className="editor-header">
         <div className="editor-date-group">
-          <button className="btn-menu" onClick={onMenuClick} title="Open menu">☰</button>
-          <motion.button className="btn-day-nav" onClick={onPrevDay} aria-label="Previous day"
+          <button className="btn-menu" onClick={onMenuClick} title={t.entry.openMenu}>☰</button>
+          <motion.button className="btn-day-nav" onClick={onPrevDay} aria-label={t.entry.previousDay}
             whileTap={{ scale: 0.82 }}
             transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >‹</motion.button>
@@ -637,14 +639,14 @@ useEffect(() => {
               className="entry-date-text"
               data-today={isToday || undefined}
               data-dirty={isDirty || undefined}
-              aria-label={isToday ? `${diaryDateLabel(date)}${weekday ? ` ${weekday}` : ''}, Today` : undefined}
+              aria-label={isToday ? `${diaryDateLabel(date, true, 'long', locale)}${weekday ? ` ${weekday}` : ''}, ${t.common.today}` : undefined}
             >
-              <span className="entry-date-label-full">{diaryDateLabel(date)}</span>
-              <span className="entry-date-label-short">{diaryDateLabel(date, true, 'short')}</span>
+              <span className="entry-date-label-full">{diaryDateLabel(date, true, 'long', locale)}</span>
+              <span className="entry-date-label-short">{diaryDateLabel(date, true, 'short', locale)}</span>
               {weekday && <span className="entry-date-weekday">{weekday}</span>}
             </span>
           </h2>
-          <motion.button className="btn-day-nav" onClick={onNextDay} aria-label="Next day"
+          <motion.button className="btn-day-nav" onClick={onNextDay} aria-label={t.entry.nextDay}
             whileTap={{ scale: 0.82 }}
             transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >›</motion.button>
@@ -655,29 +657,29 @@ useEffect(() => {
             onClick={refreshEntry}
             disabled={loading || saving || refreshing}
             aria-busy={refreshing}
-            aria-label={refreshing ? 'Refreshing entry' : 'Refresh entry'}
-            title="Refresh entry"
+            aria-label={refreshing ? t.entry.refreshingEntry : t.entry.refreshEntry}
+            title={t.entry.refreshEntry}
             whileTap={{ scale: 0.88 }}
             transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >
             {refreshing ? <SpinnerIcon /> : <RefreshIcon />}
           </motion.button>
           <motion.button
-            className={`btn-save${saving ? ' btn-saving' : status === SAVED_STATUS ? ' btn-saved' : ''}`}
+            className={`btn-save${saving ? ' btn-saving' : status === savedStatus ? ' btn-saved' : ''}`}
             onClick={handleExplicitSave}
             disabled={saving || !isDirty}
             aria-busy={saving}
-            aria-label={saving ? 'Saving' : status === SAVED_STATUS ? 'Saved' : 'Save'}
+            aria-label={saving ? t.entry.saving : status === savedStatus ? t.common.saved : t.entry.save}
             whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >
             {saving
               ? <span className="btn-saving-spinner" aria-hidden="true" />
-              : status === SAVED_STATUS ? <CheckIcon /> : <SaveIcon />}
-            <span className="btn-text">{saving ? 'Saving…' : status === SAVED_STATUS ? 'Saved' : 'Save'}</span>
+              : status === savedStatus ? <CheckIcon /> : <SaveIcon />}
+            <span className="btn-text">{saving ? t.common.savingEllipsis : status === savedStatus ? t.common.saved : t.entry.save}</span>
           </motion.button>
           <div className="more-menu-container" ref={moreMenuRef}>
-            <motion.button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label="More options"
+            <motion.button className="btn-more" onClick={() => setShowMoreMenu(v => !v)} aria-label={t.entry.moreOptions}
               whileTap={{ scale: 0.88 }}
               transition={{ type: 'spring', stiffness: 600, damping: 25 }}
             >···</motion.button>
@@ -691,7 +693,7 @@ useEffect(() => {
                 >
                   {token && fileIdRef.current && (
                     <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
-                      History
+                      {t.entry.history}
                     </div>
                   )}
                   {token && fileIdRef.current && (
@@ -699,18 +701,18 @@ useEffect(() => {
                       setShowMoreMenu(false)
                       window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')
                     }}>
-                      Open in Drive
+                      {t.entry.openInDrive}
                     </div>
                   )}
                   <div className="more-menu-item" onClick={handleShareEntry}>
                     <svg className="btn-icon" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-                    Share entry
+                    {t.entry.shareEntry}
                   </div>
                   <div
                     className={`more-menu-item more-menu-delete${!fileIdRef.current ? ' more-menu-item-disabled' : ''}`}
                     onClick={fileIdRef.current ? del : undefined}
                   >
-                    Delete
+                    {t.common.delete}
                   </div>
                 </motion.div>
               )}
@@ -720,57 +722,57 @@ useEffect(() => {
       </div>
       <div className="editor-meta">
         {isToday && !lastModified && (
-          <>Today's entry</>
+          <>{t.entry.todaysEntry}</>
         )}
         {isToday && lastModified && (
-          <>Today's entry - Last modified: <relative-time datetime={lastModified} /></>
+          <>{t.entry.entryLastModified(t.entry.todaysEntry)} <relative-time datetime={lastModified} /></>
         )}
         {isYesterday && !lastModified && (
-          <>Yesterday's entry</>
+          <>{t.entry.yesterdaysEntry}</>
         )}
         {isYesterday && lastModified && (
-          <>Yesterday's entry - Last modified: <relative-time datetime={lastModified} /></>
+          <>{t.entry.entryLastModified(t.entry.yesterdaysEntry)} <relative-time datetime={lastModified} /></>
         )}
         {!isToday && !isYesterday && lastModified && (
-          <>Last modified: <relative-time datetime={lastModified} /></>
+          <>{t.entry.lastModified} <relative-time datetime={lastModified} /></>
         )}
       </div>
       {shareMsgVisible && (
-        <div className="editor-share-toast" role="status">Copied to clipboard</div>
+        <div className="editor-share-toast" role="status">{t.entry.copiedToClipboard}</div>
       )}
-      {status && status !== SAVED_STATUS && (
+      {status && status !== savedStatus && (
         <div className="editor-status-line" role="status">{status}</div>
       )}
       {pendingNavDate && (
         <div className="unsaved-nav-banner">
-          <span>Unsaved changes — save before leaving?</span>
+          <span>{t.entry.unsavedLeave}</span>
           <div className="unsaved-nav-actions">
-            <button onClick={handleSaveAndNavigate} disabled={saving}>Save</button>
-            <button onClick={onPendingNavigate}>Discard</button>
-            <button onClick={onCancelNavigation}>Cancel</button>
+            <button onClick={handleSaveAndNavigate} disabled={saving}>{t.common.save}</button>
+            <button onClick={onPendingNavigate}>{t.common.discard}</button>
+            <button onClick={onCancelNavigation}>{t.common.cancel}</button>
           </div>
         </div>
       )}
       {showRefreshConfirm && !pendingNavDate && (
         <div className="unsaved-nav-banner">
-          <span>Unsaved changes — save before refreshing?</span>
+          <span>{t.entry.unsavedRefresh}</span>
           <div className="unsaved-nav-actions">
-            <button onClick={handleSaveAndRefresh} disabled={saving || refreshing}>Save</button>
-            <button onClick={handleDiscardAndRefresh} disabled={refreshing}>Discard</button>
-            <button onClick={() => setShowRefreshConfirm(false)}>Cancel</button>
+            <button onClick={handleSaveAndRefresh} disabled={saving || refreshing}>{t.common.save}</button>
+            <button onClick={handleDiscardAndRefresh} disabled={refreshing}>{t.common.discard}</button>
+            <button onClick={() => setShowRefreshConfirm(false)}>{t.common.cancel}</button>
           </div>
         </div>
       )}
       {hasConflict && (
         <div className="conflict-panel">
           <div>
-            <strong>This entry was updated on another device.</strong>
-            <p>{conflictRemote ? 'Load the latest version, keep editing locally, or overwrite the remote entry.' : 'The remote entry was deleted. Keep editing locally or create it again by overwriting.'}</p>
+            <strong>{t.entry.conflictTitle}</strong>
+            <p>{conflictRemote ? t.entry.conflictRemote : t.entry.conflictDeleted}</p>
           </div>
           <div className="conflict-actions">
-            <button onClick={loadRemote}>{conflictRemote ? 'Load latest' : 'Clear local'}</button>
-            <button onClick={keepLocal}>Keep local</button>
-            <button className="btn-delete" onClick={overwriteRemote} disabled={saving}>Overwrite</button>
+            <button onClick={loadRemote}>{conflictRemote ? t.entry.loadLatest : t.entry.clearLocal}</button>
+            <button onClick={keepLocal}>{t.entry.keepLocal}</button>
+            <button className="btn-delete" onClick={overwriteRemote} disabled={saving}>{t.entry.overwrite}</button>
           </div>
         </div>
       )}
@@ -786,7 +788,7 @@ useEffect(() => {
           style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
         >
           {loading ? (
-            <div className="entry-skeleton" aria-label="Loading entry" aria-live="polite">
+            <div className="entry-skeleton" aria-label={t.entry.loadingEntry} aria-live="polite">
               <div className="entry-skeleton-row short" />
               <div className="entry-skeleton-row" />
               <div className="entry-skeleton-row medium" />
@@ -801,13 +803,13 @@ useEffect(() => {
               value={text}
               onChange={e => {
                 setText(e.target.value)
-                if (status && status !== SAVED_STATUS) setStatus('')
+                if (status && status !== savedStatus) setStatus('')
               }}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={finishPullRefresh}
               onPointerCancel={finishPullRefresh}
-              placeholder="Write your thoughts…"
+              placeholder={t.entry.placeholder}
               autoFocus
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}

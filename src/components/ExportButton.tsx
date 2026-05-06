@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import JSZip from 'jszip'
+import { useI18n } from '../i18n'
 
 interface ExportButtonProps {
   dates: string[]
@@ -7,6 +8,7 @@ interface ExportButtonProps {
 }
 
 export function ExportButton({ dates, onExport }: ExportButtonProps) {
+  const { t } = useI18n()
   const [exporting, setExporting] = useState(false)
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -70,14 +72,14 @@ export function ExportButton({ dates, onExport }: ExportButtonProps) {
         className="btn-export-modern"
         onClick={handleExportClick}
         disabled={exporting || dates.length === 0}
-        title="Export all diary entries as ZIP file"
+        title={t.export.title}
       >
         {exporting && progress ? (
-          <span className="btn-export-progress">Exporting... ({progress.done}/{progress.total})</span>
+          <span className="btn-export-progress">{t.export.progress(progress.done, progress.total)}</span>
         ) : (
           <>
             <svg className="btn-export-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span>Export all</span>
+            <span>{t.export.exportAll}</span>
           </>
         )}
       </button>
@@ -85,13 +87,13 @@ export function ExportButton({ dates, onExport }: ExportButtonProps) {
       {confirmOpen && (
         <div className="export-confirm-overlay" ref={overlayRef} onClick={handleOverlayClick}>
           <div className="export-confirm-modal">
-            <h4 className="export-confirm-title">Export all entries?</h4>
+            <h4 className="export-confirm-title">{t.export.confirmTitle}</h4>
             <p className="export-confirm-desc">
-              {dates.length} entries will be downloaded as a ZIP file. This may take a while.
+              {t.export.confirmDesc(dates.length)}
             </p>
             <div className="export-confirm-actions">
-              <button className="export-confirm-cancel" onClick={() => setConfirmOpen(false)}>Cancel</button>
-              <button className="export-confirm-start" onClick={doExport}>Start export</button>
+              <button className="export-confirm-cancel" onClick={() => setConfirmOpen(false)}>{t.common.cancel}</button>
+              <button className="export-confirm-start" onClick={doExport}>{t.export.start}</button>
             </div>
           </div>
         </div>

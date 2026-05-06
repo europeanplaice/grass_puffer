@@ -1,4 +1,4 @@
-export const DATE_LOCALE = 'en-US';
+export const DEFAULT_DATE_LOCALE = 'ja-JP'
 
 export function todayYmd(): string {
   const d = new Date()
@@ -32,18 +32,18 @@ export function dateFromYmd(s: string): Date | null {
   return parts ? new Date(parts.y, parts.m - 1, parts.d) : null
 }
 
-export function weekdayLabel(date: string): string {
+export function weekdayLabel(date: string, locale = DEFAULT_DATE_LOCALE): string {
   const d = dateFromYmd(date)
   if (!d) return ''
 
-  return d.toLocaleDateString(DATE_LOCALE, { weekday: 'short' })
+  return d.toLocaleDateString(locale, { weekday: 'short' })
 }
 
-export function diaryDateLabel(date: string, includeYear = true, month: 'long' | 'short' = 'long'): string {
+export function diaryDateLabel(date: string, includeYear = true, month: 'long' | 'short' = 'long', locale = DEFAULT_DATE_LOCALE): string {
   const d = dateFromYmd(date)
   if (!d) return date
 
-  return d.toLocaleDateString(DATE_LOCALE, {
+  return d.toLocaleDateString(locale, {
     month,
     day: 'numeric',
     ...(includeYear ? { year: 'numeric' as const } : {}),
@@ -65,7 +65,7 @@ export function addMonths(year: number, month1to12: number, delta: number): { ye
  * Format an ISO datetime for revision history display.
  * Uses local day boundaries to avoid timezone edge cases.
  */
-export function formatRevisionTime(iso: string): string {
+export function formatRevisionTime(iso: string, locale = DEFAULT_DATE_LOCALE, labels = { today: '今日', yesterday: '昨日' }): string {
   const d = new Date(iso)
   const now = new Date()
 
@@ -75,14 +75,14 @@ export function formatRevisionTime(iso: string): string {
   yesterdayStart.setDate(yesterdayStart.getDate() - 1)
   const dDayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate())
 
-  const time = d.toLocaleTimeString(DATE_LOCALE, { hour: '2-digit', minute: '2-digit' })
+  const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 
-  if (dDayStart.getTime() === todayStart.getTime()) return `Today ${time}`
-  if (dDayStart.getTime() === yesterdayStart.getTime()) return `Yesterday ${time}`
+  if (dDayStart.getTime() === todayStart.getTime()) return `${labels.today} ${time}`
+  if (dDayStart.getTime() === yesterdayStart.getTime()) return `${labels.yesterday} ${time}`
   if (d.getFullYear() === now.getFullYear()) {
-    const date = d.toLocaleDateString(DATE_LOCALE, { month: 'short', day: 'numeric' })
+    const date = d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
     return `${date}, ${time}`
   }
-  const date = d.toLocaleDateString(DATE_LOCALE, { month: 'short', day: 'numeric', year: 'numeric' })
+  const date = d.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })
   return `${date}, ${time}`
 }

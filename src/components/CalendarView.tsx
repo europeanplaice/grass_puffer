@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { motion } from 'motion/react'
 import { todayYmd, ymd, daysInMonth as daysInMonthUtil, parseYmd } from '../utils/date'
+import { useI18n } from '../i18n'
 
 interface Props {
   dates: Set<string>
@@ -8,11 +9,8 @@ interface Props {
   onSelect: (date: string) => void
 }
 
-const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December']
-
 export function CalendarView({ dates, selectedDate, onSelect }: Props) {
+  const { t } = useI18n()
   const [todayStr, setTodayStr] = useState(todayYmd)
   const todayRef = useRef(todayStr)
   todayRef.current = todayStr
@@ -77,21 +75,21 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   return (
     <div className="calendar">
       <div className="calendar-nav">
-        <button type="button" onClick={prev} aria-label="Previous month">‹</button>
+        <button type="button" onClick={prev} aria-label={t.calendar.previousMonth}>‹</button>
         <div className="calendar-title">
           <select
             className="calendar-month-select"
-            aria-label="Select month"
+            aria-label={t.calendar.selectMonth}
             value={month}
             onChange={event => setMonth(Number(event.target.value))}
           >
-            {MONTHS.map((monthName, index) => (
+            {t.calendar.months.map((monthName, index) => (
               <option key={monthName} value={index}>{monthName}</option>
             ))}
           </select>
           <select
             className="calendar-year-select"
-            aria-label="Select year"
+            aria-label={t.calendar.selectYear}
             value={year}
             onChange={event => setYear(Number(event.target.value))}
           >
@@ -100,13 +98,13 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
             ))}
           </select>
         </div>
-        <button type="button" onClick={next} aria-label="Next month">›</button>
+        <button type="button" onClick={next} aria-label={t.calendar.nextMonth}>›</button>
       </div>
       <div className="calendar-today-row">
-        <button type="button" className="today-btn" onClick={goToToday} aria-label="Go to current month">Current Month</button>
+        <button type="button" className="today-btn" onClick={goToToday} aria-label={t.calendar.goToCurrentMonth}>{t.calendar.currentMonth}</button>
       </div>
       <div className="calendar-grid">
-        {DAYS.map(d => <div key={d} className="cal-day-label">{d}</div>)}
+        {t.calendar.days.map(d => <div key={d} className="cal-day-label">{d}</div>)}
         {cells.map((day, i) => {
           if (day === null) return <div key={`empty-${i}`} />
           const dateStr = ymd(year, month + 1, day)
