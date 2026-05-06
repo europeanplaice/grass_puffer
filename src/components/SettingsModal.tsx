@@ -93,6 +93,32 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
           </div>
           <div className="settings-divider" />
           <div className="settings-about">
+            <p className="settings-about-title">Keyboard shortcuts</p>
+            <div className="settings-shortcuts">
+              <div className="settings-shortcut-row">
+                <span className="settings-shortcut-desc">Save entry</span>
+                <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>S</kbd></span>
+              </div>
+              <div className="settings-shortcut-row">
+                <span className="settings-shortcut-desc">Previous / Next day</span>
+                <span className="settings-shortcut-keys"><kbd>Alt</kbd><span>+</span><kbd>←</kbd><span>/</span><kbd>→</kbd></span>
+              </div>
+              <div className="settings-shortcut-row">
+                <span className="settings-shortcut-desc">Go to today</span>
+                <span className="settings-shortcut-keys"><kbd>Alt</kbd><span>+</span><kbd>↑</kbd></span>
+              </div>
+              <div className="settings-shortcut-row">
+                <span className="settings-shortcut-desc">Toggle dark theme</span>
+                <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>D</kbd></span>
+              </div>
+              <div className="settings-shortcut-row">
+                <span className="settings-shortcut-desc">Toggle serif font</span>
+                <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>F</kbd></span>
+              </div>
+            </div>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-about">
             <p className="settings-about-title">About data storage</p>
             <p className="settings-about-text">
               Your diary entries are stored in your Google Drive:

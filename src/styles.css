@@ -721,6 +721,43 @@ body {
   flex-direction: column;
   gap: 0.2rem;
 }
+.settings-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.2rem;
+}
+.settings-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.settings-shortcut-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted, var(--text));
+}
+.settings-shortcut-keys {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+.settings-shortcut-keys span {
+  font-size: 0.72rem;
+  color: var(--text-muted, var(--text));
+  opacity: 0.6;
+}
+.settings-shortcut-keys kbd {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  background: var(--code-bg, var(--border));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  color: var(--text);
+  line-height: 1.4;
+}
 .settings-about-list code {
   font-family: ui-monospace, monospace;
   font-size: 0.78rem;

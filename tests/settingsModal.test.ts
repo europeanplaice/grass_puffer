@@ -92,16 +92,17 @@ test.describe('SettingsModal — about data storage', () => {
     await loadHarness(page)
     await render(page, { modalOpen: true })
 
-    await expect(page.locator('.settings-about')).toBeVisible()
-    await expect(page.locator('.settings-about-title')).toHaveText('About data storage')
-    await expect(page.locator('.settings-about-text')).toContainText('Your diary entries are stored in your Google Drive:')
+    const aboutStorage = page.locator('.settings-about').filter({ hasText: 'About data storage' })
+    await expect(aboutStorage).toBeVisible()
+    await expect(aboutStorage.locator('.settings-about-title')).toHaveText('About data storage')
+    await expect(aboutStorage.locator('.settings-about-text')).toContainText('Your diary entries are stored in your Google Drive:')
   })
 
   test('lists correct storage details', async ({ page }) => {
     await loadHarness(page)
     await render(page, { modalOpen: true })
 
-    const listItems = page.locator('.settings-about-list li')
+    const listItems = page.locator('.settings-about').filter({ hasText: 'About data storage' }).locator('.settings-about-list li')
     await expect(listItems).toHaveCount(4)
     await expect(listItems.nth(0)).toContainText('GrassPuffer Diary')
     await expect(listItems.nth(1)).toContainText('diary-YYYY-MM-DD.json')
@@ -114,7 +115,7 @@ test.describe('SettingsModal — about data storage', () => {
     await render(page, { modalOpen: true })
 
     const exportSection = page.locator('.settings-item').filter({ hasText: 'Export all entries' })
-    const aboutSection = page.locator('.settings-about')
+    const aboutSection = page.locator('.settings-about').filter({ hasText: 'About data storage' })
     await expect(exportSection).toBeVisible()
     await expect(aboutSection).toBeVisible()
 
