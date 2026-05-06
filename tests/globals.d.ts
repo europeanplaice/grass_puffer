@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 interface Window {
+  __historyXss?: boolean
   calendarHarness: {
     selectedDates: () => string[]
   }

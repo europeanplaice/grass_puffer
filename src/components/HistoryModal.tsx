@@ -120,11 +120,16 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
             {!previewLoading && previewError && (
               <div className="history-preview-error">{previewError}</div>
             )}
-            {!previewLoading && !previewError && (
+            {!previewLoading && !previewError && diffHtml && (
               <div
                 className="history-preview-diff"
-                dangerouslySetInnerHTML={{ __html: diffHtml ?? (previewContent ?? '') }}
+                dangerouslySetInnerHTML={{ __html: diffHtml }}
               />
+            )}
+            {!previewLoading && !previewError && !diffHtml && (
+              <div className="history-preview-diff">
+                {previewContent ?? ''}
+              </div>
             )}
             <div className="history-modal-footer">
               {restoreError && <span className="history-restore-error">{restoreError}</span>}

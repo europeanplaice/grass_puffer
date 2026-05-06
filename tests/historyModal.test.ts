@@ -158,6 +158,25 @@ test.describe('HistoryModal — preview', () => {
     await page.waitForSelector('.history-preview-error')
     await expect(page.locator('.history-preview-error')).toContainText('Failed to load')
   })
+
+  test('renders non-diff preview content as text, not HTML', async ({ page }) => {
+    await loadHarness(page)
+
+    const maliciousContent = '<img src=x onerror="window.__historyXss = true">plain text'
+    await page.evaluate(({ content }) => {
+      window.__historyXss = false
+      window.historyHarness.q(
+        { status: 200, body: { revisions: [{ id: 'rev-1', modifiedTime: new Date().toISOString() }] } },
+        { status: 200, body: { date: '2026-05-01', content, updated_at: new Date().toISOString() } },
+      )
+      window.historyHarness.render()
+    }, { content: maliciousContent })
+
+    const preview = page.locator('.history-preview-diff')
+    await expect(preview).toContainText(maliciousContent)
+    await expect(preview.locator('img')).toHaveCount(0)
+    await expect.poll(() => page.evaluate(() => window.__historyXss)).toBe(false)
+  })
 })
 
 test.describe('HistoryModal — restore button', () => {
