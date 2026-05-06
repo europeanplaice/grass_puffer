@@ -25,7 +25,7 @@ function installGoogleMock(options: boolean | { restorable: boolean; failFirst?:
                 ;(window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }).__lastTokenRequestConfig = tokenConfig
                 if (failFirst && requestCount === 0) {
                   requestCount++
-                  // Simulate failed silent sign-in (no active session)
+                  // Simulate a failed token request (no active session)
                   config.callback?.({ error: 'access_denied', state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
                 } else {
                   requestCount++
@@ -84,18 +84,20 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('previous session restores silently on page load', async ({ page }) => {
+test('previous session offers user-initiated restore after page load', async ({ page }) => {
   await page.addInitScript(installGoogleMock, true)
 
   await page.goto(baseUrl)
   await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
 
-  // Should automatically request token on page load (silent sign-in)
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(0)
+
+  await page.getByRole('button', { name: 'Continue with Google' }).click()
   await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(1)
   await expect.poll(() => page.evaluate(() => (
     window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
   ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
-  // Should be signed in directly without showing login screen
   await expect(page.locator('.editor-textarea')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
 })
@@ -213,14 +215,14 @@ test('prioritizes the visible entry load before recent preview content after sig
   await expect.poll(() => requestLog).toContain('older:content')
 })
 
-test('silent sign-in fails then user can forget session and sign in fresh', async ({ page }) => {
-  await page.addInitScript(installGoogleMock, { restorable: true, failFirst: true })
+test('previous session can be forgotten before signing in fresh', async ({ page }) => {
+  await page.addInitScript(installGoogleMock, true)
 
   await page.goto(baseUrl)
   await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
 
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(1)
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(0)
 
   await page.getByRole('button', { name: 'Use another account' }).click()
 
@@ -229,7 +231,7 @@ test('silent sign-in fails then user can forget session and sign in fresh', asyn
   await expect(page.evaluate(() => localStorage.getItem('grass-puffer-auth-restorable'))).resolves.toBeNull()
 
   await page.getByRole('button', { name: 'Sign in with Google' }).click()
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(2)
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(1)
   await expect(page.locator('.editor-textarea')).toBeVisible()
 })
 
@@ -298,7 +300,7 @@ test('expired save reauth retries with the refreshed token without showing re-lo
   await expect(page.locator('.btn-save')).toBeDisabled()
 })
 
-test('clicking app title navigates to today and refreshes token silently', async ({ page }) => {
+test('clicking app title navigates to today without requesting a new token', async ({ page }) => {
   await page.addInitScript(installGoogleMock, false)
 
   await page.goto(baseUrl)
@@ -324,8 +326,5 @@ test('clicking app title navigates to today and refreshes token silently', async
   await expect(page).toHaveURL(new RegExp(`#${today}`))
   await expect(page.locator('.entry-date-text')).toHaveAttribute('data-today', 'true')
 
-  // Should have triggered a silent token refresh (prompt: '')
-  await expect.poll(() => page.evaluate(() => (
-    window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
-  ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(1)
 })

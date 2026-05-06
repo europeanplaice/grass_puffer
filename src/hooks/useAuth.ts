@@ -5,7 +5,6 @@ import type { TokenRequestConfig } from '../api/gauth'
 const RESTORE_FLAG = 'grass-puffer-auth-restorable'
 const GIS_TIMEOUT_MS = 10_000
 const GIS_POLL_MS = 100
-const REFRESH_BUFFER_MS = 5 * 60 * 1000 // refresh 5 min before expiry
 
 export type AuthStatus = 'initializing' | 'signedOut' | 'signedIn'
 
@@ -56,9 +55,7 @@ function isTokenRequestConfig(config: unknown): config is TokenRequestConfig {
 export function useAuth(): AuthState {
   const hadRestorableSession = canRestoreSession()
   const [accessToken, setAccessToken] = useState<string | null>(null)
-  const [status, setStatus] = useState<AuthStatus>(() => (
-    hadRestorableSession ? 'initializing' : 'signedOut'
-  ))
+  const [status, setStatus] = useState<AuthStatus>('signedOut')
   const [authReady, setAuthReady] = useState(false)
   const [wasPreviouslySignedIn, setWasPreviouslySignedIn] = useState(hadRestorableSession)
   const [loadFailed, setLoadFailed] = useState(false)
@@ -67,10 +64,6 @@ export function useAuth(): AuthState {
   const pendingSignInRef = useRef<PendingSignIn | null>(null)
   // Tracks when the current access token expires (ms since epoch)
   const tokenExpiryTimeRef = useRef<number | null>(null)
-  // True while a silent background refresh is in flight
-  const isBackgroundRefreshRef = useRef(false)
-  // True while initial silent sign-in (on page load) is in flight
-  const isInitialSilentSignInRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -81,8 +74,6 @@ export function useAuth(): AuthState {
     const acceptToken = (token: string, expiresIn: number) => {
       if (cancelled) return
       tokenExpiryTimeRef.current = Date.now() + expiresIn * 1000
-      isBackgroundRefreshRef.current = false
-      isInitialSilentSignInRef.current = false
       rememberRestorableSession()
       setWasPreviouslySignedIn(true)
       setAccessToken(token)
@@ -95,28 +86,6 @@ export function useAuth(): AuthState {
 
     const rejectToken = () => {
       if (cancelled) return
-      const wasBackground = isBackgroundRefreshRef.current
-      const wasInitialSilent = isInitialSilentSignInRef.current
-      isBackgroundRefreshRef.current = false
-      isInitialSilentSignInRef.current = false
-      if (wasBackground) {
-        // Silent refresh failed: show the expired modal without tearing down the
-        // in-app state. A successful reauth will replace the stale token.
-        tokenExpiryTimeRef.current = null
-        setTokenExpired(true)
-        pendingSignInRef.current = null
-        return
-      }
-      if (wasInitialSilent) {
-        // Initial silent sign-in on page load failed: keep the restorable flag
-        // so the user can retry with a visible prompt; just show the sign-in UI.
-        setWasPreviouslySignedIn(true)
-        setAccessToken(null)
-        tokenExpiryTimeRef.current = null
-        setTokenExpired(false)
-        setStatus('signedOut')
-        return
-      }
       // User-initiated sign-in was cancelled or failed
       forgetRestorableSession()
       setWasPreviouslySignedIn(false)
@@ -135,17 +104,7 @@ export function useAuth(): AuthState {
         initialized = true
         initTokenClient(acceptToken, rejectToken)
         setAuthReady(true)
-        if (hadRestorableSession) {
-          // Attempt silent sign-in on page load to restore the session
-          isInitialSilentSignInRef.current = true
-          try {
-            requestToken({ prompt: '' })
-          } catch {
-            isInitialSilentSignInRef.current = false
-          }
-        } else {
-          setStatus('signedOut')
-        }
+        setStatus('signedOut')
       } else {
         attempts++
         if (attempts >= maxAttempts) {
@@ -161,54 +120,6 @@ export function useAuth(): AuthState {
       cancelled = true
     }
   }, [])
-
-  // Proactive silent refresh: fire when user returns to the tab or window
-  useEffect(() => {
-    const tryRefresh = () => {
-      const expiry = tokenExpiryTimeRef.current
-      if (!expiry || isBackgroundRefreshRef.current || pendingSignInRef.current) return
-      if (Date.now() >= expiry - REFRESH_BUFFER_MS) {
-        isBackgroundRefreshRef.current = true
-        try {
-          requestToken({ prompt: '' })
-        } catch {
-          isBackgroundRefreshRef.current = false
-        }
-      }
-    }
-
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') tryRefresh()
-    }
-
-    document.addEventListener('visibilitychange', handleVisibility)
-    window.addEventListener('focus', tryRefresh)
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibility)
-      window.removeEventListener('focus', tryRefresh)
-    }
-  }, [authReady])
-
-  // Proactive silent refresh: schedule a refresh 5 min before the token expires
-  // while the tab is kept active and focused
-  useEffect(() => {
-    if (!accessToken) return
-    const expiry = tokenExpiryTimeRef.current
-    if (!expiry) return
-    const delay = expiry - Date.now() - REFRESH_BUFFER_MS
-    if (delay <= 0) return
-    const id = setTimeout(() => {
-      if (!isBackgroundRefreshRef.current && !pendingSignInRef.current) {
-        isBackgroundRefreshRef.current = true
-        try {
-          requestToken({ prompt: '' })
-        } catch {
-          isBackgroundRefreshRef.current = false
-        }
-      }
-    }, delay)
-    return () => clearTimeout(id)
-  }, [accessToken])
 
   const signIn = (config?: TokenRequestConfig) => new Promise<void>((resolve, reject) => {
     if (!authReady) {
