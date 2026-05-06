@@ -69,6 +69,8 @@ export function useAuth(): AuthState {
   const tokenExpiryTimeRef = useRef<number | null>(null)
   // True while a silent background refresh is in flight
   const isBackgroundRefreshRef = useRef(false)
+  // True while initial silent sign-in (on page load) is in flight
+  const isInitialSilentSignInRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -80,6 +82,7 @@ export function useAuth(): AuthState {
       if (cancelled) return
       tokenExpiryTimeRef.current = Date.now() + expiresIn * 1000
       isBackgroundRefreshRef.current = false
+      isInitialSilentSignInRef.current = false
       rememberRestorableSession()
       setWasPreviouslySignedIn(true)
       setAccessToken(token)
@@ -93,13 +96,25 @@ export function useAuth(): AuthState {
     const rejectToken = () => {
       if (cancelled) return
       const wasBackground = isBackgroundRefreshRef.current
+      const wasInitialSilent = isInitialSilentSignInRef.current
       isBackgroundRefreshRef.current = false
+      isInitialSilentSignInRef.current = false
       if (wasBackground) {
         // Silent refresh failed: show the expired modal without tearing down the
         // in-app state. A successful reauth will replace the stale token.
         tokenExpiryTimeRef.current = null
         setTokenExpired(true)
         pendingSignInRef.current = null
+        return
+      }
+      if (wasInitialSilent) {
+        // Initial silent sign-in on page load failed: keep the restorable flag
+        // so the user can retry with a visible prompt; just show the sign-in UI.
+        setWasPreviouslySignedIn(true)
+        setAccessToken(null)
+        tokenExpiryTimeRef.current = null
+        setTokenExpired(false)
+        setStatus('signedOut')
         return
       }
       // User-initiated sign-in was cancelled or failed
@@ -120,7 +135,17 @@ export function useAuth(): AuthState {
         initialized = true
         initTokenClient(acceptToken, rejectToken)
         setAuthReady(true)
-        setStatus('signedOut')
+        if (hadRestorableSession) {
+          // Attempt silent sign-in on page load to restore the session
+          isInitialSilentSignInRef.current = true
+          try {
+            requestToken({ prompt: '' })
+          } catch {
+            isInitialSilentSignInRef.current = false
+          }
+        } else {
+          setStatus('signedOut')
+        }
       } else {
         attempts++
         if (attempts >= maxAttempts) {
