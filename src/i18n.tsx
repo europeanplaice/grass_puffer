@@ -360,7 +360,13 @@ interface I18nContextValue {
 
 function readStoredLanguage(): Language {
   const stored = localStorage.getItem(STORAGE_KEY)
-  return stored === 'en' || stored === 'ja' ? stored : 'ja'
+  if (stored === 'en' || stored === 'ja') {
+    return stored
+  }
+  const browserLang = navigator.language.split('-')[0]
+  if (browserLang === 'en') return 'en'
+  if (browserLang === 'ja') return 'ja'
+  return 'ja'
 }
 
 const fallbackContext: I18nContextValue = {
