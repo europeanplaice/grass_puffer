@@ -1263,6 +1263,7 @@ body {
   font-size: 0.85rem;
   color: var(--text);
   cursor: pointer;
+  white-space: nowrap;
 }
 .more-menu-item:hover { background: var(--border); }
 .more-menu-item-disabled { opacity: 0.4; cursor: default; pointer-events: none; }

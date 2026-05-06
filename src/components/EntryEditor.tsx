@@ -693,6 +693,7 @@ useEffect(() => {
                 >
                   {token && fileIdRef.current && (
                     <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
+                      <svg className="btn-icon" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                       {t.entry.history}
                     </div>
                   )}
@@ -701,6 +702,7 @@ useEffect(() => {
                       setShowMoreMenu(false)
                       window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')
                     }}>
+                      <svg className="btn-icon" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
                       {t.entry.openInDrive}
                     </div>
                   )}
@@ -712,6 +714,7 @@ useEffect(() => {
                     className={`more-menu-item more-menu-delete${!fileIdRef.current ? ' more-menu-item-disabled' : ''}`}
                     onClick={fileIdRef.current ? del : undefined}
                   >
+                    <svg className="btn-icon" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
                     {t.common.delete}
                   </div>
                 </motion.div>
