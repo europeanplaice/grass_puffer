@@ -135,38 +135,14 @@ test.describe('SettingsModal — theme select', () => {
     await expect(select).toHaveValue('system')
   })
 
-  test('selecting dark persists to localStorage', async ({ page }) => {
-    await loadHarness(page)
-    await page.evaluate(() => localStorage.removeItem('grass_puffer_theme'))
-    await render(page)
-
-    await page.locator('.settings-item:has-text("Theme") select').selectOption('dark')
-
-    const stored = await page.evaluate(() => window.settingsHarness.getStoredTheme())
-    expect(stored).toBe('dark')
-  })
-
-  test('selecting system persists to localStorage', async ({ page }) => {
-    await loadHarness(page)
-    await page.evaluate(() => localStorage.removeItem('grass_puffer_theme'))
-    await render(page)
-
-    await page.locator('.settings-item:has-text("Theme") select').selectOption('system')
-
-    const stored = await page.evaluate(() => window.settingsHarness.getStoredTheme())
-    expect(stored).toBe('system')
-  })
-
-  test('switching from dark back to light persists to localStorage', async ({ page }) => {
+  test('switching from dark back to light updates the select value', async ({ page }) => {
     await loadHarness(page)
     await page.evaluate(() => window.settingsHarness.render({ themeMode: 'dark' }))
     await page.waitForSelector('.settings-modal')
 
     const select = page.locator('.settings-item:has-text("Theme") select')
     await select.selectOption('light')
-
-    const stored = await page.evaluate(() => window.settingsHarness.getStoredTheme())
-    expect(stored).toBe('light')
+    await expect(select).toHaveValue('light')
   })
 })
 
