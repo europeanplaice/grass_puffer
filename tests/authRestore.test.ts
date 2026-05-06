@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test'
 import { baseUrl } from './baseUrl'
 
-function installGoogleMock(restorable: boolean) {
+function installGoogleMock(options: boolean | { restorable: boolean; failFirst?: boolean }) {
+  const restorable = typeof options === 'boolean' ? options : options.restorable
+  const failFirst = typeof options === 'boolean' ? false : Boolean(options.failFirst)
+
   window.localStorage.clear()
   window.localStorage.setItem('grass_puffer_language', 'en')
   if (restorable) window.localStorage.setItem('grass-puffer-auth-restorable', '1')
@@ -12,6 +15,7 @@ function installGoogleMock(restorable: boolean) {
       accounts: {
         oauth2: {
           initTokenClient: (config: google.accounts.oauth2.TokenClientConfig) => {
+            let requestCount = 0
             ;(window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady = true
             ;(window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount = 0
             return {
@@ -19,7 +23,14 @@ function installGoogleMock(restorable: boolean) {
                 const state = window as unknown as { __tokenRequestCount: number }
                 state.__tokenRequestCount += 1
                 ;(window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }).__lastTokenRequestConfig = tokenConfig
-                config.callback?.({ access_token: 'test-token', state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
+                if (failFirst && requestCount === 0) {
+                  requestCount++
+                  // Simulate failed silent sign-in (no active session)
+                  config.callback?.({ error: 'access_denied', state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
+                } else {
+                  requestCount++
+                  config.callback?.({ access_token: 'test-token', state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
+                }
               },
             }
           },
@@ -73,22 +84,20 @@ test.beforeEach(async ({ page }) => {
   })
 })
 
-test('previous session shows one-click restore without requesting a token on page load', async ({ page }) => {
+test('previous session restores silently on page load', async ({ page }) => {
   await page.addInitScript(installGoogleMock, true)
 
   await page.goto(baseUrl)
   await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
 
-  await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(0)
-
-  await page.getByRole('button', { name: 'Continue with Google' }).click()
-
+  // Should automatically request token on page load (silent sign-in)
   await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(1)
   await expect.poll(() => page.evaluate(() => (
     window as unknown as { __lastTokenRequestConfig?: google.accounts.oauth2.OverridableTokenClientConfig }
   ).__lastTokenRequestConfig)).toEqual(expect.objectContaining({ prompt: '' }))
+  // Should be signed in directly without showing login screen
   await expect(page.locator('.editor-textarea')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
 })
 
 test('first-time visitors still see the normal Google sign-in action', async ({ page }) => {
@@ -204,19 +213,24 @@ test('prioritizes the visible entry load before recent preview content after sig
   await expect.poll(() => requestLog).toContain('older:content')
 })
 
-test('previous session can be forgotten before requesting a token', async ({ page }) => {
-  await page.addInitScript(installGoogleMock, true)
+test('silent sign-in fails then user can forget session and sign in fresh', async ({ page }) => {
+  await page.addInitScript(installGoogleMock, { restorable: true, failFirst: true })
 
   await page.goto(baseUrl)
   await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
 
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(1)
+
   await page.getByRole('button', { name: 'Use another account' }).click()
 
   await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Continue with Google' })).toHaveCount(0)
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('grass-puffer-auth-restorable'))).toBeNull()
-  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(0)
+  await expect(page.evaluate(() => localStorage.getItem('grass-puffer-auth-restorable'))).resolves.toBeNull()
+
+  await page.getByRole('button', { name: 'Sign in with Google' }).click()
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __tokenRequestCount?: number }).__tokenRequestCount)).toBe(2)
+  await expect(page.locator('.editor-textarea')).toBeVisible()
 })
 
 test('expired save reauth retries with the refreshed token without showing re-login failed', async ({ page }) => {
