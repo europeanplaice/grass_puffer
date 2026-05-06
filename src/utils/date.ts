@@ -65,7 +65,7 @@ export function addMonths(year: number, month1to12: number, delta: number): { ye
  * Format an ISO datetime for revision history display.
  * Uses local day boundaries to avoid timezone edge cases.
  */
-export function formatRevisionTime(iso: string, locale = DEFAULT_DATE_LOCALE, labels = { today: '今日', yesterday: '昨日' }): string {
+export function formatRevisionTime(iso: string, locale = DEFAULT_DATE_LOCALE, labels: { today: string; yesterday: string }): string {
   const d = new Date(iso)
   const now = new Date()
 

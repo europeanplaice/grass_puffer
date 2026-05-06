@@ -201,39 +201,39 @@ describe('date utils', () => {
       vi.useRealTimers()
     })
 
-    it('shows localized today for same-day revisions', () => {
-      const result = formatRevisionTime('2026-05-15T09:15:00')
-      expect(result).toMatch(/^今日 \d{2}:\d{2}$/)
-    })
+     it('shows localized today for same-day revisions', () => {
+       const result = formatRevisionTime('2026-05-15T09:15:00', 'ja-JP', { today: '今日', yesterday: '昨日' })
+       expect(result).toMatch(/^今日 \d{2}:\d{2}$/)
+     })
 
-    it('shows localized yesterday for previous day revisions', () => {
-      const result = formatRevisionTime('2026-05-14T18:45:00')
-      expect(result).toMatch(/^昨日 \d{2}:\d{2}$/)
-    })
+     it('shows localized yesterday for previous day revisions', () => {
+       const result = formatRevisionTime('2026-05-14T18:45:00', 'ja-JP', { today: '今日', yesterday: '昨日' })
+       expect(result).toMatch(/^昨日 \d{2}:\d{2}$/)
+     })
 
-    it('shows localized date and time for same-year but not today/yesterday', () => {
-      const result = formatRevisionTime('2026-05-10T10:00:00')
-      expect(result).toMatch(/^5月10日, \d{2}:\d{2}$/)
-    })
+     it('shows localized date and time for same-year but not today/yesterday', () => {
+       const result = formatRevisionTime('2026-05-10T10:00:00', 'ja-JP', { today: '今日', yesterday: '昨日' })
+       expect(result).toMatch(/^5月10日, \d{2}:\d{2}$/)
+     })
 
-    it('shows full date with year for previous years', () => {
-      const result = formatRevisionTime('2025-12-25T08:30:00')
-      expect(result).toMatch(/^2025年12月25日, \d{2}:\d{2}$/)
-    })
+     it('shows full date with year for previous years', () => {
+       const result = formatRevisionTime('2025-12-25T08:30:00', 'ja-JP', { today: '今日', yesterday: '昨日' })
+       expect(result).toMatch(/^2025年12月25日, \d{2}:\d{2}$/)
+     })
 
-    it('supports English locale and labels', () => {
-      const result = formatRevisionTime('2026-05-15T09:15:00', 'en-US', { today: 'Today', yesterday: 'Yesterday' })
-      expect(result).toMatch(/^Today \d{1,2}:\d{2} [AP]M$/)
-    })
+     it('supports English locale and labels', () => {
+       const result = formatRevisionTime('2026-05-15T09:15:00', 'en-US', { today: 'Today', yesterday: 'Yesterday' })
+       expect(result).toMatch(/^Today \d{1,2}:\d{2} [AP]M$/)
+     })
 
-    it('uses local day boundaries (timezone-safe)', () => {
-      // Just before midnight - should NOT be "Today"
-      const justBeforeMidnight = formatRevisionTime('2026-05-14T23:59:59')
-      expect(justBeforeMidnight).toMatch(/^昨日/)
+     it('uses local day boundaries (timezone-safe)', () => {
+       // Just before midnight - should NOT be "Today"
+       const justBeforeMidnight = formatRevisionTime('2026-05-14T23:59:59', 'ja-JP', { today: '今日', yesterday: '昨日' })
+       expect(justBeforeMidnight).toMatch(/^昨日/)
 
-      // Just after midnight - should be "Today"
-      const justAfterMidnight = formatRevisionTime('2026-05-15T00:00:01')
-      expect(justAfterMidnight).toMatch(/^今日/)
-    })
+       // Just after midnight - should be "Today"
+       const justAfterMidnight = formatRevisionTime('2026-05-15T00:00:01', 'ja-JP', { today: '今日', yesterday: '昨日' })
+       expect(justAfterMidnight).toMatch(/^今日/)
+     })
   })
 })

@@ -17,7 +17,7 @@ test.describe('i18n', () => {
 
     await expect(page.getByRole('button', { name: 'Google でログイン' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja')
-    await expect(page).toHaveTitle('Grass Puffer 日記')
+    await expect(page).toHaveTitle('クサフグ日記')
 
     await context.close()
   })
@@ -57,7 +57,7 @@ test('falls back to browser language when no stored preference (ja)', async ({ b
 
   await expect(page.getByRole('button', { name: 'Google でログイン' })).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja')
-  await expect(page).toHaveTitle('Grass Puffer 日記')
+  await expect(page).toHaveTitle('クサフグ日記')
 
   await context.close()
 })

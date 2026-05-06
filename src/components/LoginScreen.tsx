@@ -30,7 +30,7 @@ export function LoginScreen({
     <div className="login-screen">
       <div className="login-card">
         <AppIcon className="login-logo" />
-        <h1>Grass Puffer Diary</h1>
+        <h1>{t.documentTitle}</h1>
         <p>
           {wasPreviouslySignedIn
             ? t.login.continuePrevious

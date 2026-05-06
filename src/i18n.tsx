@@ -5,6 +5,8 @@ export type Language = 'ja' | 'en'
 
 const STORAGE_KEY = 'grass_puffer_language'
 
+const LOCALE_MAP: Record<string, string> = { ja: 'ja-JP', en: 'en-US' }
+
 type Dictionary = typeof dictionaries.en
 
 const dictionaries = {
@@ -186,8 +188,8 @@ const dictionaries = {
     },
   },
   ja: {
-    appTitle: '日記',
-    documentTitle: 'Grass Puffer 日記',
+     appTitle: 'クサフグ日記',
+     documentTitle: 'クサフグ日記',
     common: {
       cancel: 'キャンセル',
       delete: '削除',
@@ -386,12 +388,12 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLanguageState(nextLanguage)
   }, [])
 
-  const value = useMemo<I18nContextValue>(() => ({
-    language,
-    locale: language === 'ja' ? 'ja-JP' : 'en-US',
-    t: dictionaries[language],
-    setLanguage,
-  }), [language, setLanguage])
+   const value = useMemo<I18nContextValue>(() => ({
+     language,
+     locale: LOCALE_MAP[language],
+     t: dictionaries[language],
+     setLanguage,
+   }), [language, setLanguage])
 
   useEffect(() => {
     document.documentElement.lang = language
