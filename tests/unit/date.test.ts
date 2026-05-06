@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { todayYmd, ymd, parseYmd, dateFromYmd, weekdayLabel, diaryDateLabel, daysInMonth, addMonths, formatRevisionTime } from '../../src/utils/date'
+import { todayYmd, yesterdayYmd, ymd, parseYmd, dateFromYmd, weekdayLabel, diaryDateLabel, daysInMonth, addMonths, formatRevisionTime } from '../../src/utils/date'
 
 describe('date utils', () => {
   describe('todayYmd', () => {
@@ -16,6 +16,42 @@ describe('date utils', () => {
       const result = todayYmd()
       expect(result).toBe('2026-05-15')
 
+      vi.useRealTimers()
+    })
+  })
+
+  describe('yesterdayYmd', () => {
+    it('returns the day before today', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-05-15T10:30:00'))
+      expect(yesterdayYmd()).toBe('2026-05-14')
+      vi.useRealTimers()
+    })
+
+    it('crosses month boundary correctly', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-05-01T08:00:00'))
+      expect(yesterdayYmd()).toBe('2026-04-30')
+      vi.useRealTimers()
+    })
+
+    it('crosses year boundary correctly', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-01-01T00:01:00'))
+      expect(yesterdayYmd()).toBe('2025-12-31')
+      vi.useRealTimers()
+    })
+
+    it('is always one day before todayYmd', () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-03-10T12:00:00'))
+      const today = todayYmd()
+      const yesterday = yesterdayYmd()
+      const [ty, tm, td] = today.split('-').map(Number)
+      const [yy, ym, yd] = yesterday.split('-').map(Number)
+      const todayDate = new Date(ty, tm - 1, td)
+      const yesterdayDate = new Date(yy, ym - 1, yd)
+      expect(todayDate.getTime() - yesterdayDate.getTime()).toBe(24 * 60 * 60 * 1000)
       vi.useRealTimers()
     })
   })

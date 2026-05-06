@@ -848,4 +848,42 @@ test.describe('EntryEditor — editor meta info', () => {
 
     await expect(page.locator('.editor-meta')).toBeHidden()
   })
+
+  test('shows Yesterday\'s entry label for yesterday with no content', async ({ page }) => {
+    await loadHarness(page)
+    const yesterday = await page.evaluate(() => {
+      const d = new Date()
+      d.setDate(d.getDate() - 1)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
+    await renderEditor(page, { date: yesterday, initialContent: '', version: null })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toHaveText('Yesterday\'s entry')
+  })
+
+  test('shows Yesterday\'s entry with last modified for yesterday with content', async ({ page }) => {
+    await loadHarness(page)
+    const yesterday = await page.evaluate(() => {
+      const d = new Date()
+      d.setDate(d.getDate() - 1)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
+    await renderEditor(page, { date: yesterday, initialContent: 'yesterday content', version: '1' })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toContainText('Yesterday\'s entry - Last modified:')
+  })
+
+  test('past dates (not today or yesterday) do not show Yesterday\'s entry label', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-04-14', initialContent: 'old content', version: '1' })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).not.toContainText('Yesterday\'s entry')
+    await expect(meta).toContainText('Last modified:')
+  })
 })
