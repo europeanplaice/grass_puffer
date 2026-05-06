@@ -5,6 +5,12 @@ export function todayYmd(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+export function yesterdayYmd(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 export function ymd(year: number, month1to12: number, day: number): string {
   return `${year}-${String(month1to12).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }

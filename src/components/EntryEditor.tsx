@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import type { PointerEvent } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import type { LoadedDiaryEntry } from '../types'
-import { todayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
+import { todayYmd, yesterdayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
 import { HistoryModal } from './HistoryModal'
 
 interface Props {
@@ -99,6 +99,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [pullDistance, setPullDistance] = useState(0)
   const weekday = weekdayLabel(date)
   const isToday = date === todayYmd()
+  const isYesterday = date === yesterdayYmd()
 
   // Use a ref to track the latest onSave without restarting debounce timers
   const onSaveRef = useRef(onSave)
@@ -703,7 +704,13 @@ useEffect(() => {
         {isToday && lastModified && (
           <>Today's entry - Last modified: <relative-time datetime={lastModified} /></>
         )}
-        {!isToday && lastModified && (
+        {isYesterday && !lastModified && (
+          <>Yesterday's entry</>
+        )}
+        {isYesterday && lastModified && (
+          <>Yesterday's entry - Last modified: <relative-time datetime={lastModified} /></>
+        )}
+        {!isToday && !isYesterday && lastModified && (
           <>Last modified: <relative-time datetime={lastModified} /></>
         )}
       </div>
