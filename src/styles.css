@@ -571,7 +571,24 @@ body {
   margin-top: 1px;
 }
 
-/* ── Settings button ── */
+/* ── Sidebar bottom bar (share + settings) ── */
+.sidebar-bottom {
+  margin-top: auto;
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+}
+.sidebar-bottom::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  height: 1.5rem;
+  background: linear-gradient(transparent, var(--sidebar-bg));
+  pointer-events: none;
+}
+.btn-share-app,
 .btn-settings {
   display: flex;
   align-items: center;
@@ -585,21 +602,8 @@ body {
   font-family: inherit;
   padding: 0.5rem 1rem;
   border-top: 1px solid var(--border);
-  margin-top: auto;
-  position: sticky;
-  bottom: 0;
-  z-index: 1;
 }
-.btn-settings::before {
-  content: "";
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  right: 0;
-  height: 1.5rem;
-  background: linear-gradient(transparent, var(--sidebar-bg));
-  pointer-events: none;
-}
+.btn-share-app:hover,
 .btn-settings:hover {
   background: var(--border);
   color: var(--text);
@@ -1228,6 +1232,16 @@ body {
 .more-menu-item:hover { background: var(--border); }
 .more-menu-item-disabled { opacity: 0.4; cursor: default; pointer-events: none; }
 .more-menu-delete { color: var(--danger); }
+.editor-share-toast {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  padding: 0 1rem 0.25rem;
+  animation: share-toast-fadeout 2s forwards;
+}
+@keyframes share-toast-fadeout {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
 .pull-refresh-indicator {
   align-items: center;
   background: var(--card-bg);
@@ -1886,6 +1900,7 @@ body {
   }
   .editor-actions button .btn-icon { width: 20px; height: 20px; }
   .more-menu .btn-text { display: inline; }
+  .btn-share-app .btn-text { display: inline; }
   .btn-settings .btn-text { display: inline; }
   .editor-actions .btn-more { width: 2.75rem; height: 2.75rem; min-width: 2.75rem; padding: 0; font-size: 1.6rem; background: none; }
 
@@ -1901,6 +1916,7 @@ body {
   .cal-day { padding: 0.4rem 0; }
   .entry-list li { padding: 0.65rem 1rem; }
 
+  .btn-share-app,
   .btn-settings {
     padding: 0.65rem 1rem;
     font-size: 0.85rem;

@@ -14,6 +14,7 @@ import { AppIcon } from './components/AppIcon'
 import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
 import { TokenExpiredError } from './api/driveEntries'
 import type { LoadedDiaryEntry } from './types'
+import { shareApp } from './utils/share'
 
 type RecentPreview = {
   snippet: string
@@ -131,6 +132,20 @@ const { mode: fontMode, toggleFont } = useFont()
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const [loadedEntryDate, setLoadedEntryDate] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [shareAppMsg, setShareAppMsg] = useState<string | null>(null)
+
+  async function handleShareApp() {
+    try {
+      const result = await shareApp()
+      if (result === 'copied') {
+        setShareAppMsg('URLをコピーしました')
+        setTimeout(() => setShareAppMsg(null), 2000)
+      }
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') console.error(e)
+    }
+  }
+
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
 
@@ -185,7 +200,6 @@ const { mode: fontMode, toggleFont } = useFont()
       if (!editorDirtyRef.current) return
 
       event.preventDefault()
-      event.returnValue = ''
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
@@ -443,10 +457,16 @@ const { mode: fontMode, toggleFont } = useFont()
             </li>
           )})}
         </ul>
-        <button className="btn-settings" onClick={() => setSettingsOpen(true)} title="Settings">
+        <div className="sidebar-bottom">
+          <button className="btn-share-app" onClick={handleShareApp} title="このアプリを共有">
+            <svg className="btn-icon" aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            <span className="btn-text">{shareAppMsg ?? 'アプリを共有'}</span>
+          </button>
+          <button className="btn-settings" onClick={() => setSettingsOpen(true)} title="Settings">
             <svg className="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <span className="btn-text">Settings</span>
           </button>
+        </div>
       </aside>
       <AnimatePresence>
         {settingsOpen && (

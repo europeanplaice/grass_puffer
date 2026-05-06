@@ -5,6 +5,7 @@ import { EntryConflictError } from '../hooks/useDiary'
 import type { LoadedDiaryEntry } from '../types'
 import { todayYmd, yesterdayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
 import { HistoryModal } from './HistoryModal'
+import { shareEntry } from '../utils/share'
 
 interface Props {
   date: string
@@ -415,6 +416,22 @@ useEffect(() => {
     return () => document.removeEventListener('mousedown', handler)
   }, [showMoreMenu])
 
+  const [shareMsgVisible, setShareMsgVisible] = useState(false)
+
+  async function handleShareEntry() {
+    setShowMoreMenu(false)
+    const label = diaryDateLabel(date)
+    try {
+      const result = await shareEntry(date, text, label)
+      if (result === 'copied') {
+        setShareMsgVisible(true)
+        setTimeout(() => setShareMsgVisible(false), 2000)
+      }
+    } catch (e) {
+      if ((e as Error).name !== 'AbortError') console.error(e)
+    }
+  }
+
   const pullStartYRef = useRef<number | null>(null)
   const pullActiveRef = useRef(false)
 
@@ -685,6 +702,10 @@ useEffect(() => {
                       Open in Drive
                     </div>
                   )}
+                  <div className="more-menu-item" onClick={handleShareEntry}>
+                    <svg className="btn-icon" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                    {' '}エントリを共有
+                  </div>
                   <div
                     className={`more-menu-item more-menu-delete${!fileIdRef.current ? ' more-menu-item-disabled' : ''}`}
                     onClick={fileIdRef.current ? del : undefined}
@@ -714,6 +735,9 @@ useEffect(() => {
           <>Last modified: <relative-time datetime={lastModified} /></>
         )}
       </div>
+      {shareMsgVisible && (
+        <div className="editor-share-toast" role="status">テキストをコピーしました</div>
+      )}
       {status && status !== SAVED_STATUS && (
         <div className="editor-status-line" role="status">{status}</div>
       )}
