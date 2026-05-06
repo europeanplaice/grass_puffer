@@ -15,8 +15,9 @@ interface Window {
     toggle: () => void
   }
   settingsHarness: {
-    render: (opts?: { autoSave?: boolean; modalOpen?: boolean }) => void
+    render: (opts?: { autoSave?: boolean; modalOpen?: boolean; themeMode?: 'light' | 'dark' | 'system' }) => void
     getStoredAutoSave: () => string | null
+    getStoredTheme: () => string | null
     exportCalls: () => { onProgress: (done: number, total: number) => void }[]
     setExportReject: (v: boolean) => void
   }

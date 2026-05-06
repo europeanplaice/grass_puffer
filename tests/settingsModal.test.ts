@@ -87,6 +87,89 @@ test.describe('SettingsModal — auto-save toggle', () => {
   })
 })
 
+test.describe('SettingsModal — theme select', () => {
+  test('shows a select with light, dark, and system options', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const select = page.locator('.settings-item:has-text("Theme") select')
+    await expect(select).toBeVisible()
+    await expect(select.locator('option')).toHaveCount(3)
+    await expect(select.locator('option[value="light"]')).toHaveText('Light')
+    await expect(select.locator('option[value="dark"]')).toHaveText('Dark')
+    await expect(select.locator('option[value="system"]')).toHaveText('Follow system')
+  })
+
+  test('defaults to light', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const select = page.locator('.settings-item:has-text("Theme") select')
+    await expect(select).toHaveValue('light')
+  })
+
+  test('initializes with provided themeMode', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => window.settingsHarness.render({ themeMode: 'system' }))
+    await page.waitForSelector('.settings-modal')
+
+    const select = page.locator('.settings-item:has-text("Theme") select')
+    await expect(select).toHaveValue('system')
+  })
+
+  test('selecting dark updates the select value', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const select = page.locator('.settings-item:has-text("Theme") select')
+    await select.selectOption('dark')
+    await expect(select).toHaveValue('dark')
+  })
+
+  test('selecting system updates the select value', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const select = page.locator('.settings-item:has-text("Theme") select')
+    await select.selectOption('system')
+    await expect(select).toHaveValue('system')
+  })
+
+  test('selecting dark persists to localStorage', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => localStorage.removeItem('grass_puffer_theme'))
+    await render(page)
+
+    await page.locator('.settings-item:has-text("Theme") select').selectOption('dark')
+
+    const stored = await page.evaluate(() => window.settingsHarness.getStoredTheme())
+    expect(stored).toBe('dark')
+  })
+
+  test('selecting system persists to localStorage', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => localStorage.removeItem('grass_puffer_theme'))
+    await render(page)
+
+    await page.locator('.settings-item:has-text("Theme") select').selectOption('system')
+
+    const stored = await page.evaluate(() => window.settingsHarness.getStoredTheme())
+    expect(stored).toBe('system')
+  })
+
+  test('switching from dark back to light persists to localStorage', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => window.settingsHarness.render({ themeMode: 'dark' }))
+    await page.waitForSelector('.settings-modal')
+
+    const select = page.locator('.settings-item:has-text("Theme") select')
+    await select.selectOption('light')
+
+    const stored = await page.evaluate(() => window.settingsHarness.getStoredTheme())
+    expect(stored).toBe('light')
+  })
+})
+
 test.describe('SettingsModal — about data storage', () => {
   test('shows about data storage section', async ({ page }) => {
     await loadHarness(page)

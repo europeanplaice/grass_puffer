@@ -14,12 +14,13 @@ let exportReject = false
 interface AppProps {
   autoSave: boolean
   modalOpen: boolean
+  themeMode: 'light' | 'dark' | 'system'
 }
 
-function App({ autoSave: initialAutoSave, modalOpen: initialOpen }: AppProps) {
+function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme }: AppProps) {
   const [autoSave, setAutoSave] = useState(initialAutoSave)
   const [open, setOpen] = useState(initialOpen)
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light')
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(initialTheme)
   const [font, setFont] = useState<'serif' | 'sans'>('serif')
 
   const handleAutoSaveToggle = useCallback(() => {
@@ -57,7 +58,7 @@ function App({ autoSave: initialAutoSave, modalOpen: initialOpen }: AppProps) {
 }
 
 window.settingsHarness = {
-  render: ({ autoSave: initialAutoSave, modalOpen: initialOpen }: { autoSave?: boolean; modalOpen?: boolean } = {}) => {
+  render: ({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme }: { autoSave?: boolean; modalOpen?: boolean; themeMode?: 'light' | 'dark' | 'system' } = {}) => {
     exportCalls.splice(0)
     exportReject = false
     root.render(
@@ -65,12 +66,14 @@ window.settingsHarness = {
         <App
           autoSave={initialAutoSave ?? true}
           modalOpen={initialOpen ?? true}
+          themeMode={initialTheme ?? 'light'}
           key={Date.now()}
         />
       </I18nProvider>
     )
   },
   getStoredAutoSave: () => localStorage.getItem('grass_puffer_autosave'),
+  getStoredTheme: () => localStorage.getItem('grass_puffer_theme'),
   exportCalls: () => [...exportCalls],
   setExportReject: (v: boolean) => { exportReject = v },
 }
