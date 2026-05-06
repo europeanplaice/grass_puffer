@@ -16,7 +16,7 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 - Detect cross-device edit conflicts and choose whether to load latest, keep local edits, or overwrite
 - View and restore past revisions of an entry
 - Export all entries as a JSON file
-- Settings modal for theme and font customization
+- Settings modal for theme (light / dark / system), font, and language (English / Japanese)
 - Data stays in your Google Drive (`GrassPuffer Diary/` folder), one JSON file per day
 - Warns before reload or date changes when there are unsaved edits
 - Works on mobile with a drawer sidebar, Android back-button support, and keyboard-aware layout
@@ -32,7 +32,7 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 - A small `localStorage` flag remembers that a previous Google session may be restorable;
   it does not store the token or diary content.
 - The auto-save preference is stored in `localStorage` under `grass_puffer_autosave`.
-- Theme and font preferences are also stored in `localStorage`.
+- Theme (`grass_puffer_theme`: `light` / `dark` / `system`), font (`grass_puffer_font`), and language (`grass_puffer_language`: `en` / `ja`) preferences are also stored in `localStorage`. The `system` theme follows the OS-level light/dark preference.
 - The app shell is cached by a service worker in production. Google sign-in and Drive
   read/write operations still require a network connection.
 - Production builds inject a Content Security Policy that limits network access to the
