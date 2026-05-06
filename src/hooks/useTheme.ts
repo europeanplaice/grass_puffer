@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 
-type ThemeMode = 'light' | 'dark' | 'system'
+export type ThemeMode = 'light' | 'dark' | 'system'
 
 const STORAGE_KEY = 'grass_puffer_theme'
 
@@ -10,7 +10,7 @@ function getSystemTheme(): 'light' | 'dark' {
 
 function readStoredTheme(): ThemeMode {
   const stored = localStorage.getItem(STORAGE_KEY)
-  if (stored === 'light' || stored === 'dark') return stored
+  if (stored === 'light' || stored === 'dark' || stored === 'system') return stored
   return 'system'
 }
 
@@ -20,7 +20,7 @@ function applyTheme(mode: ThemeMode) {
 }
 
 export function useTheme() {
-  const [mode, setMode] = useState<ThemeMode>(readStoredTheme)
+  const [mode, setModeState] = useState<ThemeMode>(readStoredTheme)
 
   useEffect(() => {
     applyTheme(mode)
@@ -35,15 +35,16 @@ export function useTheme() {
     return () => mq.removeEventListener('change', handler)
   }, [mode])
 
-  const toggleTheme = useCallback(() => {
-    setMode(prev => {
-      const next: ThemeMode = prev === 'dark' ? 'light' : 'dark'
-      localStorage.setItem(STORAGE_KEY, next)
-      return next
-    })
-  }, [])
-
   const effectiveTheme = mode === 'system' ? getSystemTheme() : mode
 
-  return { mode, effectiveTheme, toggleTheme }
+  const setMode = useCallback((next: ThemeMode) => {
+    localStorage.setItem(STORAGE_KEY, next)
+    setModeState(next)
+  }, [])
+
+  const toggleTheme = useCallback(() => {
+    setMode(effectiveTheme === 'dark' ? 'light' : 'dark')
+  }, [effectiveTheme, setMode])
+
+  return { mode, effectiveTheme, setMode, toggleTheme }
 }

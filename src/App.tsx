@@ -123,7 +123,7 @@ export default function App() {
     handleExpired,
     retryAfterExpired,
   } = useAuth()
-  const { effectiveTheme, toggleTheme } = useTheme()
+  const { mode: themeMode, setMode: setThemeMode, toggleTheme } = useTheme()
 const { mode: fontMode, toggleFont } = useFont()
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -456,8 +456,8 @@ const { mode: fontMode, toggleFont } = useFont()
           <SettingsModal
             autoSave={autoSave}
             onAutoSaveToggle={handleAutoSaveToggle}
-            effectiveTheme={effectiveTheme}
-            onThemeToggle={toggleTheme}
+            themeMode={themeMode}
+            onThemeModeChange={setThemeMode}
             fontMode={fontMode}
             onFontToggle={toggleFont}
             dates={diary.dates}

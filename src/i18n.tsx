@@ -135,6 +135,10 @@ const dictionaries = {
     settings: {
       title: 'Settings',
       close: 'Close settings',
+      theme: 'Theme',
+      themeLight: 'Light',
+      themeDark: 'Dark',
+      themeSystem: 'Follow system',
       darkTheme: 'Dark theme',
       serifFont: 'Serif font',
       autoSave: 'Auto-save',
@@ -299,6 +303,10 @@ const dictionaries = {
     settings: {
       title: '設定',
       close: '設定を閉じる',
+      theme: 'テーマ',
+      themeLight: 'ライト',
+      themeDark: 'ダーク',
+      themeSystem: 'システム設定に合わせる',
       darkTheme: 'ダークテーマ',
       serifFont: '明朝体',
       autoSave: '自動保存',

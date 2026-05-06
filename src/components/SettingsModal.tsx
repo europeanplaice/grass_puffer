@@ -3,12 +3,13 @@ import { motion } from 'motion/react'
 import { ExportButton } from './ExportButton'
 import { shareApp } from '../utils/share'
 import { useI18n } from '../i18n'
+import type { ThemeMode } from '../hooks/useTheme'
 
 interface SettingsModalProps {
   autoSave: boolean
   onAutoSaveToggle: () => void
-  effectiveTheme: 'light' | 'dark'
-  onThemeToggle: () => void
+  themeMode: ThemeMode
+  onThemeModeChange: (mode: ThemeMode) => void
   fontMode: 'serif' | 'sans'
   onFontToggle: () => void
   dates: string[]
@@ -16,7 +17,7 @@ interface SettingsModalProps {
   onClose: () => void
 }
 
-export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onThemeToggle, fontMode, onFontToggle, dates, onExport, onClose }: SettingsModalProps) {
+export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeModeChange, fontMode, onFontToggle, dates, onExport, onClose }: SettingsModalProps) {
   const { t, language, setLanguage } = useI18n()
   const overlayRef = useRef<HTMLDivElement>(null)
   const [shareMsg, setShareMsg] = useState<string | null>(null)
@@ -68,15 +69,17 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, effectiveTheme, onTh
         </div>
         <div className="settings-list">
           <div className="settings-item">
-            <span className="settings-item-label">{t.settings.darkTheme}</span>
-            <button
-              className={`settings-switch ${effectiveTheme === 'dark' ? 'active' : ''}`}
-              onClick={onThemeToggle}
-              role="switch"
-              aria-checked={effectiveTheme === 'dark'}
+            <span className="settings-item-label">{t.settings.theme}</span>
+            <select
+              className="settings-language-select"
+              aria-label={t.settings.theme}
+              value={themeMode}
+              onChange={e => onThemeModeChange(e.target.value as ThemeMode)}
             >
-              <span className="settings-switch-thumb" />
-            </button>
+              <option value="light">{t.settings.themeLight}</option>
+              <option value="dark">{t.settings.themeDark}</option>
+              <option value="system">{t.settings.themeSystem}</option>
+            </select>
           </div>
           <div className="settings-divider" />
           <div className="settings-item">

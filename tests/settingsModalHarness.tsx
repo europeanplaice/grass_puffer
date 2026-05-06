@@ -19,7 +19,7 @@ interface AppProps {
 function App({ autoSave: initialAutoSave, modalOpen: initialOpen }: AppProps) {
   const [autoSave, setAutoSave] = useState(initialAutoSave)
   const [open, setOpen] = useState(initialOpen)
-  const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('light')
   const [font, setFont] = useState<'serif' | 'sans'>('serif')
 
   const handleAutoSaveToggle = useCallback(() => {
@@ -43,8 +43,8 @@ function App({ autoSave: initialAutoSave, modalOpen: initialOpen }: AppProps) {
         <SettingsModal
           autoSave={autoSave}
           onAutoSaveToggle={handleAutoSaveToggle}
-          effectiveTheme={theme}
-          onThemeToggle={() => setTheme(t => t === 'light' ? 'dark' : 'light')}
+          themeMode={theme}
+          onThemeModeChange={setTheme}
           fontMode={font}
           onFontToggle={() => setFont(f => f === 'serif' ? 'sans' : 'serif')}
           dates={['2026-05-01', '2026-05-02']}
