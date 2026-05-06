@@ -128,5 +128,6 @@ test('mobile date selection confirms before leaving unsaved edits', async ({ pag
   await page.getByRole('button', { name: nextDate }).click()
   await page.locator('.unsaved-nav-banner').getByRole('button', { name: 'Discard' }).click()
   await expect.poll(() => page.evaluate(() => window.location.hash)).toBe(`#${nextDate}`)
+  await expect(page.locator('.editor-textarea')).toHaveCount(1)
   await expect(editor).toHaveValue('')
 })
