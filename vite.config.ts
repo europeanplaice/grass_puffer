@@ -55,7 +55,8 @@ export default defineConfig({
         const cspContent = [
           "default-src 'self'",
           `script-src 'self' https://accounts.google.com ${hashes.join(' ')}`,
-          "style-src 'self' 'unsafe-inline'",
+          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+          "font-src 'self' https://fonts.gstatic.com",
           "img-src 'self' data: blob:",
           "worker-src 'self'",
           "object-src 'none'",
