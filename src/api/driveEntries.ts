@@ -96,7 +96,7 @@ export async function searchEntries(token: string, folderId: string, query: stri
 }
 
 export async function findEntryMeta(token: string, folderId: string, date: string): Promise<DriveFileMeta | null> {
-  const filename = `diary-${date}.json`.replace(/'/g, "\\'")
+  const filename = `diary-${date}.json`.replace(/\\/g, "\\\\").replace(/'/g, "\\'")
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name='${filename}'`)
   const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
   const res = await driveJson<{ files: DriveFileMeta[] }>(token, `${BASE}/files?q=${q}&fields=${fields}&pageSize=1`)
