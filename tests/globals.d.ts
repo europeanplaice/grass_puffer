@@ -46,6 +46,8 @@ interface Window {
     >
     triggerGetContent: (date: string) => Promise<void>
     resetFolderState: () => void
+    expiredCalls: () => number
+    clearExpiredCalls: () => void
   }
   editorHarness: {
     render: (opts: {
@@ -53,6 +55,7 @@ interface Window {
       initialContent?: string
       version?: string | null
       saveReject?: 'conflict' | 'error'
+      getContentReject?: 'tokenExpired'
       autoSave?: boolean
       getContentDelayMs?: number
       pendingNavDate?: string | null
@@ -71,6 +74,8 @@ interface Window {
     windowOpenCalls: () => { url: string; target: string }[]
     loadCompleteCalls: () => { date: string; content: string | null; version: string | null }[]
     EntryConflictError: typeof import('../src/hooks/useDiary').EntryConflictError
+    setToken: (token: string | null) => void
+    expiredCalls: () => number
   }
   historyHarness: {
     q: (...responses: { status: number; body: unknown; delayMs?: number }[]) => void

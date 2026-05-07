@@ -154,6 +154,32 @@ test.describe('useDiary save — conflict detection', () => {
   })
 })
 
+test.describe('useDiary getContent — token expiry', () => {
+  test('calls onExpired and re-throws TokenExpiredError when Drive returns 401', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page)
+
+    await page.evaluate(() => {
+      window.diaryHarness.q({ status: 401, body: {} })
+    })
+
+    const result = await page.evaluate(async () => {
+      try {
+        await window.diaryHarness.triggerGetContent('2026-05-01')
+        return { threw: false, message: null }
+      } catch (e) {
+        return { threw: true, message: e instanceof Error ? e.message : String(e) }
+      }
+    })
+
+    expect(result.threw).toBe(true)
+    expect(result.message).toBe('Access token expired')
+
+    const expired = await page.evaluate(() => window.diaryHarness.expiredCalls())
+    expect(expired).toBe(1)
+  })
+})
+
 test.describe('useDiary withFolderRetry — folder cache invalidation', () => {
   test('save 404 refetches folder and retries successfully with new folder id', async ({ page }) => {
     await loadHarness(page)

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { PointerEvent } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
+import { TokenExpiredError } from '../api/driveEntries'
 import type { LoadedDiaryEntry } from '../types'
 import { todayYmd, yesterdayYmd, weekdayLabel, diaryDateLabel } from '../utils/date'
 import { HistoryModal } from './HistoryModal'
@@ -98,6 +99,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [hasConflict, setHasConflict] = useState(false)
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const tokenExpiredForDateRef = useRef<string | null>(null)
   const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
   const [pullDistance, setPullDistance] = useState(0)
   const weekday = weekdayLabel(date, locale)
@@ -159,8 +161,14 @@ useEffect(() => {
       if (cancelled) return
       applyLoadedEntry(entry)
       onLoadCompleteRef.current?.(date, entry)
-    }).catch(() => {
-      if (!cancelled) setStatus(t.entry.failedToLoad)
+    }).catch((e) => {
+      if (!cancelled) {
+        if (e instanceof TokenExpiredError) {
+          tokenExpiredForDateRef.current = date
+          return
+        }
+        setStatus(t.entry.failedToLoad)
+      }
     }).finally(() => {
       if (!cancelled) setLoading(false)
     })
@@ -333,6 +341,13 @@ useEffect(() => {
     setShowRefreshConfirm(false)
     await loadFreshEntry()
   }, [loadFreshEntry])
+
+  useEffect(() => {
+    if (token && tokenExpiredForDateRef.current === date) {
+      tokenExpiredForDateRef.current = null
+      void loadFreshEntry()
+    }
+  }, [token, date, loadFreshEntry])
 
   const del = async () => {
     setDeleteInput('')

@@ -29,9 +29,10 @@ type SaveFn = (date: string, content: string, baseVersion: string | null, force?
 type GetContentFn = (date: string) => Promise<LoadedDiaryEntry | null>
 let _save: SaveFn | null = null
 let _getContent: GetContentFn | null = null
+let expiredCount = 0
 
 function Harness() {
-  const diary = useDiary('test-token', () => {})
+  const diary = useDiary('test-token', () => { expiredCount++ })
 
   useEffect(() => {
     _save = diary.save
@@ -76,4 +77,6 @@ window.diaryHarness = {
     queue.splice(0)
     fetchCalls.splice(0)
   },
+  expiredCalls: () => expiredCount,
+  clearExpiredCalls: () => { expiredCount = 0 },
 }

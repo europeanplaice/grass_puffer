@@ -796,6 +796,43 @@ test.describe('EntryEditor — saving overlay', () => {
   })
 })
 
+test.describe('EntryEditor — token expiry', () => {
+  test('does not show failed to load message when getContent throws TokenExpiredError', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      window.editorHarness.render({ getContentReject: 'tokenExpired', date: '2026-05-01' })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    const statusCount = await page.evaluate(() => document.querySelectorAll('[role="status"]').length)
+    expect(statusCount).toBe(0)
+
+    const calls = await page.evaluate(() => window.editorHarness.getContentCalls())
+    expect(calls.length).toBe(1)
+  })
+
+  test('reloads entry automatically after re-authentication following token expiry', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      window.editorHarness.render({ getContentReject: 'tokenExpired', date: '2026-05-01', token: null })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    const initialValue = await page.locator('textarea.editor-textarea').inputValue()
+    expect(initialValue).toBe('')
+
+    await page.evaluate(() => {
+      window.editorHarness.clearCalls()
+      window.editorHarness.setRemoteEntry('recovered content', '1')
+      window.editorHarness.setToken('new-token')
+    })
+
+    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls().length)).toBeGreaterThan(0)
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('recovered content')
+  })
+})
+
 test.describe('EntryEditor — editor meta info', () => {
   test('shows last modified timestamp for saved entries', async ({ page }) => {
     await loadHarness(page)

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { EntryEditor } from '../src/components/EntryEditor'
 import { EntryConflictError } from '../src/hooks/useDiary'
+import { TokenExpiredError } from '../src/api/driveEntries'
 import type { LoadedDiaryEntry } from '../src/types'
 import { I18nProvider } from '../src/i18n'
 import '../src/styles.css'
@@ -26,10 +27,17 @@ let dirtyChanges: boolean[] = []
 let loadCompleteCalls: LoadCompleteCall[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
+let currentGetContentReject: 'tokenExpired' | undefined = undefined
+let expiredCount = 0
 let currentToken: string | null = null
 let currentSaveDelayMs = 0
 let currentRemoteContent = ''
 let currentRemoteVersion: string | null = null
+
+let lastRenderDate = '2026-05-01'
+let lastRenderAutoSave = true
+let lastRenderGetContentDelayMs = 0
+let lastRenderPendingNavDate: string | null = null
 
 function delaySave(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -50,6 +58,10 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
 }) {
   const [pendingNavDate, setPendingNavDate] = useState<string | null>(initialPendingNavDate)
 
+  function onExpired() {
+    expiredCount++
+  }
+
   return (
     <EntryEditor
       date={date}
@@ -58,6 +70,10 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
         getContentCalls.push({ date: d })
         if (getContentDelayMs > 0) {
           await new Promise(resolve => setTimeout(resolve, getContentDelayMs))
+        }
+        if (currentGetContentReject === 'tokenExpired') {
+          onExpired()
+          throw new TokenExpiredError()
         }
         if (!currentRemoteContent && currentRemoteVersion === null) return null
         return {
@@ -112,7 +128,7 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
       }}
       reauthSaveResult={null}
       token={token}
-      onExpired={() => {}}
+      onExpired={onExpired}
     />
   )
 }
@@ -123,6 +139,7 @@ window.editorHarness = {
     initialContent?: string
     version?: string | null
     saveReject?: 'conflict' | 'error'
+    getContentReject?: 'tokenExpired'
     autoSave?: boolean
     getContentDelayMs?: number
     pendingNavDate?: string | null
@@ -139,17 +156,22 @@ window.editorHarness = {
     dirtyChanges = []
     loadCompleteCalls = []
     currentSaveReject = opts.saveReject
+    currentGetContentReject = opts.getContentReject
     currentToken = opts.token ?? null
     currentSaveDelayMs = opts.saveDelayMs ?? 0
     currentRemoteContent = opts.initialContent ?? ''
     currentRemoteVersion = opts.version ?? null
+    lastRenderDate = opts.date ?? '2026-05-01'
+    lastRenderAutoSave = opts.autoSave ?? true
+    lastRenderGetContentDelayMs = opts.getContentDelayMs ?? 0
+    lastRenderPendingNavDate = opts.pendingNavDate ?? null
     root.render(
       <I18nProvider>
         <App
-          date={opts.date ?? '2026-05-01'}
-          autoSave={opts.autoSave ?? true}
-          getContentDelayMs={opts.getContentDelayMs ?? 0}
-          pendingNavDate={opts.pendingNavDate ?? null}
+          date={lastRenderDate}
+          autoSave={lastRenderAutoSave}
+          getContentDelayMs={lastRenderGetContentDelayMs}
+          pendingNavDate={lastRenderPendingNavDate}
           token={currentToken}
         />
       </I18nProvider>
@@ -180,4 +202,20 @@ window.editorHarness = {
   windowOpenCalls: () => [...windowOpenCalls],
   loadCompleteCalls: () => [...loadCompleteCalls],
   EntryConflictError,
+  setToken: (token: string | null) => {
+    currentToken = token
+    currentGetContentReject = undefined
+    root.render(
+      <I18nProvider>
+        <App
+          date={lastRenderDate}
+          autoSave={lastRenderAutoSave}
+          getContentDelayMs={lastRenderGetContentDelayMs}
+          pendingNavDate={lastRenderPendingNavDate}
+          token={currentToken}
+        />
+      </I18nProvider>
+    )
+  },
+  expiredCalls: () => expiredCount,
 }
