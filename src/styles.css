@@ -13,8 +13,8 @@
   --danger: #c0392b;
   --sidebar-w: 280px;
   --mobile-save-action-space: 0px;
-  --font-body: Georgia, 'Times New Roman', serif;
-  --font-editor: Georgia, 'Times New Roman', serif;
+  --font-body: ui-serif, 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+  --font-editor: ui-serif, 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
   /* Additional themeable tokens */
   --card-bg: #fff;
   --input-bg: #fff;
@@ -120,8 +120,8 @@
 }
 
 [data-font="sans"] {
-  --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-editor: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Segoe UI', sans-serif;
+  --font-editor: system-ui, -apple-system, BlinkMacSystemFont, 'Hiragino Kaku Gothic ProN', 'Meiryo', 'Segoe UI', sans-serif;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
