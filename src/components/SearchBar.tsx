@@ -81,12 +81,18 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
 
   return (
     <div className="search-bar">
-      <input
-        type="search"
-        placeholder={t.search.placeholder}
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-      />
+      <div className="search-input-wrap">
+        <svg className="search-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
+          <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        <input
+          type="search"
+          placeholder={t.search.placeholder}
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+        />
+      </div>
       {isSearching && hasQuery && (
         <div className="search-status">{t.search.searching}</div>
       )}
