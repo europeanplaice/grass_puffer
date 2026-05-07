@@ -172,7 +172,7 @@ export function useDiary(accessToken: string | null, onExpired: () => void): Dia
       })
       return { entry: content, meta }
     } catch (e) {
-      if (e instanceof TokenExpiredError) { onExpiredRef.current(); return null }
+      if (e instanceof TokenExpiredError) { onExpiredRef.current(); throw e }
       throw e
     }
   }, [accessToken, ensureFolderId, updateCache])
