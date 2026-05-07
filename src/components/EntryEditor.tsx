@@ -794,6 +794,7 @@ useEffect(() => {
           </div>
         </div>
       )}
+      <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
       <AnimatePresence initial={false} custom={directionRef.current}>
         <motion.div
           key={date}
@@ -803,7 +804,7 @@ useEffect(() => {
           animate="center"
           exit="exit"
           transition={{ type: 'spring', stiffness: 380, damping: 34 }}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+          style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}
         >
           {loading ? (
             <div className="entry-skeleton" aria-label={t.entry.loadingEntry} aria-live="polite">
@@ -836,6 +837,7 @@ useEffect(() => {
           )}
         </motion.div>
       </AnimatePresence>
+      </div>
     </div>
     </>
   )
