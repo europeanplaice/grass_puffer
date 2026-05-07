@@ -345,9 +345,18 @@ useEffect(() => {
   useEffect(() => {
     if (token && tokenExpiredForDateRef.current === date) {
       tokenExpiredForDateRef.current = null
-      void loadFreshEntry()
+      setLoading(true)
+      setStatus('')
+      getContentRef.current(date).then(entry => {
+        applyLoadedEntry(entry)
+        onLoadCompleteRef.current?.(date, entry)
+      }).catch(() => {
+        setStatus(t.entry.failedToRefresh)
+      }).finally(() => {
+        setLoading(false)
+      })
     }
-  }, [token, date, loadFreshEntry])
+  }, [token, date, applyLoadedEntry])
 
   const del = async () => {
     setDeleteInput('')
