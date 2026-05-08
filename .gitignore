@@ -5,7 +5,6 @@ dist
 .env
 .dev.vars
 *.local
-wrangler.toml
 docs/migration-to-cloudflare.md
 CLAUDE.md
 .playwright-mcp/

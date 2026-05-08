@@ -9,7 +9,7 @@ beforeEach(() => {
       return arr
     },
     subtle: {
-      digest: async (_algo: string, _data: ArrayBuffer) => {
+      digest: async () => {
         const hash = new Uint8Array(32)
         for (let i = 0; i < 32; i++) hash[i] = i + 1
         return hash.buffer
