@@ -6,6 +6,7 @@ export default defineConfig({
   reporter: 'list',
   testIgnore: ['**/unit/**'],
   use: {
+    baseURL: 'http://127.0.0.1:5173',
     storageState: 'tests/storageState.en.json',
   },
   webServer: {

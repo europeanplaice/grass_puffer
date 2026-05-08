@@ -5,6 +5,8 @@ export type { TokenExpiredError, DriveHttpError }
 
 const BASE = '/api/drive/revisions'
 
+type RevisionsResponse = DriveRevisionMeta[] | { revisions?: DriveRevisionMeta[] }
+
 async function revisionsFetch<T>(url: string): Promise<T> {
   const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
@@ -26,7 +28,8 @@ async function revisionsFetch<T>(url: string): Promise<T> {
 }
 
 export async function listRevisions(fileId: string): Promise<DriveRevisionMeta[]> {
-  return revisionsFetch<DriveRevisionMeta[]>(`${BASE}/${fileId}`)
+  const data = await revisionsFetch<RevisionsResponse>(`${BASE}/${fileId}`)
+  return Array.isArray(data) ? data : data.revisions ?? []
 }
 
 export async function getRevisionContent(fileId: string, revisionId: string): Promise<DiaryEntry> {
