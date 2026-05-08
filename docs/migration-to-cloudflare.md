@@ -35,7 +35,7 @@ npx wrangler login
 ### 本番用
 
 ```bash
-npx wrangler kv:namespace create SESSIONS
+npx wrangler kv namespace create SESSIONS
 ```
 
 出力例:
@@ -49,7 +49,7 @@ npx wrangler kv:namespace create SESSIONS
 ### 開発用（preview）
 
 ```bash
-npx wrangler kv:namespace create SESSIONS --preview
+npx wrangler kv namespace create SESSIONS --preview
 ```
 
 **`preview_id` の値をメモしておく。**
@@ -221,7 +221,7 @@ npm run workers:dev
 
 ```bash
 # ログイン後、KV にセッションが作成されているか確認
-npx wrangler kv:key list --binding=SESSIONS --namespace-id=<本番KV ID>
+npx wrangler kv key list --binding=SESSIONS --namespace-id=<本番KV ID>
 
 # ログアウト後、セッションが削除されているか確認（上のリストから消えること）
 ```
@@ -234,8 +234,8 @@ npx wrangler kv:key list --binding=SESSIONS --namespace-id=<本番KV ID>
 
 ```
 [ ] 1. npx wrangler login
-[ ] 2. npx wrangler kv:namespace create SESSIONS
-[ ] 3. npx wrangler kv:namespace create SESSIONS --preview
+[ ] 2. npx wrangler kv namespace create SESSIONS
+[ ] 3. npx wrangler kv namespace create SESSIONS --preview
 [ ] 4. wrangler.toml に KV ID を記入してコミット
 [ ] 5. npm run build && npx wrangler pages deploy dist --project-name=grass-puffer
 [ ] 6. wrangler pages secret put × 3 (GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / SESSION_DOMAIN)
