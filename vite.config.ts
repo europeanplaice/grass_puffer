@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createHash } from 'crypto'
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 
 function hashDistFiles(dir: string, root = dir): string {
@@ -79,6 +79,27 @@ export default defineConfig({
             injectTo: 'head-prepend',
           }],
         }
+      },
+    },
+    {
+      name: 'sw-cache-version-dev',
+      apply: 'serve',
+      buildStart() {
+        const src = resolve(__dirname, 'public/sw.js')
+        const distDir = resolve(__dirname, 'dist')
+        if (!existsSync(distDir)) mkdirSync(distDir)
+        const content = readFileSync(src, 'utf-8')
+          .replace('__CACHE_VERSION__', `grass-puffer-dev-${Date.now()}`)
+        writeFileSync(resolve(distDir, 'sw.js'), content)
+      },
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url !== '/sw.js') return next()
+          const content = readFileSync(resolve(__dirname, 'public/sw.js'), 'utf-8')
+            .replace('__CACHE_VERSION__', `grass-puffer-dev-${Date.now()}`)
+          res.setHeader('Content-Type', 'application/javascript')
+          res.end(content)
+        })
       },
     },
     {

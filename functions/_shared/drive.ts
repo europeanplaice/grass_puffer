@@ -32,7 +32,7 @@ export class DriveError extends Error {
 }
 
 function driveHeaders(token: string, extra?: Record<string, string>): Record<string, string> {
-  return { Authorization: `Bearer ${token}`, ...extra }
+  return { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache', ...extra }
 }
 
 async function driveWithRetry<T>(
