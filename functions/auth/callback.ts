@@ -14,8 +14,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     return jsonResponse({ error: 'Missing code or state' }, 400)
   }
 
-  const storedState = await env.SESSIONS.get(`oauth_state:${state}`)
-  if (!storedState) {
+  const codeVerifier = await env.SESSIONS.get(`oauth_state:${state}`)
+  if (!codeVerifier) {
     return jsonResponse({ error: 'Invalid or expired state' }, 400)
   }
   await env.SESSIONS.delete(`oauth_state:${state}`)
@@ -29,6 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       client_secret: env.GOOGLE_CLIENT_SECRET,
       redirect_uri: `${env.SESSION_DOMAIN}/auth/callback`,
       grant_type: 'authorization_code',
+      code_verifier: codeVerifier,
     }).toString(),
   })
 

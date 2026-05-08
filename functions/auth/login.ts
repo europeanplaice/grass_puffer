@@ -3,9 +3,25 @@ import { jsonResponse } from '../_shared/session'
 
 const SCOPE = 'https://www.googleapis.com/auth/drive.file'
 
+function base64url(buf: ArrayBuffer): string {
+  return btoa(String.fromCharCode(...new Uint8Array(buf)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function randomVerifier(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return base64url(bytes.buffer)
+}
+
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const state = crypto.randomUUID()
-  await env.SESSIONS.put(`oauth_state:${state}`, '1', { expirationTtl: 300 })
+  const codeVerifier = randomVerifier()
+  const codeChallenge = base64url(
+    await crypto.subtle.digest('SHA-256', new TextEncoder().encode(codeVerifier))
+  )
+
+  await env.SESSIONS.put(`oauth_state:${state}`, codeVerifier, { expirationTtl: 300 })
 
   const returnPath = new URL(request.url).searchParams.get('redirect') ?? '/'
 
@@ -17,6 +33,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     state: `${state}:${encodeURIComponent(returnPath)}`,
     access_type: 'offline',
     prompt: 'consent',
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256',
   })
 
   return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`, 302)
