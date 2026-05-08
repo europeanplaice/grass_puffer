@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import { useDiary, EntryConflictError } from '../src/hooks/useDiary'
-import { clearFolderCache } from '../src/api/driveEntries'
 import type { LoadedDiaryEntry } from '../src/types'
 
 type FetchCall = { url: string; method: string }
@@ -23,8 +22,6 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   } as Response
 }
 
-clearFolderCache()
-
 type SaveFn = (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
 type GetContentFn = (date: string) => Promise<LoadedDiaryEntry | null>
 let _save: SaveFn | null = null
@@ -32,7 +29,7 @@ let _getContent: GetContentFn | null = null
 let expiredCount = 0
 
 function Harness() {
-  const diary = useDiary('test-token', () => { expiredCount++ })
+  const diary = useDiary(true, () => { expiredCount++ })
 
   useEffect(() => {
     _save = diary.save
@@ -73,7 +70,6 @@ window.diaryHarness = {
     await _getContent(date)
   },
   resetFolderState: () => {
-    clearFolderCache()
     queue.splice(0)
     fetchCalls.splice(0)
   },

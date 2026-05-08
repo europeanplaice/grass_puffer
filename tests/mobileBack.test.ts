@@ -13,45 +13,21 @@ function adjacentDate(date: string): string {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.addInitScript(() => {
-    window.localStorage.clear()
     window.localStorage.setItem('grass_puffer_language', 'en')
-    Object.defineProperty(window, 'google', {
-      configurable: true,
-      value: {
-        accounts: {
-          oauth2: {
-            initTokenClient: (config: google.accounts.oauth2.TokenClientConfig) => {
-              ;(window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady = true
-              return {
-              requestAccessToken: (tokenConfig?: google.accounts.oauth2.OverridableTokenClientConfig) => {
-                   config.callback?.({ access_token: 'test-token', state: tokenConfig?.state } as google.accounts.oauth2.TokenResponse)
-                 },
-              }
-            },
-            revoke: () => {},
-          },
-        },
-      },
-    })
   })
-  await page.route('https://accounts.google.com/gsi/client', async route => {
-    await route.fulfill({ contentType: 'application/javascript', body: '' })
+  await page.route('/auth/session', async route => {
+    await route.fulfill({ json: { signedIn: true } })
   })
-  await page.route('https://www.googleapis.com/drive/v3/files**', async route => {
-    const url = decodeURIComponent(route.request().url())
-    if (url.includes("mimeType='application/vnd.google-apps.folder'")) {
-      await route.fulfill({ json: { files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] } })
-      return
-    }
+  await page.route('/api/drive/entries', async route => {
     await route.fulfill({ json: { files: [] } })
+  })
+  await page.route('/api/drive/entry/**', async route => {
+    await route.fulfill({ status: 404, body: '' })
   })
 })
 
 test('mobile back closes sidebar instead of leaving the app', async ({ page }) => {
   await page.goto(baseUrl)
-  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
-  await page.getByRole('button', { name: 'Sign in with Google' }).click()
-
   await expect(page.locator('.editor-textarea')).toBeVisible()
 
   // Set hash to today's date to simulate normal navigation state
@@ -82,9 +58,6 @@ test('mobile back closes sidebar instead of leaving the app', async ({ page }) =
 
 test('entry date does not open the calendar on mobile or desktop', async ({ page }) => {
   await page.goto(baseUrl)
-  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
-  await page.getByRole('button', { name: 'Sign in with Google' }).click()
-
   await expect(page.locator('.editor-textarea')).toBeVisible()
   await expect(page.locator('.entry-date-text')).toBeVisible()
   await expect(page.locator('.entry-date-button')).toHaveCount(0)
@@ -99,11 +72,9 @@ test('entry date does not open the calendar on mobile or desktop', async ({ page
 
 test('mobile date selection confirms before leaving unsaved edits', async ({ page }) => {
   await page.goto(baseUrl)
-  await page.waitForFunction(() => (window as unknown as { __tokenClientReady?: boolean }).__tokenClientReady === true)
-  await page.getByRole('button', { name: 'Sign in with Google' }).click()
+  await expect(page.locator('.editor-textarea')).toBeVisible()
 
   const editor = page.locator('.editor-textarea')
-  await expect(editor).toBeVisible()
 
   // Set a date hash to simulate normal state
   const today = new Date()

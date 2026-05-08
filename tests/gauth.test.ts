@@ -1,141 +1,86 @@
 import { expect, test } from '@playwright/test'
-import { initTokenClient, requestToken, revokeToken } from '../src/api/gauth'
+import { checkSession, revokeSession } from '../src/api/auth'
 
-type TokenClientConfig = google.accounts.oauth2.TokenClientConfig
-type TokenRequestConfig = google.accounts.oauth2.OverridableTokenClientConfig
+type FetchCall = { url: string; init?: RequestInit }
+type MockResponse = {
+  status: number
+  ok: boolean
+  headers: Headers
+  json: () => Promise<unknown>
+  text: () => Promise<string>
+}
 
-const originalGoogle = globalThis.google
-let tokenClientConfig: TokenClientConfig | null
-let tokenRequests: (TokenRequestConfig | undefined)[]
-let revokedTokens: string[]
+const originalFetch = globalThis.fetch
+let calls: FetchCall[]
+let responses: MockResponse[]
 
-function installGoogleMock(): void {
-  tokenClientConfig = null
-  tokenRequests = []
-  revokedTokens = []
+function jsonResponse(body: unknown, status = 200): MockResponse {
+  return {
+    status,
+    ok: status >= 200 && status < 300,
+    headers: new Headers(),
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  }
+}
 
-  ;(globalThis as typeof globalThis & { google: typeof google }).google = {
-    accounts: {
-      oauth2: {
-        initTokenClient: (config: TokenClientConfig) => {
-          tokenClientConfig = config
-          return {
-            requestAccessToken: (config?: TokenRequestConfig) => {
-              tokenRequests.push(config)
-            },
-          }
-        },
-        revoke: (token: string, done: () => void) => {
-          revokedTokens.push(token)
-          done()
-        },
-      },
-    },
-  } as typeof google
+function mockFetch(...nextResponses: MockResponse[]): void {
+  responses = [...nextResponses]
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    calls.push({ url: String(input), init })
+    const response = responses.shift()
+    if (!response) throw new Error(`Unexpected fetch: ${String(input)}`)
+    return response as Response
+  }) as typeof fetch
 }
 
 test.beforeEach(() => {
-  installGoogleMock()
+  calls = []
+  responses = []
 })
 
 test.afterEach(() => {
-  ;(globalThis as typeof globalThis & { google: typeof google }).google = originalGoogle
+  globalThis.fetch = originalFetch
 })
 
-test.describe('Google auth wrapper', () => {
-  test('passes token request overrides through to GIS with state', () => {
-    initTokenClient(() => {}, () => {})
+test.describe('checkSession', () => {
+  test('returns true when server responds signedIn: true', async () => {
+    mockFetch(jsonResponse({ signedIn: true }))
 
-    requestToken({ prompt: 'none' })
+    const result = await checkSession()
 
-    expect(tokenRequests.length).toBe(1)
-    const req = tokenRequests[0]
-    expect(req?.prompt).toBe('none')
-    expect(typeof req?.state).toBe('string')
-    expect(req?.state?.length).toBeGreaterThan(0)
+    expect(result).toBe(true)
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('/auth/session')
+    expect(calls[0].init?.credentials).toBe('include')
   })
 
-  test('routes successful token responses to the token handler when state matches', () => {
-    let accessToken: string | null = null
-    let receivedExpiresIn: number | undefined
-    initTokenClient((token, expiresIn) => { accessToken = token; receivedExpiresIn = expiresIn }, () => {})
+  test('returns false when server responds signedIn: false', async () => {
+    mockFetch(jsonResponse({ signedIn: false }))
 
-    requestToken()
-    const sentState = tokenRequests[0]?.state as string
+    const result = await checkSession()
 
-    tokenClientConfig?.callback({
-      access_token: 'token-1',
-      state: sentState,
-      expires_in: 3600,
-      token_type: 'Bearer',
-      scope: 'https://www.googleapis.com/auth/drive.file',
-      prompt: '',
-      hd: '',
-      client_id: '',
-      audiences: [],
-    } as unknown as google.accounts.oauth2.TokenResponse)
-
-    expect(accessToken).toBe('token-1')
-    expect(receivedExpiresIn).toBe(3600)
+    expect(result).toBe(false)
   })
 
-  test('calls error handler when state does not match', () => {
-    let errors = 0
-    initTokenClient(() => {}, () => { errors += 1 })
+  test('returns false when fetch throws', async () => {
+    globalThis.fetch = async () => { throw new Error('network error') }
 
-    requestToken()
-    tokenClientConfig?.callback({
-      access_token: 'token-1',
-      state: 'wrong-state',
-    } as google.accounts.oauth2.TokenResponse)
+    const result = await checkSession()
 
-    expect(errors).toBe(1)
+    expect(result).toBe(false)
   })
+})
 
-  test('routes OAuth errors to error handler and clears state', () => {
-    let errors = 0
-    initTokenClient(() => {}, () => { errors += 1 })
+test.describe('revokeSession', () => {
+  test('sends POST to /auth/logout with credentials', async () => {
+    mockFetch(jsonResponse(null, 200))
 
-    requestToken()
-    tokenClientConfig?.callback({
-      error: 'access_denied',
-    } as google.accounts.oauth2.TokenResponse)
+    await revokeSession()
 
-    expect(errors).toBe(1)
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('/auth/logout')
+    expect(calls[0].init?.method).toBe('POST')
+    expect(calls[0].init?.credentials).toBe('include')
   })
-
-  test('routes popup errors to error handler and clears state', () => {
-    let errors = 0
-    initTokenClient(() => {}, () => { errors += 1 })
-
-    requestToken()
-    tokenClientConfig?.error_callback?.({
-      name: 'Error',
-      message: 'Popup window closed',
-      type: 'popup_closed',
-    })
-
-    expect(errors).toBe(1)
-  })
-
-  test('revokes tokens through GIS', () => {
-    revokeToken('token-1')
-
-    expect(revokedTokens).toEqual(['token-1'])
-  })
-
-  test('defaults expires_in to 3600 when missing from response', () => {
-    let receivedExpiresIn: number | undefined
-    initTokenClient((_, expiresIn) => { receivedExpiresIn = expiresIn }, () => {})
-
-    requestToken()
-    const sentState = tokenRequests[0]?.state as string
-
-    tokenClientConfig?.callback({
-      access_token: 'token-1',
-      state: sentState,
-    } as google.accounts.oauth2.TokenResponse)
-
-     expect(receivedExpiresIn).toBe(3600)
-   })
- })
+})

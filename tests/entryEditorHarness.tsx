@@ -127,7 +127,7 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
         setPendingNavDate(null)
       }}
       reauthSaveResult={null}
-      token={token}
+      isSignedIn={token !== null}
       onExpired={onExpired}
     />
   )

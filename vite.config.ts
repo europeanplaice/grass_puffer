@@ -30,8 +30,9 @@ function hashDistFiles(dir: string, root = dir): string {
 export default defineConfig({
   base: '/',
   server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    proxy: {
+      '/api': 'http://localhost:8788',
+      '/auth': 'http://localhost:8788',
     },
   },
   plugins: [
@@ -54,15 +55,15 @@ export default defineConfig({
 
         const cspContent = [
           "default-src 'self'",
-          `script-src 'self' https://accounts.google.com ${hashes.join(' ')}`,
+          `script-src 'self' ${hashes.join(' ')}`,
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' https://fonts.gstatic.com",
           "img-src 'self' data: blob:",
           "worker-src 'self'",
           "object-src 'none'",
           "base-uri 'self'",
-          "connect-src 'self' https://www.googleapis.com https://accounts.google.com https://oauth2.googleapis.com",
-          "frame-src 'self' https://accounts.google.com",
+          "connect-src 'self'",
+          "frame-src 'self'",
           "form-action 'self'",
           "manifest-src 'self'",
         ].join('; ')

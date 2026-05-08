@@ -3,13 +3,11 @@ import type { DriveFileMeta } from '../src/types'
 import {
   TokenExpiredError,
   DriveHttpError,
-  clearFolderCache,
-  deleteEntry,
-  ensureFolder,
-  findEntryMeta,
-  getEntry,
   listEntries,
+  searchEntries,
+  getEntryByDate,
   saveEntry,
+  deleteEntry,
 } from '../src/api/driveEntries'
 
 type FetchCall = {
@@ -62,145 +60,138 @@ function mockFetch(...nextResponses: MockResponse[]): void {
 test.beforeEach(() => {
   calls = []
   responses = []
-  clearFolderCache()
 })
 
 test.afterEach(() => {
   globalThis.fetch = originalFetch
-  clearFolderCache()
 })
 
-test.describe('driveEntries API helpers', () => {
-  test('ensureFolder reuses an existing Drive folder and caches its id', async () => {
-    mockFetch(jsonResponse({ files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] }))
-
-    await expect(ensureFolder('token-1')).resolves.toBe('folder-1')
-    await expect(ensureFolder('token-1')).resolves.toBe('folder-1')
-
-    expect(calls).toHaveLength(1)
-    expect(calls[0].url).toContain('/drive/v3/files?q=')
-    expect(decodeURIComponent(calls[0].url)).toContain("name='GrassPuffer Diary'")
-    expect(calls[0].init?.headers).toMatchObject({ Authorization: 'Bearer token-1' })
-  })
-
-  test('ensureFolder creates the diary folder when Drive has none', async () => {
-    mockFetch(
-      jsonResponse({ files: [] }),
-      jsonResponse({ id: 'created-folder', name: 'GrassPuffer Diary' }),
-    )
-
-    await expect(ensureFolder('token-1')).resolves.toBe('created-folder')
-
-    expect(calls).toHaveLength(2)
-    expect(calls[1].url).toBe('https://www.googleapis.com/drive/v3/files')
-    expect(calls[1].init).toMatchObject({
-      method: 'POST',
-      headers: {
-        Authorization: 'Bearer token-1',
-        'Content-Type': 'application/json',
-      },
-    })
-    expect(JSON.parse(String(calls[1].init?.body))).toEqual({
-      name: 'GrassPuffer Diary',
-      mimeType: 'application/vnd.google-apps.folder',
-    })
-  })
-
-  test('lists and finds diary file metadata with Drive query filters', async () => {
+test.describe('driveEntries proxy API', () => {
+  test('listEntries calls /api/drive/entries with credentials', async () => {
     const files: DriveFileMeta[] = [
       { id: 'entry-1', name: 'diary-2026-04-29.json', version: '11' },
     ]
-    mockFetch(jsonResponse({ files }), jsonResponse({ files }))
+    mockFetch(jsonResponse({ files }))
 
-    await expect(listEntries('token-1', 'folder-1')).resolves.toEqual(files)
-    await expect(findEntryMeta('token-1', 'folder-1', '2026-04-29')).resolves.toEqual(files[0])
+    const result = await listEntries()
 
-    expect(decodeURIComponent(calls[0].url)).toContain("'folder-1' in parents")
-    expect(decodeURIComponent(calls[0].url)).toContain("mimeType='application/json'")
-    expect(decodeURIComponent(calls[1].url)).toContain("name='diary-2026-04-29.json'")
-    expect(calls[1].url).toContain('pageSize=1')
+    expect(result).toEqual(files)
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('/api/drive/entries')
+    expect(calls[0].init?.credentials).toBe('include')
   })
 
-  test('loads an entry file as media', async () => {
+  test('listEntries returns empty array when files missing', async () => {
+    mockFetch(jsonResponse({}))
+
+    const result = await listEntries()
+
+    expect(result).toEqual([])
+  })
+
+  test('searchEntries calls /api/drive/search with encoded query', async () => {
+    const files: DriveFileMeta[] = [{ id: 'e-1', name: 'diary-2026-05-01.json', version: '1' }]
+    mockFetch(jsonResponse({ files }))
+
+    const result = await searchEntries('hello world')
+
+    expect(result).toEqual(files)
+    expect(calls[0].url).toContain('/api/drive/search?q=')
+    expect(decodeURIComponent(calls[0].url)).toContain('hello world')
+    expect(calls[0].init?.credentials).toBe('include')
+  })
+
+  test('getEntryByDate returns entry and meta on success', async () => {
     const entry = { date: '2026-04-29', content: 'today', updated_at: '2026-04-29T00:00:00.000Z' }
-    mockFetch(jsonResponse(entry))
+    const meta = { id: 'entry-1', name: 'diary-2026-04-29.json', version: '3' }
+    mockFetch(jsonResponse({ entry, meta }))
 
-    await expect(getEntry('token-1', 'entry-1')).resolves.toEqual(entry)
+    const result = await getEntryByDate('2026-04-29')
 
-    expect(calls[0].url).toBe('https://www.googleapis.com/drive/v3/files/entry-1?alt=media')
-    expect(calls[0].init?.headers).toMatchObject({ Authorization: 'Bearer token-1' })
+    expect(result).toEqual({ entry, meta })
+    expect(calls[0].url).toBe('/api/drive/entry/2026-04-29')
+    expect(calls[0].init?.credentials).toBe('include')
   })
 
-  test('saves new and existing entries using multipart upload', async () => {
+  test('getEntryByDate returns null on 404', async () => {
+    mockFetch(jsonResponse(null, 404))
+
+    const result = await getEntryByDate('2026-04-29')
+
+    expect(result).toBeNull()
+  })
+
+  test('saveEntry posts JSON to /api/drive/entry/:date', async () => {
+    const meta: DriveFileMeta = { id: 'entry-1', name: 'diary-2026-04-29.json', version: '1' }
+    mockFetch(jsonResponse(meta))
+
     const entry = { date: '2026-04-29', content: 'saved text', updated_at: '2026-04-29T00:00:00.000Z' }
-    mockFetch(
-      jsonResponse({ id: 'entry-1', name: 'diary-2026-04-29.json', version: '1' }),
-      jsonResponse({ id: 'entry-1', name: 'diary-2026-04-29.json', version: '2' }),
-    )
+    const result = await saveEntry('2026-04-29', entry)
 
-    await expect(saveEntry('token-1', entry, 'folder-1')).resolves.toMatchObject({ version: '1' })
-    await expect(saveEntry('token-1', entry, 'folder-1', 'entry-1')).resolves.toMatchObject({ version: '2' })
-
-    expect(calls[0].url).toContain('/upload/drive/v3/files?uploadType=multipart')
+    expect(result).toEqual(meta)
+    expect(calls[0].url).toBe('/api/drive/entry/2026-04-29')
     expect(calls[0].init?.method).toBe('POST')
-    expect(calls[0].init?.headers).toMatchObject({
-      Authorization: 'Bearer token-1',
-      'Content-Type': 'multipart/related; boundary=grass_puffer_boundary',
-    })
-    expect(String(calls[0].init?.body)).toContain('"parents":["folder-1"]')
-    expect(String(calls[0].init?.body)).toContain('"content":"saved text"')
-
-    expect(calls[1].url).toContain('/upload/drive/v3/files/entry-1?uploadType=multipart')
-    expect(calls[1].init?.method).toBe('PATCH')
-    expect(String(calls[1].init?.body)).toContain('{}')
+    expect(calls[0].init?.credentials).toBe('include')
+    const body = JSON.parse(String(calls[0].init?.body))
+    expect(body.content).toBe('saved text')
+    expect(body.fileId).toBeUndefined()
   })
 
-  test('deletes entries and maps Drive errors', async () => {
-    // 500 triggers retries (4 total attempts needed before throwing)
-    mockFetch(
-      textResponse('', 204),
-      textResponse('expired', 401),
-      textResponse('nope', 500),
-      textResponse('nope', 500),
-      textResponse('nope', 500),
-      textResponse('nope', 500),
-    )
+  test('saveEntry includes fileId when provided', async () => {
+    const meta: DriveFileMeta = { id: 'entry-1', name: 'diary-2026-04-29.json', version: '2' }
+    mockFetch(jsonResponse(meta))
 
-    await expect(deleteEntry('token-1', 'entry-1')).resolves.toBeUndefined()
-    await expect(deleteEntry('token-1', 'entry-2')).rejects.toBeInstanceOf(TokenExpiredError)
-    await expect(deleteEntry('token-1', 'entry-3')).rejects.toThrow('Drive API 500: nope')
+    const entry = { date: '2026-04-29', content: 'updated', updated_at: '2026-04-29T00:00:00.000Z' }
+    await saveEntry('2026-04-29', entry, 'entry-1')
 
-    expect(calls[0]).toMatchObject({
-      url: 'https://www.googleapis.com/drive/v3/files/entry-1',
-      init: {
-        method: 'DELETE',
-        headers: { Authorization: 'Bearer token-1' },
-      },
-    })
+    const body = JSON.parse(String(calls[0].init?.body))
+    expect(body.fileId).toBe('entry-1')
+  })
+
+  test('deleteEntry sends DELETE to /api/drive/entry/:date', async () => {
+    mockFetch(textResponse('', 204))
+
+    await expect(deleteEntry('2026-04-29')).resolves.toBeUndefined()
+
+    expect(calls[0].url).toBe('/api/drive/entry/2026-04-29')
+    expect(calls[0].init?.method).toBe('DELETE')
+    expect(calls[0].init?.credentials).toBe('include')
+  })
+
+  test('throws TokenExpiredError on 401', async () => {
+    mockFetch(textResponse('expired', 401))
+
+    await expect(listEntries()).rejects.toBeInstanceOf(TokenExpiredError)
+  })
+
+  test('throws DriveHttpError on non-retryable error', async () => {
+    mockFetch(textResponse('forbidden', 403))
+
+    const err = await listEntries().catch(e => e)
+    expect(err).toBeInstanceOf(DriveHttpError)
+    expect((err as DriveHttpError).status).toBe(403)
   })
 })
 
-test.describe('withRetry behaviour', () => {
+test.describe('retry behaviour', () => {
   test('503 retries and succeeds on second attempt', async () => {
     mockFetch(
       textResponse('unavailable', 503, { 'Retry-After': '0.01' }),
-      jsonResponse({ files: [{ id: 'folder-1', name: 'GrassPuffer Diary' }] }),
+      jsonResponse({ files: [] }),
     )
 
-    await expect(ensureFolder('token-1')).resolves.toBe('folder-1')
+    await expect(listEntries()).resolves.toEqual([])
     expect(calls).toHaveLength(2)
   })
 
   test('429 with Retry-After: 0.1 completes faster than default 250ms backoff', async () => {
-    // Default first-attempt delay is 250ms; Retry-After: 0.1 sets it to 100ms.
-    // With jitter the total should still be well under 300ms.
     mockFetch(
       textResponse('rate limited', 429, { 'Retry-After': '0.1' }),
-      jsonResponse({ files: [{ id: 'folder-x', name: 'GrassPuffer Diary' }] }),
+      jsonResponse({ files: [] }),
     )
 
     const t0 = Date.now()
-    await expect(ensureFolder('token-2')).resolves.toBe('folder-x')
+    await expect(listEntries()).resolves.toEqual([])
     const elapsed = Date.now() - t0
 
     expect(elapsed).toBeLessThan(300)
@@ -210,26 +201,15 @@ test.describe('withRetry behaviour', () => {
   test('401 throws TokenExpiredError immediately without retry', async () => {
     mockFetch(textResponse('expired', 401))
 
-    await expect(ensureFolder('token-bad')).rejects.toBeInstanceOf(TokenExpiredError)
-    expect(calls).toHaveLength(1)
-  })
-
-  test('404 throws DriveHttpError with status 404 without retry', async () => {
-    mockFetch(textResponse('not found', 404))
-
-    const err = await ensureFolder('token-1').catch(e => e)
-    expect(err).toBeInstanceOf(DriveHttpError)
-    expect((err as DriveHttpError).status).toBe(404)
+    await expect(listEntries()).rejects.toBeInstanceOf(TokenExpiredError)
     expect(calls).toHaveLength(1)
   })
 
   test('500 repeated 4 times throws DriveHttpError after exhausting retries', async () => {
-    // withRetry delays: [250,500,1000]; attempt 0,1,2 retry; attempt 3 throws.
-    // Use Retry-After: 0.01 on each response to keep the test fast (~120ms total).
     const r500 = () => textResponse('server error', 500, { 'Retry-After': '0.01' })
     mockFetch(r500(), r500(), r500(), r500())
 
-    const err = await ensureFolder('token-1').catch(e => e)
+    const err = await listEntries().catch(e => e)
     expect(err).toBeInstanceOf(DriveHttpError)
     expect((err as DriveHttpError).status).toBe(500)
     expect(calls).toHaveLength(4)

@@ -1,22 +1,34 @@
 import type { DriveRevisionMeta, DiaryEntry } from '../types'
-import { withRetry, headers, TokenExpiredError, DriveHttpError } from './driveEntries'
+import { TokenExpiredError, DriveHttpError } from './driveEntries'
 
 export type { TokenExpiredError, DriveHttpError }
 
-const BASE = 'https://www.googleapis.com/drive/v3'
+const BASE = '/api/drive/revisions'
 
-export async function listRevisions(token: string, fileId: string): Promise<DriveRevisionMeta[]> {
-  const fields = encodeURIComponent('revisions(id,modifiedTime,size)')
-  const revisions = await withRetry(() => {
-    const p = fetch(`${BASE}/files/${fileId}/revisions?fields=${fields}`, { headers: headers(token) })
-    return p.then(res => ({ res, parse: () => res.json() as Promise<{ revisions: DriveRevisionMeta[] }> }))
-  })
-  return (revisions.revisions ?? []).slice().reverse()
+async function revisionsFetch<T>(url: string): Promise<T> {
+  const delays = [250, 500, 1000]
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetch(url, { credentials: 'include' })
+
+    if (res.ok) return res.json() as Promise<T>
+    if (res.status === 401) throw new TokenExpiredError()
+
+    const body = await res.text()
+    if ((res.status === 429 || res.status >= 500) && attempt < delays.length) {
+      let delay = delays[attempt]
+      const ra = res.headers.get('Retry-After')
+      if (ra) { const s = parseFloat(ra); if (!isNaN(s)) delay = s * 1000 }
+      await new Promise(r => setTimeout(r, delay * (1 + 0.2 * (Math.random() * 2 - 1))))
+      continue
+    }
+    throw new DriveHttpError(res.status, body)
+  }
 }
 
-export async function getRevisionContent(token: string, fileId: string, revisionId: string): Promise<DiaryEntry> {
-  return withRetry(() => {
-    const p = fetch(`${BASE}/files/${fileId}/revisions/${revisionId}?alt=media`, { headers: headers(token) })
-    return p.then(res => ({ res, parse: () => res.json() as Promise<DiaryEntry> }))
-  })
+export async function listRevisions(fileId: string): Promise<DriveRevisionMeta[]> {
+  return revisionsFetch<DriveRevisionMeta[]>(`${BASE}/${fileId}`)
+}
+
+export async function getRevisionContent(fileId: string, revisionId: string): Promise<DiaryEntry> {
+  return revisionsFetch<DiaryEntry>(`${BASE}/${fileId}/${revisionId}`)
 }

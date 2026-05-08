@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import type { SearchResult, IndexingProgress } from '../hooks/useDiary'
+import type { SearchResult } from '../hooks/useDiary'
 import { diaryDateLabel } from '../utils/date'
 import { useI18n } from '../i18n'
 
@@ -13,12 +13,11 @@ interface Props {
   onSearch: (query: string) => Promise<SearchResult>
   onSelect: (date: string) => void
   entriesLoading: boolean
-  indexingProgress?: IndexingProgress
 }
 
 const SEARCH_DEBOUNCE_MS = 250
 
-export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress }: Props) {
+export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
   const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
@@ -75,9 +74,6 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
   }, [entriesLoading, onSearch, query])
 
   const hasQuery = query.trim().length > 0
-  const { done = 0, total = 0, running = false } = indexingProgress ?? {}
-
-  const unindexedCount = total - done
 
   return (
     <div className="search-bar">
@@ -99,9 +95,6 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
       {entriesLoading && hasQuery && !isSearching && (
         <div className="search-status">{t.search.loadingEntries}</div>
       )}
-      {running && hasQuery && (
-        <div className="search-status">{t.search.indexing(done, total)}</div>
-      )}
       <AnimatePresence>
         {results.length > 0 && (
           <motion.ul className="search-results"
@@ -120,12 +113,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading, indexingProgress
         )}
       </AnimatePresence>
       {searched && hasQuery && !entriesLoading && !isSearching && results.length === 0 && (
-        <>
-          <div className="search-status">{t.search.noResults}</div>
-          {unindexedCount > 0 && (
-            <div className="search-status">{t.search.remaining(unindexedCount)}</div>
-          )}
-        </>
+        <div className="search-status">{t.search.noResults}</div>
       )}
     </div>
   )

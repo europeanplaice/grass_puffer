@@ -8,7 +8,6 @@ import { useI18n } from '../i18n'
 interface Props {
   date: string
   fileId: string
-  token: string
   baseVersion: string | null
   text: string
   savedText: string
@@ -20,7 +19,7 @@ interface Props {
   onExpired: () => void
 }
 
-export function HistoryModal({ date, fileId, token, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onClose, onExpired }: Props) {
+export function HistoryModal({ date, fileId, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onClose, onExpired }: Props) {
   const { t, locale } = useI18n()
   const {
     revisions, showUnsavedEntry, listLoading, listError,
@@ -28,7 +27,6 @@ export function HistoryModal({ date, fileId, token, baseVersion, text, savedText
     diffHtml, restoring, restoreError,
     selectRevision, restore,
   } = useRevisions({
-    token,
     fileId,
     date,
     baseVersion,

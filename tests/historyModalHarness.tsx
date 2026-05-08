@@ -37,7 +37,6 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 interface AppProps {
   date: string
   fileId: string
-  token: string
   baseVersion: string | null
   text: string
   savedText: string
@@ -45,7 +44,7 @@ interface AppProps {
   autoSave: boolean
 }
 
-function App({ date, fileId, token, baseVersion, text, savedText, isDirty, autoSave }: AppProps) {
+function App({ date, fileId, baseVersion, text, savedText, isDirty, autoSave }: AppProps) {
   const [open, setOpen] = useState(true)
 
   if (!open) return <div id="modal-closed">closed</div>
@@ -54,7 +53,6 @@ function App({ date, fileId, token, baseVersion, text, savedText, isDirty, autoS
     <HistoryModal
       date={date}
       fileId={fileId}
-      token={token}
       baseVersion={baseVersion}
       text={text}
       savedText={savedText}
@@ -87,7 +85,7 @@ function App({ date, fileId, token, baseVersion, text, savedText, isDirty, autoS
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
-type RenderOpts = { date?: string; fileId?: string; token?: string; baseVersion?: string | null; text?: string; savedText?: string; isDirty?: boolean; autoSave?: boolean }
+type RenderOpts = { date?: string; fileId?: string; baseVersion?: string | null; text?: string; savedText?: string; isDirty?: boolean; autoSave?: boolean }
 
 window.historyHarness = {
   q: (...responses: { status: number; body: unknown }[]) => queue.push(...responses),
@@ -103,7 +101,6 @@ window.historyHarness = {
         <App
           date={opts.date ?? '2026-05-01'}
           fileId={opts.fileId ?? 'file-123'}
-          token={opts.token ?? 'test-token'}
           baseVersion={opts.baseVersion ?? null}
           text={opts.text ?? ''}
           savedText={opts.savedText ?? ''}

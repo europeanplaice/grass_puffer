@@ -7,7 +7,7 @@ async function loadHarness(page: import('@playwright/test').Page) {
 
 async function render(
   page: import('@playwright/test').Page,
-  opts: { authReady?: boolean; wasPreviouslySignedIn?: boolean; sessionExpired?: boolean; loadFailed?: boolean } = {},
+  opts: { tokenExpired?: boolean } = {},
 ) {
   await page.evaluate((opts) => {
     window.loginScreenHarness.render(opts)
