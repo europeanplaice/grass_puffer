@@ -27,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
       code,
       client_id: env.GOOGLE_CLIENT_ID,
       client_secret: env.GOOGLE_CLIENT_SECRET,
-      redirect_uri: `https://${env.SESSION_DOMAIN}/auth/callback`,
+      redirect_uri: `${env.SESSION_DOMAIN}/auth/callback`,
       grant_type: 'authorization_code',
     }).toString(),
   })

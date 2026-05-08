@@ -11,7 +11,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
-    redirect_uri: `https://${env.SESSION_DOMAIN}/auth/callback`,
+    redirect_uri: `${env.SESSION_DOMAIN}/auth/callback`,
     response_type: 'code',
     scope: SCOPE,
     state: `${state}:${encodeURIComponent(returnPath)}`,
