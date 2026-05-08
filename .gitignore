@@ -1,9 +1,12 @@
+.wrangler
 node_modules
 dist
 .env.local
 .env
 .dev.vars
 *.local
+wrangler.toml
+docs/migration-to-cloudflare.md
 CLAUDE.md
 .playwright-mcp/
 .codex
