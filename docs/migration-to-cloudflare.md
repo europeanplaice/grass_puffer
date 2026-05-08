@@ -96,6 +96,19 @@ npx wrangler pages secret put SESSION_DOMAIN --project-name=grass-puffer
 > ダッシュボードからも設定できる:  
 > [Cloudflare Dashboard](https://dash.cloudflare.com) → Workers & Pages → `grass-puffer` → Settings → Environment variables
 
+### ローカル開発用の設定（`.dev.vars`）
+
+`wrangler pages secret put` は本番環境にのみ反映される。ローカルで `npm run workers:dev` を使う場合は、プロジェクトルートに `.dev.vars` を作成する:
+
+```
+# .dev.vars  ← .gitignore 済み、コミット不要
+GOOGLE_CLIENT_ID=<.env.local の VITE_GOOGLE_CLIENT_ID と同じ値>
+GOOGLE_CLIENT_SECRET=<OAuth クライアントシークレット>
+SESSION_DOMAIN=localhost
+```
+
+> `SESSION_DOMAIN` はローカルでは `localhost`（本番の `grasspuffer.europeanplaice.com` を指定するとcookieがlocalhost上で保存されない）。
+
 ---
 
 ## Step 5: カスタムドメインを設定する
@@ -160,7 +173,7 @@ http://localhost:8788/auth/callback
 | `CLOUDFLARE_API_TOKEN` | Cloudflare API トークン | 後述 |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare アカウント ID | 後述 |
 
-`GOOGLE_CLIENT_ID` はビルド時に `VITE_GOOGLE_CLIENT_ID` として使うので**そのまま残す**。
+`GOOGLE_CLIENT_ID` はPages Functions側で使うため、ビルド時（GitHub Actions）には不要になった。GitHub Secrets から削除してよい。
 
 ### Cloudflare API トークンの取得
 

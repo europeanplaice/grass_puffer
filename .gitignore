@@ -2,6 +2,7 @@ node_modules
 dist
 .env.local
 .env
+.dev.vars
 *.local
 CLAUDE.md
 .playwright-mcp/
