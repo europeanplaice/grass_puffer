@@ -10,7 +10,7 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Set-Cookie': clearSessionCookie(),
+      'Set-Cookie': clearSessionCookie(!env.SESSION_DOMAIN.startsWith('http://')),
     },
   })
 }

@@ -57,11 +57,13 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   const safeReturnPath = returnPath.startsWith('/') ? returnPath : '/'
 
+  const secure = !env.SESSION_DOMAIN.startsWith('http://')
+
   return new Response(null, {
     status: 302,
     headers: {
       Location: safeReturnPath,
-      'Set-Cookie': makeSessionCookie(sessionId, SESSION_TTL),
+      'Set-Cookie': makeSessionCookie(sessionId, SESSION_TTL, secure),
     },
   })
 }

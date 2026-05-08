@@ -76,12 +76,14 @@ export async function getValidAccessToken(sessionId: string, session: SessionDat
   return tokens.access_token
 }
 
-export function makeSessionCookie(sessionId: string, maxAge: number): string {
-  return `${COOKIE_NAME}=${encodeURIComponent(sessionId)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAge}`
+export function makeSessionCookie(sessionId: string, maxAge: number, secure = true): string {
+  const secureFlag = secure ? '; Secure' : ''
+  return `${COOKIE_NAME}=${encodeURIComponent(sessionId)}; HttpOnly${secureFlag}; SameSite=Lax; Path=/; Max-Age=${maxAge}`
 }
 
-export function clearSessionCookie(): string {
-  return `${COOKIE_NAME}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`
+export function clearSessionCookie(secure = true): string {
+  const secureFlag = secure ? '; Secure' : ''
+  return `${COOKIE_NAME}=; HttpOnly${secureFlag}; SameSite=Lax; Path=/; Max-Age=0`
 }
 
 export function jsonResponse(body: unknown, status = 200): Response {
