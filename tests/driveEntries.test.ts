@@ -79,6 +79,7 @@ test.describe('driveEntries proxy API', () => {
     expect(calls).toHaveLength(1)
     expect(calls[0].url).toBe('/api/drive/entries')
     expect(calls[0].init?.credentials).toBe('include')
+    expect(calls[0].init?.cache).toBe('no-store')
   })
 
   test('listEntries returns empty array when files missing', async () => {

@@ -37,6 +37,14 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url)
   if (url.origin !== self.location.origin) return
 
+  const scopePath = new URL(self.registration.scope).pathname
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith(`${scopePath}api/`)) return
+
+  if (request.cache === 'no-store' || request.cache === 'reload' || request.cache === 'no-cache') {
+    event.respondWith(fetch(request))
+    return
+  }
+
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -56,6 +64,9 @@ self.addEventListener('fetch', event => {
 
       return fetch(request).then(response => {
         if (response.ok) {
+          const cacheControl = response.headers.get('Cache-Control') ?? ''
+          if (cacheControl.toLowerCase().includes('no-store')) return response
+
           const copy = response.clone()
           caches.open(CACHE_NAME).then(cache => cache.put(request, copy))
         }

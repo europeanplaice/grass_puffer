@@ -25,7 +25,7 @@ function shouldRetry(status: number): boolean {
 async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ data: T; status: number }> {
   const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, { ...init, credentials: 'include' })
+    const res = await fetch(url, { ...init, credentials: 'include', cache: 'no-store' })
 
     if (res.ok) return { data: await res.json() as T, status: res.status }
     if (res.status === 401) throw new TokenExpiredError()
@@ -46,7 +46,7 @@ async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ data: T; 
 async function apiFetchNoContent(url: string, init?: RequestInit): Promise<void> {
   const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
-    const res = await fetch(url, { ...init, credentials: 'include' })
+    const res = await fetch(url, { ...init, credentials: 'include', cache: 'no-store' })
 
     if (res.ok || res.status === 204) return
     if (res.status === 401) throw new TokenExpiredError()
