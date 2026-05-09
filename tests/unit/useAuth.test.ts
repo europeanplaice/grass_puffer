@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
+import { renderHook, act, waitFor } from '@testing-library/react'
 import { useAuth } from '../../src/hooks/useAuth'
 
 const { mockStartSignIn, mockCheckSession, mockRevokeSession } = vi.hoisted(() => ({
@@ -15,11 +15,15 @@ vi.mock('../../src/api/auth', () => ({
 }))
 
 beforeEach(() => {
-  vi.clearAllMocks()
+  mockStartSignIn.mockReset()
+  mockCheckSession.mockReset()
+  mockCheckSession.mockResolvedValue(false)
+  mockRevokeSession.mockReset()
 })
 
 describe('useAuth', () => {
   it('initializes with status initializing', () => {
+    mockCheckSession.mockImplementation(() => new Promise(() => {}))
     const { result } = renderHook(() => useAuth())
     expect(result.current.status).toBe('initializing')
     expect(result.current.authReady).toBe(false)
@@ -29,7 +33,7 @@ describe('useAuth', () => {
     mockCheckSession.mockResolvedValue(true)
 
     const { result } = renderHook(() => useAuth())
-    await vi.waitFor(() => expect(result.current.status).toBe('signedIn'))
+    await waitFor(() => expect(result.current.status).toBe('signedIn'))
     expect(result.current.authReady).toBe(true)
   })
 
@@ -37,12 +41,13 @@ describe('useAuth', () => {
     mockCheckSession.mockResolvedValue(false)
 
     const { result } = renderHook(() => useAuth())
-    await vi.waitFor(() => expect(result.current.status).toBe('signedOut'))
+    await waitFor(() => expect(result.current.status).toBe('signedOut'))
     expect(result.current.authReady).toBe(true)
   })
 
-  it('signIn calls startSignIn', () => {
+  it('signIn calls startSignIn', async () => {
     const { result } = renderHook(() => useAuth())
+    await waitFor(() => expect(result.current.status).toBe('signedOut'))
 
     act(() => result.current.signIn())
 
@@ -52,6 +57,7 @@ describe('useAuth', () => {
   it('signOut calls revokeSession and resets status', async () => {
     mockRevokeSession.mockResolvedValue(undefined)
     const { result } = renderHook(() => useAuth())
+    await waitFor(() => expect(result.current.status).toBe('signedOut'))
 
     act(() => result.current.signOut())
 
@@ -63,24 +69,27 @@ describe('useAuth', () => {
   it('signOut does not throw when revokeSession fails', async () => {
     mockRevokeSession.mockRejectedValue(new Error('network error'))
     const { result } = renderHook(() => useAuth())
+    await waitFor(() => expect(result.current.status).toBe('signedOut'))
 
     act(() => result.current.signOut())
 
-    await vi.waitFor(() => {
+    await waitFor(() => {
       expect(result.current.status).toBe('signedOut')
     })
   })
 
-  it('handleExpired sets tokenExpired to true', () => {
+  it('handleExpired sets tokenExpired to true', async () => {
     const { result } = renderHook(() => useAuth())
+    await waitFor(() => expect(result.current.status).toBe('signedOut'))
 
     act(() => result.current.handleExpired())
 
     expect(result.current.tokenExpired).toBe(true)
   })
 
-  it('retryAfterExpired calls startSignIn', () => {
+  it('retryAfterExpired calls startSignIn', async () => {
     const { result } = renderHook(() => useAuth())
+    await waitFor(() => expect(result.current.status).toBe('signedOut'))
 
     act(() => result.current.retryAfterExpired())
 
