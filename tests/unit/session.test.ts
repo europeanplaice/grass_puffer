@@ -122,6 +122,16 @@ describe('getValidAccessToken', () => {
     expect(result).toBe('at')
   })
 
+  it('does not write to KV when token is still valid', async () => {
+    const put = vi.fn()
+    const env = { ...baseEnv, SESSIONS: { put } }
+    const session = { refresh_token: 'rt', access_token: 'at', expires_at: Date.now() + 120_000 }
+
+    await getValidAccessToken('sid', session, env as any)
+
+    expect(put).not.toHaveBeenCalled()
+  })
+
   it('refreshes token when expired and stores the new token', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ access_token: 'new_at', expires_in: 3600 }), {
