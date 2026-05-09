@@ -155,6 +155,7 @@ const dictionaries = {
       ],
       privacyPolicy: 'Privacy Policy',
       termsOfService: 'Terms of Service',
+      github: 'GitHub',
     },
     export: {
       title: 'Export all diary entries as ZIP file',
@@ -318,6 +319,7 @@ const dictionaries = {
       ],
       privacyPolicy: 'プライバシーポリシー',
       termsOfService: '利用規約',
+      github: 'GitHub',
     },
     export: {
       title: 'すべての日記を ZIP ファイルとしてエクスポート',
