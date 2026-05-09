@@ -36,8 +36,7 @@ const dictionaries = {
       loadingEntries: 'Loading entries…',
       recent: 'Recent',
       noTextYet: 'No text yet',
-      restoringSession: 'Restoring your session…',
-      signingIn: 'Signing in…',
+      loading: 'Loading…',
     },
     calendar: {
       days: ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
@@ -213,8 +212,7 @@ const dictionaries = {
       loadingEntries: '日記を読み込み中...',
       recent: '最近',
       noTextYet: 'まだ本文がありません',
-      restoringSession: 'セッションを復元しています...',
-      signingIn: 'ログイン中...',
+      loading: '読み込み中...',
     },
     calendar: {
       days: ['日', '月', '火', '水', '木', '金', '土'],

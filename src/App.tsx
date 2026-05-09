@@ -19,6 +19,7 @@ import { useI18n } from './i18n'
 type RecentPreview = {
   snippet: string
   hasContent: boolean
+  loading: boolean
 }
 
 const DATE_HASH_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -77,7 +78,7 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
         </div>
         <div className="restoring-search" />
         <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
-        <div className="sidebar-status">{t.app.restoringSession}</div>
+        <div className="sidebar-status">{t.app.loading}</div>
         <ul className="entry-list restoring-entry-list">
           <li />
           <li />
@@ -88,7 +89,7 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
         <div className="editor restoring-editor">
           <div className="editor-header">
             <h2>{diaryDateLabel(selectedDate, true, 'long', locale)}</h2>
-            <span className="editor-status">{t.app.signingIn}</span>
+            <span className="editor-status">{t.app.loading}</span>
           </div>
           <div className="restoring-lines">
             <span />
@@ -141,12 +142,33 @@ export default function App() {
   }, [editorDirty])
 
   const isSignedIn = status === 'signedIn'
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false)
+  const loadingSeenRef = useRef(false)
 
   const onExpired = useCallback(() => {
     handleExpired()
   }, [handleExpired])
 
   const diary = useDiary(isSignedIn, onExpired)
+
+  useEffect(() => {
+    if (!isSignedIn) {
+      setInitialLoadComplete(false)
+      loadingSeenRef.current = false
+    }
+  }, [isSignedIn])
+
+  useEffect(() => {
+    if (isSignedIn && diary.loading) {
+      loadingSeenRef.current = true
+    }
+  }, [isSignedIn, diary.loading])
+
+  useEffect(() => {
+    if (isSignedIn && !diary.loading && loadingSeenRef.current && !initialLoadComplete) {
+      setInitialLoadComplete(true)
+    }
+  }, [isSignedIn, diary.loading, initialLoadComplete])
 
   useEffect(() => {
     if (!isSignedIn) return
@@ -228,6 +250,7 @@ export default function App() {
       next.set(loadedDate, {
         snippet: firstLinePreview(content),
         hasContent: Boolean(content.trim()),
+        loading: false,
       })
       return next
     })
@@ -311,6 +334,16 @@ export default function App() {
     const previewDates = recentDates.filter(date => date !== selectedDateRef.current)
     if (previewDates.length === 0) return
 
+    setRecentPreviews(prev => {
+      const next = new Map(prev)
+      for (const date of previewDates) {
+        if (!next.has(date)) {
+          next.set(date, { snippet: '', hasContent: false, loading: true })
+        }
+      }
+      return next
+    })
+
     timerId = window.setTimeout(() => {
       Promise.all(
         previewDates.map(async date => {
@@ -320,6 +353,7 @@ export default function App() {
             {
               snippet: firstLinePreview(loaded?.entry.content ?? ''),
               hasContent: Boolean(loaded?.entry.content.trim()),
+              loading: false,
             },
           ] as const
         }),
@@ -367,7 +401,7 @@ export default function App() {
     }
   }, [isSignedIn, retrySaveAfterReauth, diary.retryPendingSave])
 
-  if (status === 'initializing') {
+  if (status === 'initializing' || (isSignedIn && !initialLoadComplete)) {
     return <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
   }
 
@@ -424,7 +458,13 @@ export default function App() {
                 {weekday && <span className="entry-list-weekday">{weekday}</span>}
               </span>
               <span className="entry-list-preview">
-                {preview?.hasContent ? preview.snippet : t.app.noTextYet}
+                {preview?.loading ? (
+                  <span className="entry-list-preview-skeleton" />
+                ) : preview?.hasContent ? (
+                  preview.snippet
+                ) : (
+                  t.app.noTextYet
+                )}
               </span>
             </li>
           )})}

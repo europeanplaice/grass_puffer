@@ -932,6 +932,16 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.entry-list-preview-skeleton {
+  display: block;
+  height: 0.85em;
+  width: 88%;
+  border-radius: 999px;
+  background-color: var(--skeleton-row-bg);
+  background-image: linear-gradient(90deg, transparent, var(--skeleton-overlay), transparent);
+  background-size: 220% 100%;
+  animation: entry-skeleton-shimmer 1.4s ease-in-out infinite;
+}
 
 /* -- Session restore -- */
 .restoring-app {
