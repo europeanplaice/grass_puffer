@@ -128,7 +128,6 @@ export default function App() {
   const [retrySaveAfterReauth, setRetrySaveAfterReauth] = useState(false)
   const [reauthSaveResult, setReauthSaveResult] = useState<LoadedDiaryEntry | null>(null)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
-  const [loadedEntryDate, setLoadedEntryDate] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
@@ -148,10 +147,6 @@ export default function App() {
   }, [handleExpired])
 
   const diary = useDiary(isSignedIn, onExpired)
-
-  useEffect(() => {
-    setLoadedEntryDate(null)
-  }, [selectedDate])
 
   useEffect(() => {
     if (!isSignedIn) return
@@ -227,7 +222,6 @@ export default function App() {
   const handleEntryLoadComplete = useCallback((loadedDate: string, loaded: LoadedDiaryEntry | null) => {
     if (loadedDate !== selectedDateRef.current) return
 
-    setLoadedEntryDate(loadedDate)
     setRecentPreviews(prev => {
       const next = new Map(prev)
       const content = loaded?.entry.content ?? ''
@@ -314,8 +308,6 @@ export default function App() {
       return
     }
 
-    if (loadedEntryDate !== selectedDate) return
-
     const previewDates = recentDates.filter(date => date !== selectedDateRef.current)
     if (previewDates.length === 0) return
 
@@ -347,7 +339,7 @@ export default function App() {
       cancelled = true
       if (timerId !== null) window.clearTimeout(timerId)
     }
-  }, [isSignedIn, diary.getContent, recentDates.join('|'), loadedEntryDate, selectedDate])
+  }, [isSignedIn, diary.getContent, recentDates.join('|')])
 
   const handleReauth = useCallback(() => {
     retryAfterExpired()
