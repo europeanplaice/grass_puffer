@@ -1,6 +1,11 @@
 import type { Env, Data } from '../_shared/session'
 import { parseSessionId, getSession, getValidSession, saveSession, makeSessionCookie, SESSION_TTL, jsonResponse } from '../_shared/session'
 
+// KV writes are capped at 1000/day on the free tier. Writing on every request
+// would exhaust the quota quickly, so we throttle TTL renewal to once per day.
+// Only bypass this when the token itself changed (tokenRefreshed).
+const RENEW_INTERVAL = 60 * 60 * 24 * 1000 // 24 hours
+
 export const onRequest: PagesFunction<Env, string, Data> = async (context) => {
   const sessionId = parseSessionId(context.request)
   if (!sessionId) return jsonResponse({ error: 'Unauthorized' }, 401)
@@ -20,7 +25,12 @@ export const onRequest: PagesFunction<Env, string, Data> = async (context) => {
   context.data.session = validSession
 
   const response = await context.next()
-  await saveSession(sessionId, validSession, context.env)
+
+  const tokenRefreshed = validSession !== session
+  const needsRenew = !validSession.renewed_at || Date.now() - validSession.renewed_at > RENEW_INTERVAL
+  if (tokenRefreshed || needsRenew) {
+    await saveSession(sessionId, { ...validSession, renewed_at: Date.now() }, context.env)
+  }
   const secure = !context.env.SESSION_DOMAIN.startsWith('http://')
   const newHeaders = new Headers(response.headers)
   newHeaders.append('Set-Cookie', makeSessionCookie(sessionId, SESSION_TTL, secure))

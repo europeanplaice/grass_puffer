@@ -93,7 +93,42 @@ describe('API auth middleware', () => {
     expect(ctx.data.sessionId).toBe('sid123')
     expect(ctx.data.accessToken).toBe('at')
     expect(ctx.next).toHaveBeenCalledOnce()
-    expect(put).toHaveBeenCalledWith('session:sid123', JSON.stringify(session), { expirationTtl: 60 * 60 * 24 * 30 })
+    // renewed_at is added on first write (no prior renewed_at)
+    expect(put).toHaveBeenCalledWith(
+      'session:sid123',
+      JSON.stringify({ ...session, renewed_at: Date.now() }),
+      { expirationTtl: 60 * 60 * 24 * 30 },
+    )
     expect(response.headers.get('Set-Cookie')).toContain('Max-Age=2592000')
+  })
+
+  it('skips KV write when renewed_at is recent', async () => {
+    const session = makeSession({ renewed_at: Date.now() - 60_000 }) // renewed 1 minute ago
+    const put = vi.fn()
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entries', {
+        headers: { Cookie: 'grass_session=sid123' },
+      }),
+      env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(session)), put } },
+    })
+
+    await onRequest(ctx as any)
+
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('writes to KV when renewed_at is older than 24 hours', async () => {
+    const session = makeSession({ renewed_at: Date.now() - 25 * 60 * 60 * 1000 })
+    const put = vi.fn()
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entries', {
+        headers: { Cookie: 'grass_session=sid123' },
+      }),
+      env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(session)), put } },
+    })
+
+    await onRequest(ctx as any)
+
+    expect(put).toHaveBeenCalledOnce()
   })
 })
