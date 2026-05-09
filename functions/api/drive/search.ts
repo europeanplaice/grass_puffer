@@ -14,6 +14,7 @@ export const onRequestGet: PagesFunction<Env, string, Data> = async (context) =>
     return jsonResponse({ files })
   } catch (e) {
     const status = (e instanceof Error && 'status' in e) ? (e as { status: number }).status : 500
-    return jsonResponse({ error: String(e) }, status)
+    console.error('search.ts: Failed to search entries', e)
+    return jsonResponse({ error: 'Internal server error' }, status)
   }
 }
