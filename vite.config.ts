@@ -59,6 +59,25 @@ export default defineConfig({
       },
     },
     {
+      name: 'csp-inline-hashes',
+      apply: 'build',
+      writeBundle() {
+        const distPath = resolve(__dirname, 'dist')
+        const html = readFileSync(resolve(distPath, 'index.html'), 'utf-8')
+        const scriptRegex = /<script>([^<]+)<\/script>/g
+        const hashes: string[] = []
+        let match: RegExpExecArray | null
+        while ((match = scriptRegex.exec(html)) !== null) {
+          const hash = createHash('sha256').update(match[1]).digest('base64')
+          hashes.push(`'sha256-${hash}'`)
+        }
+        const headersPath = resolve(distPath, '_headers')
+        const updated = readFileSync(headersPath, 'utf-8')
+          .replace('__INLINE_SCRIPT_HASHES__', hashes.join(' '))
+        writeFileSync(headersPath, updated)
+      },
+    },
+    {
       name: 'sw-cache-version',
       writeBundle() {
         const distPath = resolve(__dirname, 'dist')
