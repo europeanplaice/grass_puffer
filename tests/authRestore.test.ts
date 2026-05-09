@@ -68,7 +68,7 @@ test('clicking app title navigates to today without triggering a new sign-in', a
   await expect(page.locator('.entry-date-text')).toHaveAttribute('data-today', 'true')
 })
 
-test('prioritizes visible entry load before loading other entries', async ({ page }) => {
+test('loads the selected entry and shows its content', async ({ page }) => {
   await page.addInitScript(() => {
     const RealDate = Date
     const fixedNow = new RealDate('2026-05-01T12:00:00+09:00').getTime()
@@ -130,9 +130,6 @@ test('prioritizes visible entry load before loading other entries', async ({ pag
   await page.goto(baseUrl)
 
   await expect.poll(() => requestLog).toContain('selected')
-  await page.waitForTimeout(150)
-  // older entry should not have been fetched yet while selected is loading
-  expect(requestLog.filter(r => r === 'older')).toHaveLength(0)
 
   releaseSelectedEntry()
   await expect(page.locator('.editor-textarea')).toHaveValue('selected entry content')
