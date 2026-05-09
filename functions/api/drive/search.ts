@@ -6,6 +6,7 @@ export const onRequestGet: PagesFunction<Env, string, Data> = async (context) =>
   const { accessToken, sessionId, session } = context.data
   const query = new URL(context.request.url).searchParams.get('q') ?? ''
   if (!query.trim()) return jsonResponse({ files: [] })
+  if (query.length > 500) return jsonResponse({ files: [] })
 
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 

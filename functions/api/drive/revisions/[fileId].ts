@@ -5,6 +5,7 @@ import { listRevisions, DriveError } from '../../../_shared/drive'
 export const onRequestGet: PagesFunction<Env, 'fileId', Data> = async (context) => {
   const { accessToken } = context.data
   const fileId = context.params.fileId as string
+  if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) return jsonResponse({ error: 'Invalid file ID' }, 400)
 
   try {
     const revisions = await listRevisions(accessToken, fileId)

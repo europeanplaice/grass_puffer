@@ -6,6 +6,8 @@ export const onRequestGet: PagesFunction<Env, 'fileId' | 'revisionId', Data> = a
   const { accessToken } = context.data
   const fileId = context.params.fileId as string
   const revisionId = context.params.revisionId as string
+  if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) return jsonResponse({ error: 'Invalid file ID' }, 400)
+  if (!/^[a-zA-Z0-9_-]{1,}$/.test(revisionId)) return jsonResponse({ error: 'Invalid revision ID' }, 400)
 
   try {
     const entry = await getRevisionContent(accessToken, fileId, revisionId)
