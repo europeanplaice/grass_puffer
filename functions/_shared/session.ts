@@ -50,7 +50,7 @@ export async function saveSession(sessionId: string, session: SessionData, env: 
   await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
 }
 
-export async function getValidSession(sessionId: string, session: SessionData, env: Env): Promise<SessionData> {
+export async function getValidSession(_sessionId: string, session: SessionData, env: Env): Promise<SessionData> {
   if (session.expires_at > Date.now() + 60_000) {
     return session
   }
@@ -73,12 +73,14 @@ export async function getValidSession(sessionId: string, session: SessionData, e
     access_token: tokens.access_token,
     expires_at: Date.now() + tokens.expires_in * 1000,
   }
-  await saveSession(sessionId, updated, env)
   return updated
 }
 
 export async function getValidAccessToken(sessionId: string, session: SessionData, env: Env): Promise<string> {
   const validSession = await getValidSession(sessionId, session, env)
+  if (validSession !== session) {
+    await saveSession(sessionId, validSession, env)
+  }
   return validSession.access_token
 }
 

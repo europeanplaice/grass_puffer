@@ -1,5 +1,5 @@
 import type { Env } from '../_shared/session'
-import { parseSessionId, getSession, saveSession, makeSessionCookie, SESSION_TTL } from '../_shared/session'
+import { parseSessionId, getSession, makeSessionCookie, SESSION_TTL } from '../_shared/session'
 
 export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   const sessionId = parseSessionId(request)
@@ -7,8 +7,6 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   const session = await getSession(sessionId, env)
   if (session === null) return signedOutResponse()
-
-  await saveSession(sessionId, session, env)
 
   const secure = !env.SESSION_DOMAIN.startsWith('http://')
   const headers = new Headers({

@@ -61,7 +61,7 @@ describe('session check handler', () => {
     const data = await response.json()
 
     expect(data).toEqual({ signedIn: true })
-    expect(put).toHaveBeenCalledWith('session:sid123', JSON.stringify({}), { expirationTtl: 60 * 60 * 24 * 30 })
+    expect(put).not.toHaveBeenCalled()
     expect(response.headers.get('Set-Cookie')).toContain('Max-Age=2592000')
   })
 
