@@ -100,3 +100,20 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=grass-puffer
+
+  codeql:
+    needs: [deploy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+
+      - uses: github/codeql-action/analyze@v4
