@@ -38,14 +38,6 @@ export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
           </svg>
           {t.login.signInWithGoogle}
         </button>
-        <details className="privacy-details">
-          <summary>{t.login.dataStorageSummary}</summary>
-          <div className="privacy-body">
-            <ul>
-              {t.login.dataStorageItems.map(item => <li key={item}>{item}</li>)}
-            </ul>
-          </div>
-        </details>
         <p className="login-footer">
           <a href="/privacy.html" target="_blank" rel="noopener noreferrer">
             {t.login.privacyPolicy}
