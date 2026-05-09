@@ -13,7 +13,7 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["google.accounts", "node", "vitest/globals"]
+    "types": ["google.accounts", "node", "vitest/globals", "@cloudflare/workers-types"]
   },
   "include": ["tests", "src"]
 }

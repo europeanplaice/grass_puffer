@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { SearchBar } from '../src/components/SearchBar'
-import type { IndexingProgress, SearchResult } from '../src/hooks/useDiary'
+import type { SearchResult } from '../src/hooks/useDiary'
 import { I18nProvider } from '../src/i18n'
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
@@ -10,14 +10,12 @@ const selectedDates: string[] = []
 const resultMap = new Map<string, SearchResult>()
 
 let currentEntriesLoading = false
-let currentIndexingProgress: IndexingProgress = { done: 0, total: 0, running: false }
 
 function render() {
   root.render(
     <I18nProvider>
       <SearchBar
         entriesLoading={currentEntriesLoading}
-        indexingProgress={currentIndexingProgress}
         onSearch={query => {
           callLog.push(query)
           const registered = resultMap.get(query)
@@ -34,9 +32,6 @@ function render() {
 window.searchHarness = {
   render: (opts = {}) => {
     if (opts.entriesLoading !== undefined) currentEntriesLoading = opts.entriesLoading
-    if (opts.indexingProgress !== undefined) {
-      currentIndexingProgress = { ...currentIndexingProgress, ...opts.indexingProgress }
-    }
     render()
   },
   setSearchResult: (query, result) => {

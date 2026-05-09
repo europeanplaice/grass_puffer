@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createHash } from 'crypto'
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 
 function hashDistFiles(dir: string, root = dir): string {
@@ -30,8 +30,9 @@ function hashDistFiles(dir: string, root = dir): string {
 export default defineConfig({
   base: '/',
   server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    proxy: {
+      '/api': 'http://localhost:8788',
+      '/auth': 'http://localhost:8788',
     },
   },
   plugins: [
@@ -54,15 +55,15 @@ export default defineConfig({
 
         const cspContent = [
           "default-src 'self'",
-          `script-src 'self' https://accounts.google.com ${hashes.join(' ')}`,
+          `script-src 'self' ${hashes.join(' ')}`,
           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
           "font-src 'self' https://fonts.gstatic.com",
           "img-src 'self' data: blob:",
           "worker-src 'self'",
           "object-src 'none'",
           "base-uri 'self'",
-          "connect-src 'self' https://www.googleapis.com https://accounts.google.com https://oauth2.googleapis.com",
-          "frame-src 'self' https://accounts.google.com",
+          "connect-src 'self'",
+          "frame-src 'self'",
           "form-action 'self'",
           "manifest-src 'self'",
         ].join('; ')
@@ -78,6 +79,27 @@ export default defineConfig({
             injectTo: 'head-prepend',
           }],
         }
+      },
+    },
+    {
+      name: 'sw-cache-version-dev',
+      apply: 'serve',
+      buildStart() {
+        const src = resolve(__dirname, 'public/sw.js')
+        const distDir = resolve(__dirname, 'dist')
+        if (!existsSync(distDir)) mkdirSync(distDir)
+        const content = readFileSync(src, 'utf-8')
+          .replace('__CACHE_VERSION__', `grass-puffer-dev-${Date.now()}`)
+        writeFileSync(resolve(distDir, 'sw.js'), content)
+      },
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          if (req.url !== '/sw.js') return next()
+          const content = readFileSync(resolve(__dirname, 'public/sw.js'), 'utf-8')
+            .replace('__CACHE_VERSION__', `grass-puffer-dev-${Date.now()}`)
+          res.setHeader('Content-Type', 'application/javascript')
+          res.end(content)
+        })
       },
     },
     {

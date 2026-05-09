@@ -27,71 +27,94 @@
 <body>
   <a href="/" class="back">← Back to Grass Puffer Diary</a>
   <h1>Privacy Policy</h1>
-  <p class="meta">Last updated: April 29, 2026</p>
+  <p class="meta">Last updated: May 9, 2026</p>
 
   <h2>1. Overview</h2>
   <p>
-    Grass Puffer Diary is a browser-only web app that stores diary entries in your own Google Drive.
-    It has no server and does not transmit your data anywhere outside of Google's infrastructure.
+    Grass Puffer Diary is a personal diary app. Your diary entries are stored in your own Google Drive.
+    The app uses Cloudflare Pages Functions as a thin backend layer to handle OAuth authentication and
+    to proxy Google Drive API requests — it does not store or process your diary content.
   </p>
 
   <h2>2. Information We Access</h2>
-  <p>The only information this app accesses via OAuth is:</p>
+  <p>The app accesses the following via OAuth:</p>
   <ul>
-    <li>A Google OAuth access token (used solely to make Drive API calls on your behalf)</li>
+    <li>A Google OAuth access token and refresh token, used solely to read and write diary files in your Google Drive</li>
     <li>Files in your Google Drive that were created by this app (JSON files inside the <code>GrassPuffer Diary/</code> folder)</li>
   </ul>
   <p>
-    The access token is held in browser memory only — it is never written to
-    cookies or any server. It is discarded when you close the page.
+    The refresh token is stored server-side in <strong>Cloudflare KV</strong> (a key-value store provided by
+    Cloudflare) and is used only to obtain fresh access tokens when needed. The browser never receives the
+    access token or refresh token directly.
   </p>
 
   <h2>3. How We Use Your Information</h2>
   <p>
-    The access token is used exclusively to create, read, update, and delete your diary entries
-    in Google Drive. It is not used for any other purpose.
+    OAuth tokens are used exclusively to create, read, update, and delete your diary entries in Google Drive
+    on your behalf. They are not used for any other purpose.
+  </p>
+  <p>
+    The Cloudflare Pages Functions backend acts as a proxy: your browser sends requests to
+    <code>/api/drive/…</code> endpoints, which add the appropriate Google authorization header and
+    forward the request to the Google Drive API. Diary content passes through Cloudflare's network
+    in transit but is not stored there.
   </p>
 
-  <h2>4. Local Storage</h2>
-  <p>This app uses <code>localStorage</code> to persist a few non-sensitive preferences:</p>
+  <h2>4. Session Storage</h2>
+  <p>
+    When you sign in, a session is created and stored in Cloudflare KV with a 30-day expiry.
+    The session record contains your Google refresh token and a cached access token.
+    Your browser receives a session identifier as an <code>HttpOnly</code>, <code>Secure</code>,
+    <code>SameSite=Lax</code> cookie (<code>grass_session</code>). The cookie contains only the
+    session ID — no tokens or diary content.
+  </p>
+
+  <h2>5. Local Storage</h2>
+  <p>This app uses <code>localStorage</code> to persist non-sensitive preferences only:</p>
   <ul>
     <li><code>grass_puffer_autosave</code> — whether auto-save is enabled</li>
-    <li><code>grass-puffer-auth-restorable</code> — a flag indicating a previous Google session may be restorable (does not store the token)</li>
-    <li>Theme and font preferences</li>
+    <li><code>grass_puffer_theme</code> — theme preference (<code>light</code> / <code>dark</code> / <code>system</code>)</li>
+    <li><code>grass_puffer_font</code> — font preference</li>
+    <li><code>grass_puffer_language</code> — language preference (<code>en</code> / <code>ja</code>)</li>
   </ul>
   <p>None of these contain diary content or authentication tokens.</p>
 
-  <h2>5. Data Sharing</h2>
+  <h2>6. Data Sharing</h2>
   <p>
     We do not share, sell, or transmit your data to any third party.
-    All data remains within your own Google Drive account.
+    Diary entries reside entirely within your own Google Drive account.
+    Session data (OAuth tokens) is held in Cloudflare KV solely to operate the service and is not
+    disclosed to any other party.
   </p>
 
-  <h2>6. OAuth Scope</h2>
+  <h2>7. OAuth Scope</h2>
   <p>
     This app requests only the <code>https://www.googleapis.com/auth/drive.file</code> scope.
     This scope grants access <strong>only to files created by this app</strong> — it does not
     provide access to the rest of your Google Drive.
   </p>
 
-  <h2>7. Analytics &amp; Advertising</h2>
+  <h2>8. Analytics &amp; Advertising</h2>
   <p>This app uses no analytics, advertising, or tracking of any kind.</p>
 
-  <h2>8. Deleting Your Data</h2>
+  <h2>9. Deleting Your Data</h2>
   <p>
-    All data created by this app is stored in the <code>GrassPuffer Diary/</code> folder in your
-    Google Drive. You can delete it at any time by removing that folder. You can also revoke this
-    app's access at any time via
+    All diary content is stored in the <code>GrassPuffer Diary/</code> folder in your Google Drive.
+    You can delete it at any time by removing that folder.<br />
+    To delete your server-side session, sign out from within the app or revoke access via
     <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account → Apps &amp; services</a>.
+    Revoking access also invalidates the stored refresh token.
   </p>
 
-  <h2>9. Security</h2>
+  <h2>10. Security</h2>
   <p>
-    Data storage and protection rely on Google Drive's security infrastructure.
-    Because this app has no server, there is no server-side data to be breached.
+    Diary content is stored and protected by Google Drive's security infrastructure.
+    Server-side session data is stored in Cloudflare KV, which is isolated per account.
+    OAuth tokens are never exposed to the browser; the browser only holds an opaque session cookie.
+    All communication between the browser, Cloudflare, and Google uses HTTPS.
   </p>
 
-  <h2>10. Contact</h2>
+  <h2>11. Contact</h2>
   <p>
     For privacy-related questions, please contact:<br />
     <a href="mailto:europeanplaice@gmail.com">europeanplaice@gmail.com</a>

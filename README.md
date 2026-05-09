@@ -1,6 +1,6 @@
 # Grass Puffer — Google Drive Diary
 
-A minimalist personal diary app that runs entirely in the browser. No server, no database — entries are stored as JSON files in your own Google Drive.
+A minimalist personal diary app. Entries are stored as JSON files in your own Google Drive.
 
 **[-> Open the app](https://grasspuffer.europeanplaice.com/)**
 
@@ -15,7 +15,7 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 - Delete entries with an explicit confirmation step
 - Detect cross-device edit conflicts and choose whether to load latest, keep local edits, or overwrite
 - View and restore past revisions of an entry
-- Export all entries as a JSON file
+- Export all entries as a ZIP of JSON files
 - Settings modal for theme (light / dark / system), font, and language (English / Japanese)
 - Data stays in your Google Drive (`GrassPuffer Diary/` folder), one JSON file per day
 - Warns before reload or date changes when there are unsaved edits
@@ -24,23 +24,63 @@ A minimalist personal diary app that runs entirely in the browser. No server, no
 
 ## How it works
 
-- Auth: Google Identity Services (OAuth 2.0 implicit grant, `drive.file` scope)
-- Storage: Google Drive API v3 — one JSON file per entry (`diary-YYYY-MM-DD.json`)
-- Saves are serialized per date, and Drive 429/5xx responses are retried with backoff
-- No backend, no cookies, no analytics
-- Access tokens are kept in memory only and never persisted
-- A small `localStorage` flag remembers that a previous Google session may be restorable;
-  it does not store the token or diary content.
-- The auto-save preference is stored in `localStorage` under `grass_puffer_autosave`.
-- Theme (`grass_puffer_theme`: `light` / `dark` / `system`), font (`grass_puffer_font`), and language (`grass_puffer_language`: `en` / `ja`) preferences are also stored in `localStorage`. The `system` theme follows the OS-level light/dark preference.
-- The app shell is cached by a service worker in production. Google sign-in and Drive
-  read/write operations still require a network connection.
-- Production builds inject a Content Security Policy that limits network access to the
-  app itself and Google OAuth/Drive endpoints.
+### Auth flow
+Uses **OAuth 2.0 Authorization Code Flow with PKCE** via Cloudflare Pages Functions:
+
+1. Clicking "Sign in with Google" redirects to `/auth/login`, which generates a PKCE code verifier,
+   stores it in Cloudflare KV (5-minute TTL), and redirects to Google's OAuth consent screen.
+2. Google redirects back to `/auth/callback` with an authorization code.
+3. The callback handler exchanges the code for access + refresh tokens (server-side, never exposed
+   to the browser), stores the session in Cloudflare KV (30-day TTL), and sets an `HttpOnly`
+   `Secure` `SameSite=Lax` session cookie (`grass_session`).
+4. Subsequent requests include the session cookie; the Cloudflare middleware resolves the session,
+   refreshes the access token if needed, and proxies the Drive API call.
+
+Scope: `drive.file` — non-sensitive, only accesses files this app created.
+
+### Drive storage
+All Drive API v3 calls are made server-side by Cloudflare Pages Functions at `/api/drive/…`.
+The browser never holds an OAuth token. Diary entries are stored as individual JSON files:
+
+```
+/GrassPuffer Diary/
+  diary-YYYY-MM-DD.json   ← { date, content, updated_at }
+```
+
+Folder ID is cached in the Cloudflare KV session record after first lookup.
+File upload uses multipart/related to set both metadata and content in one request.
+Drive 429/5xx responses are retried with exponential backoff.
+
+### State
+- `useAuth` (`src/hooks/useAuth.ts`) — calls `/auth/session` on load to check sign-in state;
+  exposes `{ signedIn, signIn, signOut }`
+- `useDiary` (`src/hooks/useDiary.ts`) — on sign-in, calls `ensureFolder` + `listEntries` via
+  the `/api/drive/…` proxy; lazily fetches content per entry into a `Map<date, EntryCache>`;
+  exposes `{ dates, getContent, save, remove, search }`
+
+### Local storage
+The browser stores only non-sensitive preferences in `localStorage`:
+- `grass_puffer_autosave` — whether auto-save is enabled
+- `grass_puffer_theme` — `light` / `dark` / `system`
+- `grass_puffer_font` — font preference
+- `grass_puffer_language` — `en` / `ja`
+
+No tokens or diary content are ever written to `localStorage`.
+
+### Components
+- `LoginScreen` — shown when not signed in
+- `App` — sidebar + main panel layout
+- `CalendarView` — monthly grid built with native `Date` arithmetic; dots on dates with entries
+- `EntryEditor` — `<textarea>`, save/delete; Ctrl+S triggers save
+- `SearchBar` — client-side full-text search across loaded entry content
+
+### Deployment
+The app is deployed to **Cloudflare Pages** via GitHub Actions (see `.github/workflows/deploy.yml`).
+The workflow runs lint, unit tests, and Playwright e2e tests, then deploys with `wrangler pages deploy`.
+
+`vite.config.ts` uses `base: '/'` (correct for a custom domain).
 
 ## Self-hosting
-
-If you want to deploy your own instance:
 
 ### 1. Fork this repository
 
@@ -50,51 +90,66 @@ If you want to deploy your own instance:
 2. Create a new project and enable the **Google Drive API**
 3. Go to **APIs & Services → Credentials → Create Credentials → OAuth 2.0 Client ID**
 4. Application type: **Web application**
-5. Add your production origin to **Authorized JavaScript origins**:
+5. Add your production origin and redirect URI:
+   - **Authorized JavaScript origins**: `https://<your-domain>`
+   - **Authorized redirect URIs**: `https://<your-domain>/auth/callback`
+6. Copy the **Client ID** and **Client Secret**
+
+### 3. Set up Cloudflare Pages
+
+1. Create a [Cloudflare](https://cloudflare.com/) account if you don't have one
+2. Create a **KV namespace** for sessions:
    ```
-   https://<your-domain>
+   wrangler kv namespace create SESSIONS
+   wrangler kv namespace create SESSIONS --preview
    ```
-   For GitHub project pages, this is usually `https://<your-username>.github.io`.
-6. Copy the **Client ID**
+3. Copy `wrangler.toml.example` to `wrangler.toml` and fill in the KV namespace IDs
+4. Add the following secrets via the Cloudflare dashboard or `wrangler pages secret put`:
+   - `GOOGLE_CLIENT_ID`
+   - `GOOGLE_CLIENT_SECRET`
+   - `SESSION_DOMAIN` (e.g. `https://your-domain.com`)
 
-### 3. Configure the repository
+### 4. Configure GitHub Actions
 
-- Add the Client ID as a repository secret named `GOOGLE_CLIENT_ID`
-  (Settings → Secrets and variables → Actions → New repository secret)
-- `vite.config.ts` currently uses `base: '/'`, which is correct for a custom domain
-  or user/organization GitHub Pages site.
-- If you deploy to GitHub project pages instead, change `base` to match your repo name:
-  ```ts
-  base: '/<your-repo-name>/',
-  ```
-- If you are not using the bundled custom domain, remove or replace `public/CNAME`.
-
-### 4. Enable GitHub Pages
-
-- Go to Settings → Pages
-- Source: **GitHub Actions**
+Add these repository secrets (Settings → Secrets and variables → Actions):
+- `CLOUDFLARE_API_TOKEN` — Cloudflare API token with Pages edit permissions
+- `CLOUDFLARE_ACCOUNT_ID` — your Cloudflare account ID
 
 Push to `main` and the app will be deployed automatically.
 
 ### Local development
 
+For UI development without authentication:
 ```bash
-printf 'VITE_GOOGLE_CLIENT_ID=<your-client-id>.apps.googleusercontent.com\n' > .env.local
-
 npm install
-npm run dev       # Vite dev server with HMR
-npm run build     # type-check + production build → dist/
-npm run preview   # serve the production build locally
-npm test          # run the Playwright test suite
+npm run dev       # Vite dev server with HMR at http://localhost:5173
 ```
 
-> Note: Google OAuth requires the origin to be registered. For local dev, add `http://localhost:5173` to your OAuth client's Authorized JavaScript origins.
+For the full stack (auth + Drive proxy) locally:
+```bash
+# Copy and configure wrangler.toml (set KV IDs, add secrets via wrangler)
+npm run dev &             # Start Vite in the background
+npm run workers:dev       # Wrangler Pages dev server at http://localhost:8788
+```
+
+Other commands:
+```bash
+npm run build     # type-check + production build → dist/
+npm run preview   # serve the production build with Wrangler locally
+npm test          # run the Playwright e2e test suite
+npm run test:unit # run Vitest unit tests
+```
+
+> Note: Google OAuth requires the redirect URI to be registered. For local dev, add
+> `http://localhost:8788/auth/callback` to your OAuth client's Authorized redirect URIs.
 
 ## Tech stack
 
 - React 19 + TypeScript
 - Vite 8
-- Google Identity Services (token model)
-- Google Drive API v3 (plain `fetch`, no `gapi.client` SDK)
-- Playwright for component and integration tests
-- GitHub Actions + GitHub Pages
+- Cloudflare Pages + Pages Functions (auth + Drive API proxy)
+- Cloudflare KV (session storage)
+- Google Drive API v3 (plain `fetch`, server-side via Cloudflare Functions)
+- Google OAuth 2.0 Authorization Code Flow with PKCE
+- Playwright for e2e tests, Vitest for unit tests
+- GitHub Actions + Cloudflare Pages (deployment)

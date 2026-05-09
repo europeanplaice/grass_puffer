@@ -1,26 +1,12 @@
-import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useI18n } from '../i18n'
 
 interface Props {
-  onReauth: () => Promise<void>
+  onReauth: () => void
 }
 
 export function SessionExpiredModal({ onReauth }: Props) {
   const { t } = useI18n()
-  const [signing, setSigning] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleClick = async () => {
-    setSigning(true)
-    setError(null)
-    try {
-      await onReauth()
-    } catch {
-      setError(t.session.reLoginFailed)
-      setSigning(false)
-    }
-  }
 
   return (
     <motion.div className="session-expired-overlay"
@@ -36,9 +22,8 @@ export function SessionExpiredModal({ onReauth }: Props) {
         transition={{ type: 'spring', stiffness: 420, damping: 32 }}
       >
         <p className="session-expired-modal-msg">{t.session.expired}</p>
-        {error && <p className="session-expired-modal-error">{error}</p>}
-        <button className="btn-reauth" onClick={handleClick} disabled={signing}>
-          {signing ? t.session.loggingIn : t.session.logInAgain}
+        <button className="btn-reauth" onClick={onReauth}>
+          {t.session.logInAgain}
         </button>
       </motion.div>
     </motion.div>

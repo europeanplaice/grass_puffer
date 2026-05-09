@@ -111,20 +111,15 @@ function shiftDate(date: string, days: number): string {
 export default function App() {
   const { t, locale } = useI18n()
   const {
-    accessToken,
     status,
-    authReady,
-    wasPreviouslySignedIn,
-    loadFailed,
     tokenExpired,
     signIn,
     signOut,
-    forgetSession,
     handleExpired,
     retryAfterExpired,
   } = useAuth()
   const { mode: themeMode, setMode: setThemeMode, toggleTheme } = useTheme()
-const { mode: fontMode, toggleFont } = useFont()
+  const { mode: fontMode, toggleFont } = useFont()
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
@@ -133,7 +128,6 @@ const { mode: fontMode, toggleFont } = useFont()
   const [retrySaveAfterReauth, setRetrySaveAfterReauth] = useState(false)
   const [reauthSaveResult, setReauthSaveResult] = useState<LoadedDiaryEntry | null>(null)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
-  const [loadedEntryDate, setLoadedEntryDate] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
@@ -146,22 +140,20 @@ const { mode: fontMode, toggleFont } = useFont()
     editorDirtyRef.current = editorDirty
   }, [editorDirty])
 
+  const isSignedIn = status === 'signedIn'
+
   const onExpired = useCallback(() => {
     handleExpired()
   }, [handleExpired])
 
-  const diary = useDiary(accessToken, onExpired)
+  const diary = useDiary(isSignedIn, onExpired)
 
   useEffect(() => {
-    setLoadedEntryDate(null)
-  }, [selectedDate])
-
-  useEffect(() => {
-    if (!accessToken) return
+    if (!isSignedIn) return
     const nextDate = dateFromHash() ?? selectedDateRef.current
     setSelectedDate(nextDate)
     selectedDateRef.current = nextDate
-  }, [accessToken])
+  }, [isSignedIn])
 
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
@@ -187,7 +179,6 @@ const { mode: fontMode, toggleFont } = useFont()
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!editorDirtyRef.current) return
-
       event.preventDefault()
     }
 
@@ -197,7 +188,6 @@ const { mode: fontMode, toggleFont } = useFont()
 
   useLayoutEffect(() => {
     if (!sidebarOpen || !isMobileLayout()) return
-
     dismissActiveTextCursor()
   }, [sidebarOpen])
 
@@ -232,7 +222,6 @@ const { mode: fontMode, toggleFont } = useFont()
   const handleEntryLoadComplete = useCallback((loadedDate: string, loaded: LoadedDiaryEntry | null) => {
     if (loadedDate !== selectedDateRef.current) return
 
-    setLoadedEntryDate(loadedDate)
     setRecentPreviews(prev => {
       const next = new Map(prev)
       const content = loaded?.entry.content ?? ''
@@ -314,12 +303,10 @@ const { mode: fontMode, toggleFont } = useFont()
     let cancelled = false
     let timerId: number | null = null
 
-    if (!accessToken || recentDates.length === 0) {
+    if (!isSignedIn || recentDates.length === 0) {
       setRecentPreviews(new Map())
       return
     }
-
-    if (loadedEntryDate !== selectedDate) return
 
     const previewDates = recentDates.filter(date => date !== selectedDateRef.current)
     if (previewDates.length === 0) return
@@ -327,14 +314,14 @@ const { mode: fontMode, toggleFont } = useFont()
     timerId = window.setTimeout(() => {
       Promise.all(
         previewDates.map(async date => {
-        const loaded = await diary.getContent(date)
-        return [
-          date,
-          {
-            snippet: firstLinePreview(loaded?.entry.content ?? ''),
-            hasContent: Boolean(loaded?.entry.content.trim()),
-          },
-        ] as const
+          const loaded = await diary.getContent(date)
+          return [
+            date,
+            {
+              snippet: firstLinePreview(loaded?.entry.content ?? ''),
+              hasContent: Boolean(loaded?.entry.content.trim()),
+            },
+          ] as const
         }),
       ).then(previews => {
         if (cancelled) return
@@ -352,15 +339,15 @@ const { mode: fontMode, toggleFont } = useFont()
       cancelled = true
       if (timerId !== null) window.clearTimeout(timerId)
     }
-  }, [accessToken, diary.getContent, recentDates.join('|'), loadedEntryDate, selectedDate])
+  }, [isSignedIn, diary.getContent, recentDates.join('|')])
 
-  const handleReauth = useCallback(async () => {
-    await signIn()
+  const handleReauth = useCallback(() => {
+    retryAfterExpired()
     setRetrySaveAfterReauth(true)
-  }, [signIn])
+  }, [retryAfterExpired])
 
   useEffect(() => {
-    if (!accessToken || !retrySaveAfterReauth) return
+    if (!isSignedIn || !retrySaveAfterReauth) return
 
     let cancelled = false
     diary.retryPendingSave()
@@ -378,21 +365,17 @@ const { mode: fontMode, toggleFont } = useFont()
     return () => {
       cancelled = true
     }
-  }, [accessToken, retrySaveAfterReauth, diary.retryPendingSave])
+  }, [isSignedIn, retrySaveAfterReauth, diary.retryPendingSave])
 
   if (status === 'initializing') {
     return <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
   }
 
-  if (!accessToken && !tokenExpired) {
+  if (status === 'signedOut' && !tokenExpired) {
     return (
       <LoginScreen
         onSignIn={signIn}
         onRetry={retryAfterExpired}
-        onForgetSession={forgetSession}
-        authReady={authReady}
-        wasPreviouslySignedIn={wasPreviouslySignedIn}
-        loadFailed={loadFailed}
         tokenExpired={tokenExpired}
       />
     )
@@ -486,7 +469,7 @@ const { mode: fontMode, toggleFont } = useFont()
           onPendingNavigate={handlePendingNavigate}
           onCancelNavigation={handleCancelNavigation}
           reauthSaveResult={reauthSaveResult}
-          token={accessToken}
+          isSignedIn={!tokenExpired}
           onExpired={onExpired}
           onLoadComplete={handleEntryLoadComplete}
         />

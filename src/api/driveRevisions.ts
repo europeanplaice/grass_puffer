@@ -1,22 +1,20 @@
 import type { DriveRevisionMeta, DiaryEntry } from '../types'
-import { withRetry, headers, TokenExpiredError, DriveHttpError } from './driveEntries'
+import { apiFetch, TokenExpiredError, DriveHttpError } from './driveEntries'
 
 export type { TokenExpiredError, DriveHttpError }
 
-const BASE = 'https://www.googleapis.com/drive/v3'
+const BASE = '/api/drive/revisions'
 
-export async function listRevisions(token: string, fileId: string): Promise<DriveRevisionMeta[]> {
-  const fields = encodeURIComponent('revisions(id,modifiedTime,size)')
-  const revisions = await withRetry(() => {
-    const p = fetch(`${BASE}/files/${fileId}/revisions?fields=${fields}`, { headers: headers(token) })
-    return p.then(res => ({ res, parse: () => res.json() as Promise<{ revisions: DriveRevisionMeta[] }> }))
-  })
-  return (revisions.revisions ?? []).slice().reverse()
+type ListRevisionsResponse = DriveRevisionMeta[] | { revisions?: DriveRevisionMeta[] }
+
+export async function listRevisions(fileId: string): Promise<DriveRevisionMeta[]> {
+  const { data } = await apiFetch<ListRevisionsResponse>(`${BASE}/${fileId}`)
+  if (Array.isArray(data)) return data
+  return data?.revisions ?? []
 }
 
-export async function getRevisionContent(token: string, fileId: string, revisionId: string): Promise<DiaryEntry> {
-  return withRetry(() => {
-    const p = fetch(`${BASE}/files/${fileId}/revisions/${revisionId}?alt=media`, { headers: headers(token) })
-    return p.then(res => ({ res, parse: () => res.json() as Promise<DiaryEntry> }))
-  })
+export async function getRevisionContent(fileId: string, revisionId: string): Promise<DiaryEntry> {
+  const { data, status } = await apiFetch<DiaryEntry>(`${BASE}/${fileId}/${revisionId}`)
+  if (status === 404 || !data) throw new DriveHttpError(404, 'Not found')
+  return data
 }

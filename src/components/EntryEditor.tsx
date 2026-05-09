@@ -23,7 +23,7 @@ interface Props {
   onPendingNavigate: () => void
   onCancelNavigation: () => void
   reauthSaveResult: LoadedDiaryEntry | null
-  token: string | null
+  isSignedIn: boolean
   onExpired: () => void
   onLoadComplete?: (date: string, entry: LoadedDiaryEntry | null) => void
 }
@@ -78,7 +78,7 @@ function isMobileLayout(): boolean {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
 }
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, token, onExpired, onLoadComplete }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, isSignedIn, onExpired, onLoadComplete }: Props) {
   const { t, locale } = useI18n()
   const savedStatus = t.entry.savedStatus
   const [text, setText] = useState('')
@@ -343,7 +343,7 @@ useEffect(() => {
   }, [loadFreshEntry])
 
   useEffect(() => {
-    if (token && tokenExpiredForDateRef.current === date) {
+    if (isSignedIn && tokenExpiredForDateRef.current === date) {
       tokenExpiredForDateRef.current = null
       setLoading(true)
       setStatus('')
@@ -356,7 +356,7 @@ useEffect(() => {
         setLoading(false)
       })
     }
-  }, [token, date, applyLoadedEntry])
+  }, [isSignedIn, date, applyLoadedEntry])
 
   const del = async () => {
     setDeleteInput('')
@@ -564,11 +564,10 @@ useEffect(() => {
   return (
     <>
     <AnimatePresence>
-      {showHistoryModal && fileIdRef.current && token && (
+      {showHistoryModal && fileIdRef.current && isSignedIn && (
         <HistoryModal
         date={date}
         fileId={fileIdRef.current}
-        token={token}
         baseVersion={baseVersion}
         text={text}
         savedText={savedText}
@@ -715,13 +714,13 @@ useEffect(() => {
                   exit={{ opacity: 0, scale: 0.91, y: -6 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                 >
-                  {token && fileIdRef.current && (
+                  {isSignedIn && fileIdRef.current && (
                     <div className="more-menu-item" onClick={() => { setShowMoreMenu(false); setShowHistoryModal(true) }}>
                       <svg className="btn-icon" aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                       {t.entry.history}
                     </div>
                   )}
-                  {token && fileIdRef.current && (
+                  {isSignedIn && fileIdRef.current && (
                     <div className="more-menu-item" onClick={() => {
                       setShowMoreMenu(false)
                       window.open(`https://drive.google.com/file/d/${fileIdRef.current}/view`, '_blank')

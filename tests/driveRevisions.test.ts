@@ -46,16 +46,15 @@ test.afterEach(() => {
 })
 
 test.describe('listRevisions', () => {
-  test('fetches revisions and returns them newest-first', async () => {
-    mockFetch(jsonResponse({
-      revisions: [
-        { id: 'rev-1', modifiedTime: '2026-05-01T10:00:00Z' },
-        { id: 'rev-2', modifiedTime: '2026-05-02T12:00:00Z' },
-        { id: 'rev-3', modifiedTime: '2026-05-03T14:00:00Z' },
-      ],
-    }))
+  test('returns revisions in the order the API provides', async () => {
+    // The Worker pre-sorts revisions newest-first; frontend passes through unchanged.
+    mockFetch(jsonResponse([
+      { id: 'rev-3', modifiedTime: '2026-05-03T14:00:00Z' },
+      { id: 'rev-2', modifiedTime: '2026-05-02T12:00:00Z' },
+      { id: 'rev-1', modifiedTime: '2026-05-01T10:00:00Z' },
+    ]))
 
-    const revisions = await listRevisions('tok', 'file-1')
+    const revisions = await listRevisions('file-1')
 
     expect(revisions).toHaveLength(3)
     expect(revisions[0].id).toBe('rev-3')
@@ -63,21 +62,20 @@ test.describe('listRevisions', () => {
     expect(revisions[2].id).toBe('rev-1')
   })
 
-  test('makes the correct API call with fields parameter', async () => {
-    mockFetch(jsonResponse({ revisions: [] }))
+  test('calls /api/drive/revisions/:fileId with credentials', async () => {
+    mockFetch(jsonResponse([]))
 
-    await listRevisions('my-token', 'file-abc')
+    await listRevisions('file-abc')
 
     expect(calls).toHaveLength(1)
-    expect(calls[0].url).toContain('/drive/v3/files/file-abc/revisions')
-    expect(decodeURIComponent(calls[0].url)).toContain('revisions(id,modifiedTime,size)')
-    expect(calls[0].init?.headers).toMatchObject({ Authorization: 'Bearer my-token' })
+    expect(calls[0].url).toBe('/api/drive/revisions/file-abc')
+    expect(calls[0].init?.credentials).toBe('include')
   })
 
-  test('returns empty array when revisions field is missing', async () => {
-    mockFetch(jsonResponse({}))
+  test('returns empty array when response is empty', async () => {
+    mockFetch(jsonResponse([]))
 
-    const revisions = await listRevisions('tok', 'file-1')
+    const revisions = await listRevisions('file-1')
 
     expect(revisions).toEqual([])
   })
@@ -85,50 +83,49 @@ test.describe('listRevisions', () => {
   test('throws TokenExpiredError on 401', async () => {
     mockFetch(jsonResponse({ error: 'Unauthorized' }, 401))
 
-    await expect(listRevisions('expired-tok', 'file-1')).rejects.toThrow(TokenExpiredError)
+    await expect(listRevisions('file-1')).rejects.toThrow(TokenExpiredError)
   })
 
   test('throws DriveHttpError on 403', async () => {
     mockFetch(jsonResponse({ error: 'Forbidden' }, 403))
 
-    const err = await listRevisions('tok', 'file-1').catch(e => e)
+    const err = await listRevisions('file-1').catch(e => e)
     expect(err).toBeInstanceOf(DriveHttpError)
     expect((err as DriveHttpError).status).toBe(403)
   })
 })
 
 test.describe('getRevisionContent', () => {
-  test('fetches revision content using alt=media', async () => {
+  test('fetches revision content from /api/drive/revisions/:fileId/:revisionId', async () => {
     const entry: DiaryEntry = { date: '2026-05-01', content: 'old text', updated_at: '2026-05-01T10:00:00Z' }
     mockFetch(jsonResponse(entry))
 
-    const result = await getRevisionContent('tok', 'file-1', 'rev-2')
+    const result = await getRevisionContent('file-1', 'rev-2')
 
     expect(result.content).toBe('old text')
     expect(result.date).toBe('2026-05-01')
   })
 
-  test('makes the correct API call with alt=media', async () => {
+  test('calls the correct URL with credentials', async () => {
     mockFetch(jsonResponse({ date: '2026-05-01', content: '', updated_at: '' }))
 
-    await getRevisionContent('my-token', 'file-abc', 'rev-xyz')
+    await getRevisionContent('file-abc', 'rev-xyz')
 
     expect(calls).toHaveLength(1)
-    expect(calls[0].url).toContain('/drive/v3/files/file-abc/revisions/rev-xyz')
-    expect(calls[0].url).toContain('alt=media')
-    expect(calls[0].init?.headers).toMatchObject({ Authorization: 'Bearer my-token' })
+    expect(calls[0].url).toBe('/api/drive/revisions/file-abc/rev-xyz')
+    expect(calls[0].init?.credentials).toBe('include')
   })
 
   test('throws TokenExpiredError on 401', async () => {
     mockFetch(jsonResponse({ error: 'Unauthorized' }, 401))
 
-    await expect(getRevisionContent('expired-tok', 'file-1', 'rev-1')).rejects.toThrow(TokenExpiredError)
+    await expect(getRevisionContent('file-1', 'rev-1')).rejects.toThrow(TokenExpiredError)
   })
 
   test('throws DriveHttpError on 404', async () => {
     mockFetch(jsonResponse({ error: 'Not Found' }, 404))
 
-    const err = await getRevisionContent('tok', 'file-1', 'bad-rev').catch(e => e)
+    const err = await getRevisionContent('file-1', 'bad-rev').catch(e => e)
     expect(err).toBeInstanceOf(DriveHttpError)
     expect((err as DriveHttpError).status).toBe(404)
   })

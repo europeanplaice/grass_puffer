@@ -1,0 +1,97 @@
+export const SESSION_TTL = 60 * 60 * 24 * 30 // 30 days
+
+const COOKIE_NAME = 'grass_session'
+
+export interface Env {
+  SESSIONS: KVNamespace
+  GOOGLE_CLIENT_ID: string
+  GOOGLE_CLIENT_SECRET: string
+  SESSION_DOMAIN: string
+}
+
+export interface SessionData {
+  refresh_token: string
+  access_token: string
+  expires_at: number // ms since epoch
+  folder_id?: string
+}
+
+export interface Data extends Record<string, unknown> {
+  sessionId: string
+  accessToken: string
+  session: SessionData
+}
+
+export function parseSessionId(request: Request): string | null {
+  const header = request.headers.get('Cookie') ?? ''
+  for (const part of header.split(';')) {
+    const trimmed = part.trim()
+    const eq = trimmed.indexOf('=')
+    if (eq === -1) continue
+    const name = trimmed.slice(0, eq)
+    const value = trimmed.slice(eq + 1)
+    if (name === COOKIE_NAME && value) return decodeURIComponent(value)
+  }
+  return null
+}
+
+export async function getSession(sessionId: string, env: Env): Promise<SessionData | null> {
+  const raw = await env.SESSIONS.get(`session:${sessionId}`)
+  if (!raw) return null
+  try {
+    return JSON.parse(raw) as SessionData
+  } catch {
+    return null
+  }
+}
+
+export async function saveSession(sessionId: string, session: SessionData, env: Env): Promise<void> {
+  await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
+}
+
+export async function getValidAccessToken(sessionId: string, session: SessionData, env: Env): Promise<string> {
+  if (session.expires_at > Date.now() + 60_000) {
+    return session.access_token
+  }
+  const resp = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      refresh_token: session.refresh_token,
+      client_id: env.GOOGLE_CLIENT_ID,
+      client_secret: env.GOOGLE_CLIENT_SECRET,
+      grant_type: 'refresh_token',
+    }).toString(),
+  })
+  if (!resp.ok) {
+    throw new Error(`Token refresh failed: ${resp.status}`)
+  }
+  const tokens = await resp.json() as { access_token: string; expires_in: number }
+  const updated: SessionData = {
+    ...session,
+    access_token: tokens.access_token,
+    expires_at: Date.now() + tokens.expires_in * 1000,
+  }
+  await saveSession(sessionId, updated, env)
+  return tokens.access_token
+}
+
+export function makeSessionCookie(sessionId: string, maxAge: number, secure = true): string {
+  const secureFlag = secure ? '; Secure' : ''
+  return `${COOKIE_NAME}=${encodeURIComponent(sessionId)}; HttpOnly${secureFlag}; SameSite=Lax; Path=/; Max-Age=${maxAge}`
+}
+
+export function clearSessionCookie(secure = true): string {
+  const secureFlag = secure ? '; Secure' : ''
+  return `${COOKIE_NAME}=; HttpOnly${secureFlag}; SameSite=Lax; Path=/; Max-Age=0`
+}
+
+export function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    },
+  })
+}

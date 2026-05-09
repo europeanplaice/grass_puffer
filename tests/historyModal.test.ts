@@ -353,9 +353,8 @@ test.describe('HistoryModal — API calls', () => {
     await renderModal(page, { fileId: 'my-file-id' })
 
     const calls = await page.evaluate(() => window.historyHarness.calls())
-    expect(calls[0].url).toContain('/drive/v3/files/my-file-id/revisions')
-    expect(calls[1].url).toContain('/drive/v3/files/my-file-id/revisions/')
-    expect(calls[1].url).toContain('alt=media')
+    expect(calls[0].url).toBe('/api/drive/revisions/my-file-id')
+    expect(calls[1].url).toBe('/api/drive/revisions/my-file-id/rev-3')
   })
 })
 

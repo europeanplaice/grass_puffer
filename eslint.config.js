@@ -16,4 +16,10 @@ export default [
       ...reactHooks.configs.flat.rules,
     },
   },
+  {
+    files: ["tests/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ];

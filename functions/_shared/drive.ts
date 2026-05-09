@@ -1,0 +1,237 @@
+import type { Env, SessionData } from './session'
+import { saveSession, SESSION_TTL } from './session'
+
+const FOLDER_NAME = 'GrassPuffer Diary'
+const BASE = 'https://www.googleapis.com/drive/v3'
+const UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3'
+
+export interface DriveFileMeta {
+  id: string
+  name: string
+  modifiedTime?: string
+  version?: string
+}
+
+export interface DiaryEntry {
+  date: string
+  content: string
+  updated_at: string
+}
+
+export interface DriveRevisionMeta {
+  id: string
+  modifiedTime: string
+  size?: string
+}
+
+export class DriveError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message)
+    this.name = 'DriveError'
+  }
+}
+
+function driveHeaders(token: string, extra?: Record<string, string>): Record<string, string> {
+  return { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache', ...extra }
+}
+
+async function driveWithRetry<T>(
+  fetcher: () => Promise<Response>,
+  parse: (r: Response) => Promise<T>,
+  accept204 = false,
+): Promise<T> {
+  const delays = [250, 500, 1000]
+  for (let attempt = 0; ; attempt++) {
+    const res = await fetcher()
+    if (res.ok || (accept204 && res.status === 204)) return parse(res)
+
+    const body = await res.text()
+    if ((res.status === 429 || res.status >= 500) && attempt < delays.length) {
+      let delay = delays[attempt]
+      const ra = res.headers.get('Retry-After')
+      if (ra) { const s = parseFloat(ra); if (!isNaN(s)) delay = s * 1000 }
+      await new Promise(r => setTimeout(r, delay * (1 + 0.2 * (Math.random() * 2 - 1))))
+      continue
+    }
+    throw new DriveError(res.status, body)
+  }
+}
+
+export async function ensureFolder(token: string, sessionId: string, session: SessionData, env: Env): Promise<string> {
+  if (session.folder_id) return session.folder_id
+
+  const q = encodeURIComponent(`mimeType='application/vnd.google-apps.folder' and name='${FOLDER_NAME}' and trashed=false`)
+  const list = await driveWithRetry(
+    () => fetch(`${BASE}/files?q=${q}&fields=files(id,name)`, { headers: driveHeaders(token) }),
+    r => r.json() as Promise<{ files: { id: string }[] }>,
+  )
+
+  let folderId: string
+  if (list.files.length > 0) {
+    folderId = list.files[0].id
+  } else {
+    const created = await driveWithRetry(
+      () => fetch(`${BASE}/files`, {
+        method: 'POST',
+        headers: driveHeaders(token, { 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ name: FOLDER_NAME, mimeType: 'application/vnd.google-apps.folder' }),
+      }),
+      r => r.json() as Promise<{ id: string }>,
+    )
+    folderId = created.id
+  }
+
+  const updated = { ...session, folder_id: folderId }
+  await saveSession(sessionId, updated, env)
+  session.folder_id = folderId
+  return folderId
+}
+
+async function withFolderFallback<T>(
+  token: string,
+  sessionId: string,
+  session: SessionData,
+  env: Env,
+  op: (folderId: string) => Promise<T>,
+): Promise<T> {
+  const folderId = await ensureFolder(token, sessionId, session, env)
+  try {
+    return await op(folderId)
+  } catch (e) {
+    if (e instanceof DriveError && e.status === 404) {
+      session.folder_id = undefined
+      const freshId = await ensureFolder(token, sessionId, session, env)
+      return op(freshId)
+    }
+    throw e
+  }
+}
+
+export async function listEntries(token: string, sessionId: string, session: SessionData, env: Env): Promise<DriveFileMeta[]> {
+  return withFolderFallback(token, sessionId, session, env, async folderId => {
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='application/json'`)
+    const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
+    const res = await driveWithRetry(
+      () => fetch(`${BASE}/files?q=${q}&fields=${fields}&pageSize=1000`, { headers: driveHeaders(token) }),
+      r => r.json() as Promise<{ files: DriveFileMeta[] }>,
+    )
+    return res.files
+  })
+}
+
+export async function searchEntries(token: string, sessionId: string, session: SessionData, env: Env, query: string): Promise<DriveFileMeta[]> {
+  const escapedQuery = query.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+  return withFolderFallback(token, sessionId, session, env, async folderId => {
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='application/json' and fullText contains '${escapedQuery}'`)
+    const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
+    const res = await driveWithRetry(
+      () => fetch(`${BASE}/files?q=${q}&fields=${fields}&pageSize=1000`, { headers: driveHeaders(token) }),
+      r => r.json() as Promise<{ files: DriveFileMeta[] }>,
+    )
+    return res.files
+  })
+}
+
+export async function findEntryMeta(token: string, sessionId: string, session: SessionData, env: Env, date: string): Promise<DriveFileMeta | null> {
+  const filename = `diary-${date}.json`.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+  return withFolderFallback(token, sessionId, session, env, async folderId => {
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name='${filename}'`)
+    const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
+    const res = await driveWithRetry(
+      () => fetch(`${BASE}/files?q=${q}&fields=${fields}&pageSize=1`, { headers: driveHeaders(token) }),
+      r => r.json() as Promise<{ files: DriveFileMeta[] }>,
+    )
+    return res.files[0] ?? null
+  })
+}
+
+export async function getEntryMeta(token: string, fileId: string): Promise<DriveFileMeta> {
+  const fields = encodeURIComponent('id,name,modifiedTime,version')
+  return driveWithRetry(
+    () => fetch(`${BASE}/files/${fileId}?fields=${fields}`, { headers: driveHeaders(token) }),
+    r => r.json() as Promise<DriveFileMeta>,
+  )
+}
+
+export async function getEntryContent(token: string, fileId: string): Promise<DiaryEntry> {
+  return driveWithRetry(
+    () => fetch(`${BASE}/files/${fileId}?alt=media`, { headers: driveHeaders(token) }),
+    r => r.json() as Promise<DiaryEntry>,
+  )
+}
+
+function buildMultipart(meta: object, body: string): { contentType: string; data: string } {
+  const boundary = 'grass_puffer_boundary'
+  const parts = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(meta),
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    body,
+    `--${boundary}--`,
+  ].join('\r\n')
+  return { contentType: `multipart/related; boundary=${boundary}`, data: parts }
+}
+
+export async function saveEntry(
+  token: string,
+  entry: DiaryEntry,
+  folderId: string,
+  fileId?: string,
+): Promise<DriveFileMeta> {
+  const body = JSON.stringify(entry)
+  const fields = encodeURIComponent('id,name,modifiedTime,version')
+
+  if (fileId) {
+    const { contentType, data } = buildMultipart({}, body)
+    return driveWithRetry(
+      () => fetch(`${UPLOAD_BASE}/files/${fileId}?uploadType=multipart&fields=${fields}`, {
+        method: 'PATCH',
+        headers: driveHeaders(token, { 'Content-Type': contentType }),
+        body: data,
+      }),
+      r => r.json() as Promise<DriveFileMeta>,
+    )
+  }
+
+  const filename = `diary-${entry.date}.json`
+  const { contentType, data } = buildMultipart({ name: filename, parents: [folderId] }, body)
+  return driveWithRetry(
+    () => fetch(`${UPLOAD_BASE}/files?uploadType=multipart&fields=${fields}`, {
+      method: 'POST',
+      headers: driveHeaders(token, { 'Content-Type': contentType }),
+      body: data,
+    }),
+    r => r.json() as Promise<DriveFileMeta>,
+  )
+}
+
+export async function deleteEntry(token: string, fileId: string): Promise<void> {
+  await driveWithRetry(
+    () => fetch(`${BASE}/files/${fileId}`, { method: 'DELETE', headers: driveHeaders(token) }),
+    () => Promise.resolve(),
+    true,
+  )
+}
+
+export async function listRevisions(token: string, fileId: string): Promise<DriveRevisionMeta[]> {
+  const fields = encodeURIComponent('revisions(id,modifiedTime,size)')
+  const res = await driveWithRetry(
+    () => fetch(`${BASE}/files/${fileId}/revisions?fields=${fields}`, { headers: driveHeaders(token) }),
+    r => r.json() as Promise<{ revisions: DriveRevisionMeta[] }>,
+  )
+  return (res.revisions ?? []).slice().reverse()
+}
+
+export async function getRevisionContent(token: string, fileId: string, revisionId: string): Promise<DiaryEntry> {
+  return driveWithRetry(
+    () => fetch(`${BASE}/files/${fileId}/revisions/${revisionId}?alt=media`, { headers: driveHeaders(token) }),
+    r => r.json() as Promise<DiaryEntry>,
+  )
+}
+
+// Re-export SESSION_TTL for route handlers that update the session
+export { SESSION_TTL }

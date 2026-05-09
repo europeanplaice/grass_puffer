@@ -24,7 +24,6 @@ interface Window {
   searchHarness: {
     render: (opts?: {
       entriesLoading?: boolean
-      indexingProgress?: Partial<import('../src/hooks/useDiary').IndexingProgress>
     }) => void
     setSearchResult: (query: string, result: import('../src/hooks/useDiary').SearchResult) => void
     calls: () => string[]
@@ -79,7 +78,7 @@ interface Window {
   }
   historyHarness: {
     q: (...responses: { status: number; body: unknown; delayMs?: number }[]) => void
-    render: (opts?: { date?: string; fileId?: string; token?: string; baseVersion?: string | null }) => void
+    render: (opts?: { date?: string; fileId?: string; baseVersion?: string | null }) => void
     calls: () => { url: string; method: string }[]
     saveCalls: () => { date: string; content: string; baseVersion: string | null; force?: boolean }[]
     restoredCalls: () => import('../src/types').LoadedDiaryEntry[]
@@ -89,10 +88,7 @@ interface Window {
   }
   loginScreenHarness: {
     render: (opts?: {
-      authReady?: boolean
-      wasPreviouslySignedIn?: boolean
-      sessionExpired?: boolean
-      loadFailed?: boolean
+      tokenExpired?: boolean
     }) => void
   }
 }
