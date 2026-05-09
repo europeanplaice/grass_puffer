@@ -146,7 +146,7 @@ npm run test:unit # run Vitest unit tests
 ## Tech stack
 
 - React 19 + TypeScript
-- Vite 6
+- Vite 8
 - Cloudflare Pages + Pages Functions (auth + Drive API proxy)
 - Cloudflare KV (session storage)
 - Google Drive API v3 (plain `fetch`, server-side via Cloudflare Functions)
