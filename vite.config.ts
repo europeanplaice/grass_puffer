@@ -38,50 +38,6 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'csp-production',
-      apply: 'build',
-      transformIndexHtml(html) {
-        // Extract inline scripts (no src attribute)
-        const scriptRegex = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi
-        const hashes: string[] = []
-        let match: RegExpExecArray | null
-        while ((match = scriptRegex.exec(html)) !== null) {
-          const content = match[1].trim()
-          if (content) {
-            const hash = createHash('sha256').update(content).digest('base64')
-            hashes.push(`'sha256-${hash}'`)
-          }
-        }
-
-        const cspContent = [
-          "default-src 'self'",
-          `script-src 'self' ${hashes.join(' ')}`,
-          "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-          "font-src 'self' https://fonts.gstatic.com",
-          "img-src 'self' data: blob:",
-          "worker-src 'self'",
-          "object-src 'none'",
-          "base-uri 'self'",
-          "connect-src 'self'",
-          "frame-src 'self'",
-          "form-action 'self'",
-          "manifest-src 'self'",
-        ].join('; ')
-
-        return {
-          html,
-          tags: [{
-            tag: 'meta',
-            attrs: {
-              'http-equiv': 'Content-Security-Policy',
-              content: cspContent,
-            },
-            injectTo: 'head-prepend',
-          }],
-        }
-      },
-    },
-    {
       name: 'sw-cache-version-dev',
       apply: 'serve',
       buildStart() {
