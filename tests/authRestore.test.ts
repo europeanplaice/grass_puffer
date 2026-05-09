@@ -43,6 +43,10 @@ test('keeps restoring editor header typography stable after loading', async ({ p
 
   await page.goto(baseUrl)
   await expect(page.locator('.restoring-editor .editor-header h2')).toBeVisible()
+  await expect.poll(async () => page.locator('.restoring-sidebar').evaluate(el => {
+    const rect = el.getBoundingClientRect()
+    return Math.round(rect.right)
+  })).toBeLessThanOrEqual(0)
   await page.evaluate(() => document.fonts.ready)
 
   const loadingMetrics = await page.locator('.restoring-editor .editor-header h2').evaluate(el => {

@@ -1802,6 +1802,9 @@ body {
   .sidebar.open {
     transform: translateX(0);
   }
+  .restoring-sidebar.open {
+    transform: translateX(-100%);
+  }
   .sidebar-overlay.open {
     display: block;
   }
