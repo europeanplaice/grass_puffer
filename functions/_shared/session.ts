@@ -49,9 +49,9 @@ export async function saveSession(sessionId: string, session: SessionData, env: 
   await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(session), { expirationTtl: SESSION_TTL })
 }
 
-export async function getValidAccessToken(sessionId: string, session: SessionData, env: Env): Promise<string> {
+export async function getValidSession(sessionId: string, session: SessionData, env: Env): Promise<SessionData> {
   if (session.expires_at > Date.now() + 60_000) {
-    return session.access_token
+    return session
   }
   const resp = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -73,7 +73,12 @@ export async function getValidAccessToken(sessionId: string, session: SessionDat
     expires_at: Date.now() + tokens.expires_in * 1000,
   }
   await saveSession(sessionId, updated, env)
-  return tokens.access_token
+  return updated
+}
+
+export async function getValidAccessToken(sessionId: string, session: SessionData, env: Env): Promise<string> {
+  const validSession = await getValidSession(sessionId, session, env)
+  return validSession.access_token
 }
 
 export function makeSessionCookie(sessionId: string, maxAge: number, secure = true): string {

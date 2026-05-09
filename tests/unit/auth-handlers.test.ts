@@ -48,15 +48,21 @@ describe('logout handler', () => {
 
 describe('session check handler', () => {
   it('returns signedIn: true when session exists', async () => {
+    const put = vi.fn()
     const request = new Request('http://localhost/auth/session', {
       headers: { Cookie: 'grass_session=sid123' },
     })
-    const env = { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify({})) } }
+    const env = {
+      SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify({})), put },
+      SESSION_DOMAIN: 'https://example.com',
+    }
 
     const response = await onSessionCheck({ request, env } as any)
     const data = await response.json()
 
     expect(data).toEqual({ signedIn: true })
+    expect(put).toHaveBeenCalledWith('session:sid123', JSON.stringify({}), { expirationTtl: 60 * 60 * 24 * 30 })
+    expect(response.headers.get('Set-Cookie')).toContain('Max-Age=2592000')
   })
 
   it('returns signedIn: false when no cookie', async () => {

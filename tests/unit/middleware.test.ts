@@ -22,17 +22,19 @@ afterEach(() => {
 
 describe('API auth middleware', () => {
   function makeContext(overrides?: Record<string, unknown>) {
+    const baseEnv = {
+      SESSIONS: { get: vi.fn(), put: vi.fn(), delete: vi.fn() },
+      GOOGLE_CLIENT_ID: 'id',
+      GOOGLE_CLIENT_SECRET: 'secret',
+      SESSION_DOMAIN: 'https://example.com',
+    }
+    const envOverride = overrides?.env as Record<string, unknown> | undefined
     return {
       request: new Request('http://localhost/api/drive/entries'),
-      env: {
-        SESSIONS: { get: vi.fn(), put: vi.fn(), delete: vi.fn() },
-        GOOGLE_CLIENT_ID: 'id',
-        GOOGLE_CLIENT_SECRET: 'secret',
-        SESSION_DOMAIN: 'https://example.com',
-      },
       data: {} as Record<string, unknown>,
       next: vi.fn().mockReturnValue(new Response('ok')),
       ...overrides,
+      env: { ...baseEnv, ...envOverride },
     }
   }
 
@@ -77,11 +79,12 @@ describe('API auth middleware', () => {
 
   it('calls next() with sessionId and accessToken in data', async () => {
     const session = makeSession()
+    const put = vi.fn()
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entries', {
         headers: { Cookie: 'grass_session=sid123' },
       }),
-      env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(session)), put: vi.fn() } },
+      env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(session)), put } },
     })
 
     const response = await onRequest(ctx as any)
@@ -90,5 +93,7 @@ describe('API auth middleware', () => {
     expect(ctx.data.sessionId).toBe('sid123')
     expect(ctx.data.accessToken).toBe('at')
     expect(ctx.next).toHaveBeenCalledOnce()
+    expect(put).toHaveBeenCalledWith('session:sid123', JSON.stringify(session), { expirationTtl: 60 * 60 * 24 * 30 })
+    expect(response.headers.get('Set-Cookie')).toContain('Max-Age=2592000')
   })
 })
