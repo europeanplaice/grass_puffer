@@ -1,10 +1,9 @@
 import type { Env, Data } from '../../_shared/session'
-import { getSession, jsonResponse } from '../../_shared/session'
+import { jsonResponse } from '../../_shared/session'
 import { listEntries } from '../../_shared/drive'
 
 export const onRequestGet: PagesFunction<Env, string, Data> = async (context) => {
-  const { accessToken, sessionId } = context.data
-  const session = await getSession(sessionId, context.env)
+  const { accessToken, sessionId, session } = context.data
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {

@@ -17,5 +17,6 @@ export const onRequest: PagesFunction<Env, string, Data> = async (context) => {
 
   context.data.sessionId = sessionId
   context.data.accessToken = accessToken
+  context.data.session = session
   return context.next()
 }

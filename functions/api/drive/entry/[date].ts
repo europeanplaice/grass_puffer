@@ -1,5 +1,5 @@
 import type { Env, Data } from '../../../_shared/session'
-import { getSession, jsonResponse } from '../../../_shared/session'
+import { jsonResponse } from '../../../_shared/session'
 import {
   findEntryMeta,
   getEntryMeta,
@@ -12,12 +12,11 @@ import {
 import type { DiaryEntry } from '../../../_shared/drive'
 
 export const onRequestGet: PagesFunction<Env, 'date', Data> = async (context) => {
-  const { accessToken, sessionId } = context.data
+  const { accessToken, sessionId, session } = context.data
   const date = context.params.date as string
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return jsonResponse({ error: 'Invalid date' }, 400)
 
-  const session = await getSession(sessionId, context.env)
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {
@@ -39,7 +38,7 @@ export const onRequestGet: PagesFunction<Env, 'date', Data> = async (context) =>
 }
 
 export const onRequestPost: PagesFunction<Env, 'date', Data> = async (context) => {
-  const { accessToken, sessionId } = context.data
+  const { accessToken, sessionId, session } = context.data
   const date = context.params.date as string
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return jsonResponse({ error: 'Invalid date' }, 400)
@@ -53,7 +52,6 @@ export const onRequestPost: PagesFunction<Env, 'date', Data> = async (context) =
 
   if (typeof body.content !== 'string') return jsonResponse({ error: 'content is required' }, 400)
 
-  const session = await getSession(sessionId, context.env)
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {
@@ -68,12 +66,11 @@ export const onRequestPost: PagesFunction<Env, 'date', Data> = async (context) =
 }
 
 export const onRequestDelete: PagesFunction<Env, 'date', Data> = async (context) => {
-  const { accessToken, sessionId } = context.data
+  const { accessToken, sessionId, session } = context.data
   const date = context.params.date as string
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return jsonResponse({ error: 'Invalid date' }, 400)
 
-  const session = await getSession(sessionId, context.env)
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {

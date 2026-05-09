@@ -16,10 +16,10 @@ export interface SessionData {
   folder_id?: string
 }
 
-export interface Data {
+export interface Data extends Record<string, unknown> {
   sessionId: string
   accessToken: string
-  [key: string]: unknown
+  session: SessionData
 }
 
 export function parseSessionId(request: Request): string | null {
