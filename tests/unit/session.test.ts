@@ -76,7 +76,7 @@ describe('makeSessionCookie', () => {
     expect(cookie).toContain('grass_session=abc123')
     expect(cookie).toContain('HttpOnly')
     expect(cookie).toContain('Secure')
-    expect(cookie).toContain('SameSite=Lax')
+    expect(cookie).toContain('SameSite=Strict')
     expect(cookie).toContain('Path=/')
     expect(cookie).toContain('Max-Age=3600')
   })
