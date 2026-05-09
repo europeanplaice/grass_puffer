@@ -167,6 +167,12 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
               {t.settings.storageItems.map(item => <li key={item}>{item}</li>)}
             </ul>
           </div>
+          <div className="settings-divider" />
+          <div className="settings-legal">
+            <a href="/privacy.html" target="_blank" rel="noopener noreferrer">{t.settings.privacyPolicy}</a>
+            {' · '}
+            <a href="/terms-of-service.html" target="_blank" rel="noopener noreferrer">{t.settings.termsOfService}</a>
+          </div>
         </div>
       </motion.div>
     </motion.div>

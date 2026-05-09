@@ -5,7 +5,7 @@ dist
 .env
 .dev.vars
 *.local
-docs/migration-to-cloudflare.md
+docs/
 CLAUDE.md
 .playwright-mcp/
 .codex

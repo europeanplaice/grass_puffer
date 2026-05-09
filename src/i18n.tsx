@@ -160,6 +160,8 @@ const dictionaries = {
         'Format: { date, content, updated_at }',
         'This app only accesses files it created (scope: drive.file)',
       ],
+      privacyPolicy: 'Privacy Policy',
+      termsOfService: 'Terms of Service',
     },
     export: {
       title: 'Export all diary entries as ZIP file',
@@ -328,6 +330,8 @@ const dictionaries = {
         '形式: { date, content, updated_at }',
         'このアプリは自分で作成したファイルだけにアクセスします（scope: drive.file）',
       ],
+      privacyPolicy: 'プライバシーポリシー',
+      termsOfService: '利用規約',
     },
     export: {
       title: 'すべての日記を ZIP ファイルとしてエクスポート',

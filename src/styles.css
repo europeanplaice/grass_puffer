@@ -794,6 +794,19 @@ body {
   padding: 0.05em 0.3em;
   border-radius: 3px;
 }
+.settings-legal {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+  padding: 0.25rem 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.settings-legal a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.settings-legal a:hover { text-decoration: underline; }
 .settings-action-btn {
   display: inline-flex;
   align-items: center;

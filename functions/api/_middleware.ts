@@ -1,5 +1,5 @@
 import type { Env, Data } from '../_shared/session'
-import { parseSessionId, getSession, getValidAccessToken, jsonResponse } from '../_shared/session'
+import { parseSessionId, getSession, getValidAccessToken, makeSessionCookie, SESSION_TTL, jsonResponse } from '../_shared/session'
 
 export const onRequest: PagesFunction<Env, string, Data> = async (context) => {
   const sessionId = parseSessionId(context.request)
@@ -18,5 +18,14 @@ export const onRequest: PagesFunction<Env, string, Data> = async (context) => {
   context.data.sessionId = sessionId
   context.data.accessToken = accessToken
   context.data.session = session
-  return context.next()
+
+  const response = await context.next()
+  const secure = !context.env.SESSION_DOMAIN.startsWith('http://')
+  const newHeaders = new Headers(response.headers)
+  newHeaders.append('Set-Cookie', makeSessionCookie(sessionId, SESSION_TTL, secure))
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  })
 }
