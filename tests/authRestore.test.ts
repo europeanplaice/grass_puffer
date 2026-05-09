@@ -24,6 +24,55 @@ test('valid session skips login screen and shows diary directly', async ({ page 
   await expect(page.locator('.login-screen')).toHaveCount(0)
 })
 
+test('keeps restoring editor header typography stable after loading', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 })
+
+  let releaseEntries!: () => void
+  const entriesGate = new Promise<void>(resolve => { releaseEntries = resolve })
+
+  await page.route('/auth/session', async route => {
+    await route.fulfill({ json: { signedIn: true } })
+  })
+  await page.route('/api/drive/entries', async route => {
+    await entriesGate
+    await route.fulfill({ json: { files: [] } })
+  })
+  await page.route('/api/drive/entry/**', async route => {
+    await route.fulfill({ status: 404, body: '' })
+  })
+
+  await page.goto(baseUrl)
+  await expect(page.locator('.restoring-editor .editor-header h2')).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
+
+  const loadingMetrics = await page.locator('.restoring-editor .editor-header h2').evaluate(el => {
+    const styles = getComputedStyle(el)
+    const rect = el.getBoundingClientRect()
+    return {
+      fontFamily: styles.fontFamily,
+      fontSize: styles.fontSize,
+      height: rect.height,
+      lineHeight: styles.lineHeight,
+    }
+  })
+
+  releaseEntries()
+  await expect(page.locator('textarea.editor-textarea')).toBeVisible()
+
+  const loadedMetrics = await page.locator('.editor-header h2').evaluate(el => {
+    const styles = getComputedStyle(el)
+    const rect = el.getBoundingClientRect()
+    return {
+      fontFamily: styles.fontFamily,
+      fontSize: styles.fontSize,
+      height: rect.height,
+      lineHeight: styles.lineHeight,
+    }
+  })
+
+  expect(loadedMetrics).toEqual(loadingMetrics)
+})
+
 test('no session shows login screen with sign-in button', async ({ page }) => {
   await page.route('/auth/session', async route => {
     await route.fulfill({ json: { signedIn: false } })

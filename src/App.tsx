@@ -69,6 +69,8 @@ function dismissActiveTextCursor() {
 
 function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string; onTitleClick: () => void }) {
   const { t, locale } = useI18n()
+  const weekday = weekdayLabel(selectedDate, locale)
+  const isToday = selectedDate === todayYmd()
 
   return (
     <div className="app restoring-app">
@@ -88,9 +90,29 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
       <main className="main">
         <div className="editor restoring-editor">
           <div className="editor-header">
-            <h2>{diaryDateLabel(selectedDate, true, 'long', locale)}</h2>
-            <span className="editor-status">{t.app.loading}</span>
+            <div className="editor-date-group">
+              <span className="btn-menu restoring-header-placeholder" aria-hidden="true">☰</span>
+              <span className="btn-day-nav restoring-header-placeholder" aria-hidden="true">‹</span>
+              <h2>
+                <span
+                  className="entry-date-text"
+                  data-today={isToday || undefined}
+                  aria-label={isToday ? `${diaryDateLabel(selectedDate, true, 'long', locale)}${weekday ? ` ${weekday}` : ''}, ${t.common.today}` : undefined}
+                >
+                  <span className="entry-date-label-full">{diaryDateLabel(selectedDate, true, 'long', locale)}</span>
+                  <span className="entry-date-label-short">{diaryDateLabel(selectedDate, true, 'short', locale)}</span>
+                  {weekday && <span className="entry-date-weekday">{weekday}</span>}
+                </span>
+              </h2>
+              <span className="btn-day-nav restoring-header-placeholder" aria-hidden="true">›</span>
+            </div>
+            <div className="editor-actions">
+              <span className="btn-refresh-entry restoring-header-placeholder" aria-hidden="true" />
+              <span className="btn-save restoring-header-placeholder" aria-hidden="true">{t.entry.save}</span>
+              <span className="btn-more restoring-header-placeholder" aria-hidden="true">···</span>
+            </div>
           </div>
+          <div className="editor-status-line" role="status">{t.app.loading}</div>
           <div className="restoring-lines">
             <span />
             <span />

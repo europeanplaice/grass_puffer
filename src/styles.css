@@ -1227,6 +1227,10 @@ body {
 .editor-actions .btn-more:hover,
 .editor-actions .btn-more:focus,
 .editor-actions .btn-more:active { background: none; }
+.restoring-header-placeholder {
+  pointer-events: none;
+  visibility: hidden;
+}
 .more-menu {
   position: absolute;
   top: calc(100% + 0.35rem);
