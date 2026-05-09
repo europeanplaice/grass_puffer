@@ -117,6 +117,23 @@ describe('onRequestGet (OAuth callback)', () => {
     expect(response.headers.get('Location')).toBe('/')
   })
 
+  it('redirects to / when returnPath is protocol-relative (//evil.com)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 'at', refresh_token: 'rt', expires_in: 3600 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ))
+    const env = makeEnv({ SESSIONS: { get: vi.fn().mockResolvedValue('verifier'), delete: vi.fn(), put: vi.fn() } })
+    const returnPath = encodeURIComponent('//evil.com')
+    const request = new Request(callbackUrl({ code: 'abc', state: `valid-state:${returnPath}` }))
+
+    const response = await onRequestGet({ request, env } as any)
+
+    expect(response.status).toBe(302)
+    expect(response.headers.get('Location')).toBe('/')
+  })
+
   it('redirects to the return path from state', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ access_token: 'at', refresh_token: 'rt', expires_in: 3600 }), {

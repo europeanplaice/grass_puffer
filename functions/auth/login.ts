@@ -23,7 +23,8 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
 
   await env.SESSIONS.put(`oauth_state:${state}`, codeVerifier, { expirationTtl: 300 })
 
-  const returnPath = new URL(request.url).searchParams.get('redirect') ?? '/'
+  const rawReturnPath = new URL(request.url).searchParams.get('redirect') ?? '/'
+  const returnPath = (rawReturnPath.startsWith('/') && !rawReturnPath.startsWith('//')) ? rawReturnPath : '/'
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,

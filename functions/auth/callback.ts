@@ -56,7 +56,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   }
   await saveSession(sessionId, session, env)
 
-  const safeReturnPath = returnPath.startsWith('/') ? returnPath : '/'
+  const safeReturnPath = (returnPath.startsWith('/') && !returnPath.startsWith('//')) ? returnPath : '/'
 
   const secure = !env.SESSION_DOMAIN.startsWith('http://')
 

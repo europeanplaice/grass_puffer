@@ -22,7 +22,7 @@ function shouldRetry(status: number): boolean {
   return status === 429 || status >= 500
 }
 
-async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ data: T; status: number }> {
+export async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ data: T; status: number }> {
   const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { ...init, credentials: 'include', cache: 'no-store' })

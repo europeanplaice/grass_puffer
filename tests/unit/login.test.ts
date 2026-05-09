@@ -84,6 +84,23 @@ describe('onRequestGet (login redirect)', () => {
     expect(state).toContain(encodeURIComponent('/custom/path'))
   })
 
+  it('sanitizes protocol-relative redirect path to /', async () => {
+    const put = vi.fn()
+    const env = makeEnv()
+    env.SESSIONS.put = put
+    const request = new Request('http://localhost/auth/login?redirect=//evil.com')
+
+    const response = await onRequestGet({ request, env } as any)
+
+    // stateにprotocol-relativeなパスが含まれていないことを確認
+    const location = response.headers.get('Location')!
+    const url = new URL(location)
+    const state = url.searchParams.get('state')!
+    const colonIdx = state.indexOf(':')
+    const returnPath = colonIdx === -1 ? '/' : decodeURIComponent(state.slice(colonIdx + 1))
+    expect(returnPath).toBe('/')
+  })
+
   it('defaults return path to /', async () => {
     const put = vi.fn()
     const env = makeEnv()
