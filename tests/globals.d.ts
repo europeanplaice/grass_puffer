@@ -54,7 +54,7 @@ interface Window {
       initialContent?: string
       version?: string | null
       saveReject?: 'conflict' | 'error'
-      getContentReject?: 'tokenExpired'
+      getContentReject?: 'tokenExpired' | 'error'
       autoSave?: boolean
       getContentDelayMs?: number
       pendingNavDate?: string | null

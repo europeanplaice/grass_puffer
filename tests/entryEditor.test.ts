@@ -90,6 +90,13 @@ test.describe('EntryEditor — date header', () => {
     ])
   })
 
+  test('does not show an editor placeholder for empty entries', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-02', initialContent: '', version: null })
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveAttribute('placeholder', '')
+  })
+
   test('shows the weekday next to the entry date', async ({ page }) => {
     await loadHarness(page)
     await renderEditor(page, { date: '2026-05-01', initialContent: '' })
@@ -797,6 +804,22 @@ test.describe('EntryEditor — saving overlay', () => {
 })
 
 test.describe('EntryEditor — token expiry', () => {
+  test('keeps a failed entry load read-only and prevents saving', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      window.editorHarness.render({ getContentReject: 'error', date: '2026-05-01', token: 'mock-token' })
+    })
+    await page.waitForSelector('textarea.editor-textarea')
+
+    await expect(page.getByRole('status')).toHaveText('Failed to load entry.')
+    await expect(page.locator('textarea.editor-textarea')).toHaveJSProperty('readOnly', true)
+    await expect(page.locator('button.btn-save')).toBeDisabled()
+
+    await page.keyboard.press('Control+S')
+    const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
+    expect(saveCalls).toHaveLength(0)
+  })
+
   test('does not show failed to load message when getContent throws TokenExpiredError', async ({ page }) => {
     await loadHarness(page)
     await page.evaluate(() => {

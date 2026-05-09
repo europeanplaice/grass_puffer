@@ -27,7 +27,7 @@ let dirtyChanges: boolean[] = []
 let loadCompleteCalls: LoadCompleteCall[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
-let currentGetContentReject: 'tokenExpired' | undefined = undefined
+let currentGetContentReject: 'tokenExpired' | 'error' | undefined = undefined
 let expiredCount = 0
 let currentToken: string | null = null
 let currentSaveDelayMs = 0
@@ -74,6 +74,9 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
         if (currentGetContentReject === 'tokenExpired') {
           onExpired()
           throw new TokenExpiredError()
+        }
+        if (currentGetContentReject === 'error') {
+          throw new Error('Network error')
         }
         if (!currentRemoteContent && currentRemoteVersion === null) return null
         return {
@@ -139,7 +142,7 @@ window.editorHarness = {
     initialContent?: string
     version?: string | null
     saveReject?: 'conflict' | 'error'
-    getContentReject?: 'tokenExpired'
+    getContentReject?: 'tokenExpired' | 'error'
     autoSave?: boolean
     getContentDelayMs?: number
     pendingNavDate?: string | null

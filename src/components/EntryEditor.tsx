@@ -88,6 +88,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [saving, setSaving] = useState(false)
   const [explicitSaving, setExplicitSaving] = useState(false)
   const [status, setStatus] = useState('')
+  const [loadFailed, setLoadFailed] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
   const [showMoreMenu, setShowMoreMenu] = useState(false)
@@ -121,6 +122,7 @@ const savingRef = useRef(saving)
 const explicitSavingRef = useRef(explicitSaving)
 const hasConflictRef = useRef(hasConflict)
 const loadingRef = useRef(loading)
+const loadFailedRef = useRef(loadFailed)
 const refreshingRef = useRef(refreshing)
 const pullDistanceRef = useRef(pullDistance)
 
@@ -132,9 +134,10 @@ useEffect(() => {
   explicitSavingRef.current = explicitSaving
   hasConflictRef.current = hasConflict
   loadingRef.current = loading
+  loadFailedRef.current = loadFailed
   refreshingRef.current = refreshing
   pullDistanceRef.current = pullDistance
-}, [text, savedText, baseVersion, saving, explicitSaving, hasConflict, loading, refreshing, pullDistance])
+}, [text, savedText, baseVersion, saving, explicitSaving, hasConflict, loading, loadFailed, refreshing, pullDistance])
 
   const applyLoadedEntry = useCallback((entry: LoadedDiaryEntry | null) => {
     const driveText = entry?.entry.content ?? ''
@@ -153,6 +156,7 @@ useEffect(() => {
     setBaseVersion(null)
     setLastModified(null)
     setStatus('')
+    setLoadFailed(false)
     setHasConflict(false)
     setConflictRemote(null)
     setShowRefreshConfirm(false)
@@ -167,6 +171,7 @@ useEffect(() => {
           tokenExpiredForDateRef.current = date
           return
         }
+        setLoadFailed(true)
         setStatus(t.entry.failedToLoad)
       }
     }).finally(() => {
@@ -213,6 +218,7 @@ useEffect(() => {
 
   const save = useCallback(async (explicit = true): Promise<boolean> => {
     if (savingRef.current) return false
+    if (loadFailedRef.current) return false
     setSaving(true)
     if (explicit) {
       setExplicitSaving(true)
@@ -309,6 +315,7 @@ useEffect(() => {
     try {
       const entry = await getContentRef.current(date)
       applyLoadedEntry(entry)
+      setLoadFailed(false)
       setHasConflict(false)
       setConflictRemote(null)
     } catch {
@@ -347,6 +354,7 @@ useEffect(() => {
       tokenExpiredForDateRef.current = null
       setLoading(true)
       setStatus('')
+      setLoadFailed(false)
       getContentRef.current(date).then(entry => {
         applyLoadedEntry(entry)
         onLoadCompleteRef.current?.(date, entry)
@@ -373,6 +381,7 @@ useEffect(() => {
     if (!autoSave || !isDirty) return
     const id = window.setTimeout(() => {
       if (savingRef.current || hasConflictRef.current || loadingRef.current) return
+      if (loadFailedRef.current) return
       if (textRef.current === savedTextRef.current) return
       save(false)
     }, AUTO_SAVE_MS)
@@ -690,7 +699,7 @@ useEffect(() => {
           <motion.button
             className={`btn-save${saving ? ' btn-saving' : status === savedStatus ? ' btn-saved' : ''}`}
             onClick={handleExplicitSave}
-            disabled={saving || !isDirty}
+            disabled={saving || !isDirty || loadFailed}
             aria-busy={saving}
             aria-label={saving ? t.entry.saving : status === savedStatus ? t.common.saved : t.entry.save}
             whileTap={{ scale: 0.95 }}
@@ -829,9 +838,11 @@ useEffect(() => {
               className="editor-textarea"
               value={text}
               onChange={e => {
+                if (loadFailed) return
                 setText(e.target.value)
                 if (status && status !== savedStatus) setStatus('')
               }}
+              readOnly={loadFailed}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={finishPullRefresh}
