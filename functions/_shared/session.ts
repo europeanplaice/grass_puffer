@@ -92,6 +92,7 @@ export function jsonResponse(body: unknown, status = 200): Response {
     headers: {
       'Content-Type': 'application/json',
       'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
     },
   })
 }

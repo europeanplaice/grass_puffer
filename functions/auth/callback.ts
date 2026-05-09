@@ -34,8 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
   })
 
   if (!tokenResp.ok) {
-    const body = await tokenResp.text()
-    return jsonResponse({ error: `Token exchange failed: ${body}` }, 502)
+    return jsonResponse({ error: 'Authentication failed. Please try again.' }, 502)
   }
 
   const tokens = await tokenResp.json() as {
