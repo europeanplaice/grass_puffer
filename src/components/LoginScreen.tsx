@@ -11,7 +11,7 @@ export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
   const { t } = useI18n()
 
   return (
-    <div className="login-screen">
+    <main className="login-screen">
       <div className="login-card">
         <AppIcon className="login-logo" />
         <h1>{t.documentTitle}</h1>
@@ -48,6 +48,6 @@ export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
           </a>
         </p>
       </div>
-    </div>
+    </main>
   )
 }

@@ -3,7 +3,6 @@ import type { DriveRevisionMeta, LoadedDiaryEntry } from '../types'
 import { listRevisions, getRevisionContent } from '../api/driveRevisions'
 import { TokenExpiredError } from '../api/driveEntries'
 import { EntryConflictError } from './useDiary'
-import * as Diff from 'diff'
 
 const UNSAVED_ID = '__unsaved__'
 
@@ -47,6 +46,24 @@ const DEFAULT_MESSAGES = {
   failedToLoadVersion: 'このバージョンを読み込めませんでした。',
   restoreConflict: '復元できませんでした。日記が変更されています。先に保存してください。',
   restoreFailed: '復元に失敗しました。',
+}
+
+function escapeDiffHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
+}
+
+async function buildDiffHtml(previous: string, current: string): Promise<string> {
+  const Diff = await import('diff')
+  return Diff.diffWords(previous, current).map(part => {
+    const escaped = escapeDiffHtml(part.value)
+    if (part.added) return `<span class="diff-add-word">${escaped}</span>`
+    if (part.removed) return `<span class="diff-remove-word">${escaped}</span>`
+    return escaped
+  }).join('')
 }
 
 export function useRevisions({ fileId, date, baseVersion, text, savedText, isDirty, autoSave, onSave, onRestored, onExpired, messages = DEFAULT_MESSAGES }: Params): RevisionsState {
@@ -93,27 +110,18 @@ export function useRevisions({ fileId, date, baseVersion, text, savedText, isDir
     if (!selectedId) return
 
     if (selectedId === UNSAVED_ID) {
+      let cancelled = false
       setPreviewLoading(false)
       setPreviewError(null)
       setPreviewContent(text)
-      const diff = Diff.diffWords(savedText, text)
-      const htmlParts = []
-      for (const part of diff) {
-        const escaped = part.value
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/\n/g, '<br>')
-        if (part.added) {
-          htmlParts.push(`<span class="diff-add-word">${escaped}</span>`)
-        } else if (part.removed) {
-          htmlParts.push(`<span class="diff-remove-word">${escaped}</span>`)
-        } else {
-          htmlParts.push(escaped)
-        }
-      }
-      setDiffHtml(htmlParts.join(''))
-      return
+      buildDiffHtml(savedText, text)
+        .then(html => {
+          if (!cancelled) setDiffHtml(html)
+        })
+        .catch(() => {
+          if (!cancelled) setDiffHtml(null)
+        })
+      return () => { cancelled = true }
     }
 
     const idx = revisions.findIndex(r => r.id === selectedId)
@@ -138,23 +146,9 @@ export function useRevisions({ fileId, date, baseVersion, text, savedText, isDir
           const prev = await getRevisionContent(fileId, prevId)
           if (controller.signal.aborted) return
 
-          const diff = Diff.diffWords(prev.content, currentContent)
-          const htmlParts = []
-          for (const part of diff) {
-            const escaped = part.value
-              .replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/\n/g, '<br>')
-            if (part.added) {
-              htmlParts.push(`<span class="diff-add-word">${escaped}</span>`)
-            } else if (part.removed) {
-              htmlParts.push(`<span class="diff-remove-word">${escaped}</span>`)
-            } else {
-              htmlParts.push(escaped)
-            }
-          }
-          setDiffHtml(htmlParts.join(''))
+          const html = await buildDiffHtml(prev.content, currentContent)
+          if (controller.signal.aborted) return
+          setDiffHtml(html)
         } catch {
           setDiffHtml(null)
         }

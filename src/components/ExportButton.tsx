@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import JSZip from 'jszip'
 import { useI18n } from '../i18n'
 
 interface ExportButtonProps {
@@ -35,6 +34,7 @@ export function ExportButton({ dates, onExport }: ExportButtonProps) {
         setProgress({ done, total })
       })
 
+      const { default: JSZip } = await import('jszip')
       const zip = new JSZip()
       for (const { date, content } of entries) {
         zip.file(`diary-${date}.txt`, content)
