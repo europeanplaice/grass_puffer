@@ -2,7 +2,22 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { createHash } from 'crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
+import { createRequire } from 'module'
 import { resolve } from 'path'
+
+type ScriptElement = {
+  hasAttribute(name: string): boolean
+  textContent: string | null
+}
+
+type HtmlDocument = {
+  querySelectorAll(selector: string): Iterable<ScriptElement>
+}
+
+const require = createRequire(import.meta.url)
+const { JSDOM } = require('jsdom') as {
+  JSDOM: new (html: string) => { window: { document: HtmlDocument } }
+}
 
 function hashDistFiles(dir: string, root = dir): string {
   const hash = createHash('sha256')
@@ -64,13 +79,15 @@ export default defineConfig({
       writeBundle() {
         const distPath = resolve(__dirname, 'dist')
         const html = readFileSync(resolve(distPath, 'index.html'), 'utf-8')
-        const scriptRegex = /<script>([^<]+)<\/script>/g
-        const hashes: string[] = []
-        let match: RegExpExecArray | null
-        while ((match = scriptRegex.exec(html)) !== null) {
-          const hash = createHash('sha256').update(match[1]).digest('base64')
-          hashes.push(`'sha256-${hash}'`)
-        }
+        const dom = new JSDOM(html)
+        const scripts = Array.from(dom.window.document.querySelectorAll('script'))
+          .filter((script) => !script.hasAttribute('src'))
+          .map((script) => script.textContent ?? '')
+          .filter((script) => script.length > 0)
+        const hashes = scripts.map((script) => {
+          const hash = createHash('sha256').update(script).digest('base64')
+          return `'sha256-${hash}'`
+        })
         const headersPath = resolve(distPath, '_headers')
         const updated = readFileSync(headersPath, 'utf-8')
           .replace('__INLINE_SCRIPT_HASHES__', hashes.join(' '))
