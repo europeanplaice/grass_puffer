@@ -84,6 +84,7 @@ const dictionaries = {
     entry: {
       savedStatus: 'Saved.',
       failedToLoad: 'Failed to load entry.',
+      failedToLoadHint: 'Check your connection, then try loading this entry again.',
       changedElsewhere: 'This entry changed on another device.',
       saveFailed: 'Save failed.',
       loadedLatest: 'Loaded latest version.',
@@ -248,6 +249,7 @@ const dictionaries = {
     entry: {
       savedStatus: '保存しました。',
       failedToLoad: '日記を読み込めませんでした。',
+      failedToLoadHint: '接続を確認してから、もう一度読み込んでください。',
       changedElsewhere: 'この日記は別の端末で変更されています。',
       saveFailed: '保存に失敗しました。',
       loadedLatest: '最新の内容を読み込みました。',

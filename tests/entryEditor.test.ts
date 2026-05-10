@@ -12,6 +12,7 @@ async function renderEditor(
     initialContent?: string
     version?: string | null
     saveReject?: 'conflict' | 'error'
+    getContentReject?: 'tokenExpired' | 'error'
     pendingNavDate?: string | null
     token?: string | null
   } = {},
@@ -19,11 +20,12 @@ async function renderEditor(
   const date = opts.date ?? '2026-05-01'
   const initialContent = opts.initialContent ?? ''
   const version = opts.version ?? null
+  const getContentReject = opts.getContentReject
   await page.evaluate(
-    ({ date, initialContent, version, saveReject, pendingNavDate, token }) => {
-      window.editorHarness.render({ date, initialContent, version, saveReject, pendingNavDate, token })
+    ({ date, initialContent, version, saveReject, getContentReject, pendingNavDate, token }) => {
+      window.editorHarness.render({ date, initialContent, version, saveReject, getContentReject, pendingNavDate, token })
     },
-    { date, initialContent, version, saveReject: opts.saveReject, pendingNavDate: opts.pendingNavDate, token: opts.token },
+    { date, initialContent, version, saveReject: opts.saveReject, getContentReject, pendingNavDate: opts.pendingNavDate, token: opts.token },
   )
   // Wait for textarea to be visible (loading done)
   await page.waitForSelector('textarea.editor-textarea')
@@ -95,6 +97,19 @@ test.describe('EntryEditor — date header', () => {
     await renderEditor(page, { date: '2026-05-02', initialContent: '', version: null })
 
     await expect(page.locator('textarea.editor-textarea')).toHaveAttribute('placeholder', 'Write your thoughts here...')
+  })
+
+  test('shows a load error state without the writing placeholder', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => {
+      window.editorHarness.render({ date: '2026-05-02', getContentReject: 'error' })
+    })
+
+    await expect(page.getByText('Failed to load entry.')).toBeVisible()
+    await expect(page.getByText('Check your connection, then try loading this entry again.')).toBeVisible()
+    await expect(page.locator('.entry-load-error button')).toHaveText('Refresh entry')
+    await expect(page.locator('textarea.editor-textarea')).toHaveCount(0)
+    await expect(page.getByText('Write your thoughts here...')).toHaveCount(0)
   })
 
   test('shows the weekday next to the entry date', async ({ page }) => {
@@ -804,15 +819,15 @@ test.describe('EntryEditor — saving overlay', () => {
 })
 
 test.describe('EntryEditor — token expiry', () => {
-  test('keeps a failed entry load read-only and prevents saving', async ({ page }) => {
+  test('keeps a failed entry load out of edit mode and prevents saving', async ({ page }) => {
     await loadHarness(page)
     await page.evaluate(() => {
       window.editorHarness.render({ getContentReject: 'error', date: '2026-05-01', token: 'mock-token' })
     })
-    await page.waitForSelector('textarea.editor-textarea')
+    await expect(page.locator('.entry-load-error')).toBeVisible()
 
-    await expect(page.getByRole('status')).toHaveText('Failed to load entry.')
-    await expect(page.locator('textarea.editor-textarea')).toHaveJSProperty('readOnly', true)
+    await expect(page.locator('.entry-load-error')).toContainText('Failed to load entry.')
+    await expect(page.locator('textarea.editor-textarea')).toHaveCount(0)
     await expect(page.locator('button.btn-save')).toBeDisabled()
 
     await page.keyboard.press('Control+S')

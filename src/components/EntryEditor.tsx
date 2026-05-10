@@ -775,7 +775,7 @@ useEffect(() => {
       {shareMsgVisible && (
         <div className="editor-share-toast" role="status">{t.entry.copiedToClipboard}</div>
       )}
-      {status && status !== savedStatus && (
+      {status && status !== savedStatus && !loadFailed && (
         <div className="editor-status-line" role="status">{status}</div>
       )}
       {pendingNavDate && (
@@ -831,6 +831,14 @@ useEffect(() => {
               <div className="entry-skeleton-row" />
               <div className="entry-skeleton-row long" />
               <div className="entry-skeleton-row medium" />
+            </div>
+          ) : loadFailed ? (
+            <div className="entry-load-error" role="alert">
+              <strong>{t.entry.failedToLoad}</strong>
+              <p>{t.entry.failedToLoadHint}</p>
+              <button onClick={refreshEntry} disabled={refreshing}>
+                {refreshing ? t.entry.refreshingEntry : t.entry.refreshEntry}
+              </button>
             </div>
           ) : (
             <motion.textarea
