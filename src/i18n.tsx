@@ -121,7 +121,7 @@ const dictionaries = {
       keepLocal: 'Keep local',
       overwrite: 'Overwrite',
       loadingEntry: 'Loading entry',
-      placeholder: '',
+      placeholder: 'Write your thoughts here...',
     },
     settings: {
       title: 'Settings',
@@ -285,7 +285,7 @@ const dictionaries = {
       keepLocal: 'ローカルを保持',
       overwrite: '上書き',
       loadingEntry: '日記を読み込み中',
-      placeholder: '',
+      placeholder: 'ここに記入してください...',
     },
     settings: {
       title: '設定',

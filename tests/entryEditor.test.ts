@@ -90,11 +90,11 @@ test.describe('EntryEditor — date header', () => {
     ])
   })
 
-  test('does not show an editor placeholder for empty entries', async ({ page }) => {
+  test('shows an editor placeholder for empty entries', async ({ page }) => {
     await loadHarness(page)
     await renderEditor(page, { date: '2026-05-02', initialContent: '', version: null })
 
-    await expect(page.locator('textarea.editor-textarea')).toHaveAttribute('placeholder', '')
+    await expect(page.locator('textarea.editor-textarea')).toHaveAttribute('placeholder', 'Write your thoughts here...')
   })
 
   test('shows the weekday next to the entry date', async ({ page }) => {
