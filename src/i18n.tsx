@@ -5,8 +5,6 @@ export type Language = 'ja' | 'en'
 
 const STORAGE_KEY = 'grass_puffer_language'
 
-const LOCALE_MAP: Record<string, string> = { ja: 'ja-JP', en: 'en-US' }
-
 type Dictionary = typeof dictionaries.en
 
 const dictionaries = {
@@ -371,6 +369,24 @@ function readStoredLanguage(): Language {
   return 'ja'
 }
 
+function getLocale(language: Language): string {
+  switch (language) {
+    case 'en':
+      return 'en-US'
+    case 'ja':
+      return 'ja-JP'
+  }
+}
+
+function getDictionary(language: Language): Dictionary {
+  switch (language) {
+    case 'en':
+      return dictionaries.en
+    case 'ja':
+      return dictionaries.ja
+  }
+}
+
 const fallbackContext: I18nContextValue = {
   language: 'ja',
   locale: 'ja-JP',
@@ -390,14 +406,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
    const value = useMemo<I18nContextValue>(() => ({
      language,
-     locale: LOCALE_MAP[language],
-     t: dictionaries[language],
+     locale: getLocale(language),
+     t: getDictionary(language),
      setLanguage,
    }), [language, setLanguage])
 
   useEffect(() => {
     document.documentElement.lang = language
-    document.title = dictionaries[language].documentTitle
+    document.title = getDictionary(language).documentTitle
   }, [language])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>

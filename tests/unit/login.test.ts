@@ -5,13 +5,12 @@ beforeEach(() => {
   vi.stubGlobal('crypto', {
     randomUUID: () => 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
     getRandomValues: (arr: Uint8Array) => {
-      for (let i = 0; i < arr.length; i++) arr[i] = i + 1
+      arr.set(Array.from({ length: arr.length }, (_, i) => i + 1))
       return arr
     },
     subtle: {
       digest: async () => {
-        const hash = new Uint8Array(32)
-        for (let i = 0; i < 32; i++) hash[i] = i + 1
+        const hash = Uint8Array.from({ length: 32 }, (_, i) => i + 1)
         return hash.buffer
       },
     },

@@ -234,8 +234,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     const total = dates.length
     const results: { date: string; content: string }[] = []
 
-    for (let i = 0; i < total; i++) {
-      const date = dates[i]
+    for (const [i, date] of dates.entries()) {
       const loaded = await getContent(date)
       results.push({ date, content: loaded?.entry.content ?? '' })
       onProgress?.(i + 1, total)

@@ -22,6 +22,17 @@ function shouldRetry(status: number): boolean {
   return status === 429 || status >= 500
 }
 
+function retryDelay(attempt: number): number {
+  switch (attempt) {
+    case 0:
+      return 250
+    case 1:
+      return 500
+    default:
+      return 1000
+  }
+}
+
 export async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ data: T; status: number }> {
   const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
@@ -33,7 +44,7 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ da
 
     const body = await res.text()
     if (shouldRetry(res.status) && attempt < delays.length) {
-      let delay = delays[attempt]
+      let delay = retryDelay(attempt)
       const ra = res.headers.get('Retry-After')
       if (ra) { const s = parseFloat(ra); if (!isNaN(s)) delay = s * 1000 }
       await new Promise(r => setTimeout(r, delay * (1 + 0.2 * (Math.random() * 2 - 1))))
@@ -53,7 +64,7 @@ async function apiFetchNoContent(url: string, init?: RequestInit): Promise<void>
 
     const body = await res.text()
     if (shouldRetry(res.status) && attempt < delays.length) {
-      let delay = delays[attempt]
+      let delay = retryDelay(attempt)
       const ra = res.headers.get('Retry-After')
       if (ra) { const s = parseFloat(ra); if (!isNaN(s)) delay = s * 1000 }
       await new Promise(r => setTimeout(r, delay * (1 + 0.2 * (Math.random() * 2 - 1))))

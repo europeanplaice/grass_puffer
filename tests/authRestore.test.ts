@@ -117,7 +117,7 @@ test('clicking app title navigates to today without triggering a new sign-in', a
   await page.locator('.app-title').click()
 
   // Should navigate to today
-  await expect(page).toHaveURL(new RegExp(`#${today}`))
+  await expect(page).toHaveURL(url => url.hash === `#${today}`)
   await expect(page.locator('.entry-date-text')).toHaveAttribute('data-today', 'true')
 })
 
