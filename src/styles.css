@@ -247,6 +247,31 @@ body {
 }
 .login-footer a { color: var(--text-muted); text-decoration: none; }
 .login-footer a:hover { text-decoration: underline; }
+.login-lang-toggle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.75rem;
+}
+.login-lang-toggle button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: inherit;
+  line-height: 1;
+  color: var(--text-muted);
+  padding: 0;
+}
+.login-lang-toggle button[aria-pressed="true"] {
+  font-weight: 600;
+  color: var(--text);
+}
+.login-lang-toggle span {
+  color: var(--border);
+  margin: 0 0.15rem;
+}
 
 /* ── Layout ── */
 .app {

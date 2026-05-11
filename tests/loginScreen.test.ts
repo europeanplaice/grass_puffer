@@ -15,6 +15,43 @@ async function render(
   await page.waitForSelector('.login-screen')
 }
 
+test.describe('LoginScreen — language toggle', () => {
+  test('shows EN and 日本語 buttons', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const enBtn = page.locator('.login-lang-toggle button', { hasText: 'EN' })
+    const jaBtn = page.locator('.login-lang-toggle button', { hasText: '日本語' })
+
+    await expect(enBtn).toBeVisible()
+    await expect(jaBtn).toBeVisible()
+  })
+
+  test('clicking EN switches UI to English', async ({ page }) => {
+    await page.goto(`${baseUrl}/tests/loginScreenHarness.html`)
+    await page.evaluate(() => localStorage.setItem('grass_puffer_language', 'ja'))
+    await render(page)
+
+    await page.locator('.login-lang-toggle button', { hasText: 'EN' }).click()
+
+    await expect(page.locator('.btn-signin-google')).toContainText('Sign in with Google')
+    const enBtn = page.locator('.login-lang-toggle button', { hasText: 'EN' })
+    await expect(enBtn).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  test('clicking 日本語 switches UI to Japanese', async ({ page }) => {
+    await page.goto(`${baseUrl}/tests/loginScreenHarness.html`)
+    await page.evaluate(() => localStorage.setItem('grass_puffer_language', 'en'))
+    await render(page)
+
+    await page.locator('.login-lang-toggle button', { hasText: '日本語' }).click()
+
+    await expect(page.locator('.btn-signin-google')).toContainText('Google でログイン')
+    const jaBtn = page.locator('.login-lang-toggle button', { hasText: '日本語' })
+    await expect(jaBtn).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
 test.describe('LoginScreen — footer links', () => {
   test('shows Privacy Policy and Terms of Service links', async ({ page }) => {
     await loadHarness(page)

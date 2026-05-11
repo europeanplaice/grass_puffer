@@ -8,7 +8,7 @@ interface Props {
 }
 
 export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
-  const { t } = useI18n()
+  const { t, language, setLanguage } = useI18n()
 
   return (
     <main className="login-screen">
@@ -47,6 +47,23 @@ export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
             {t.login.termsOfService}
           </a>
         </p>
+        <div className="login-lang-toggle">
+          <button
+            type="button"
+            aria-pressed={language === 'en'}
+            onClick={() => setLanguage('en')}
+          >
+            EN
+          </button>
+          <span aria-hidden="true">·</span>
+          <button
+            type="button"
+            aria-pressed={language === 'ja'}
+            onClick={() => setLanguage('ja')}
+          >
+            日本語
+          </button>
+        </div>
       </div>
     </main>
   )
