@@ -64,6 +64,7 @@ The browser stores only non-sensitive preferences in `localStorage`:
 - `grass_puffer_theme` — `light` / `dark` / `system`
 - `grass_puffer_font` — font preference
 - `grass_puffer_language` — `en` / `ja`
+- `grass_puffer_had_session` — `true`/`false` flag indicating whether the user was previously signed in (used to show the "continue with your previous session" prompt on the login screen)
 
 No tokens or diary content are ever written to `localStorage`.
 
