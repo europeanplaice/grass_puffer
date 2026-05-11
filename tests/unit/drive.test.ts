@@ -106,15 +106,25 @@ describe('getEntryContent', () => {
   })
 
   it('respects Retry-After header', async () => {
-    const entry = { date: '2026-05-01', content: 'ok', updated_at: '' }
-    vi.stubGlobal('fetch', vi.fn()
-      .mockResolvedValueOnce(new Response('Rate Limited', { status: 429, headers: { 'Retry-After': '2' } }))
-      .mockResolvedValueOnce(driveJsonResponse(entry)))
+    vi.useFakeTimers()
+    vi.spyOn(Math, 'random').mockReturnValue(0.5) // neutralise jitter: factor = 1.0
+    try {
+      const setTimeoutSpy = vi.spyOn(global, 'setTimeout')
+      const entry = { date: '2026-05-01', content: 'ok', updated_at: '' }
+      vi.stubGlobal('fetch', vi.fn()
+        .mockResolvedValueOnce(new Response('Rate Limited', { status: 429, headers: { 'Retry-After': '1' } }))
+        .mockResolvedValueOnce(driveJsonResponse(entry)))
 
-    const before = Date.now()
-    await getEntryContent('token', 'file-123')
-    const elapsed = Date.now() - before
-    expect(elapsed).toBeGreaterThanOrEqual(1000)
+      const promise = getEntryContent('token', 'file-123')
+      await vi.runAllTimersAsync()
+      await promise
+
+      const delayArg = setTimeoutSpy.mock.calls[0][1] as number
+      expect(delayArg).toBe(1000)
+    } finally {
+      vi.mocked(Math.random).mockRestore()
+      vi.useRealTimers()
+    }
   })
 })
 
