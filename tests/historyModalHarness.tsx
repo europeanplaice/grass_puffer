@@ -88,7 +88,7 @@ const root = createRoot(document.getElementById('root') as HTMLElement)
 type RenderOpts = { date?: string; fileId?: string; baseVersion?: string | null; text?: string; savedText?: string; isDirty?: boolean; autoSave?: boolean }
 
 window.historyHarness = {
-  q: (...responses: { status: number; body: unknown }[]) => queue.push(...responses),
+  q: (...responses: { status: number; body: unknown; delayMs?: number }[]) => queue.push(...responses),
   render: (opts: RenderOpts = {}) => {
     fetchCalls.splice(0)
     saveCalls.splice(0)

@@ -69,6 +69,9 @@ describe('getEntryContent', () => {
 
     const result = await getEntryContent('token', 'file-123')
     expect(result).toEqual(entry)
+    const fetchCall = (vi.mocked(fetch).mock.calls[0] as any)
+    expect(fetchCall[1].headers['Accept-Encoding']).toBe('gzip')
+    expect(fetchCall[1].headers['User-Agent']).toContain('(gzip)')
   })
 
   it('retries on 429 then succeeds', async () => {

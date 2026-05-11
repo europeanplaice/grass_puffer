@@ -37,6 +37,28 @@ export class EntryConflictError extends Error {
 
 type PendingSave = { date: string; content: string; baseVersion: string | null }
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length)
+  let nextIndex = 0
+
+  async function worker() {
+    for (;;) {
+      const index = nextIndex++
+      if (index >= items.length) return
+      results[index] = await mapper(items[index], index)
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, () => worker()),
+  )
+  return results
+}
+
 export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -183,39 +205,41 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     if (!isSignedIn || !query.trim()) return { results: [], unindexedCount: 0 }
 
     const files = await searchEntries(query)
-    const results: { date: string; snippet: string }[] = []
     const cached = cacheRef.current
+    const normalizedQuery = query.toLowerCase()
+    const candidates = files
+      .map(f => ({ date: f.name.replace('diary-', '').replace('.json', '') }))
+      .filter(({ date }) => /^\d{4}-\d{2}-\d{2}$/.test(date))
 
-    for (const f of files) {
-      const date = f.name.replace('diary-', '').replace('.json', '')
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
-
+    const mapped = await mapWithConcurrency(candidates, 5, async ({ date }) => {
       const cachedEntry = cached.get(date)
       if (cachedEntry?.content) {
         const text = cachedEntry.content.content
-        const idx = text.toLowerCase().indexOf(query.toLowerCase())
+        const idx = text.toLowerCase().indexOf(normalizedQuery)
         const snippet = text.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
-        results.push({ date, snippet })
-      } else {
-        try {
-          const loaded = await getEntryByDate(date)
-          if (!loaded) continue
-          const text = loaded.entry.content
-          const idx = text.toLowerCase().indexOf(query.toLowerCase())
-          const snippet = text.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
-          results.push({ date, snippet })
-          updateCache(prev => {
-            const next = new Map(prev)
-            const ex = next.get(date)
-            if (ex) next.set(date, { ...ex, content: loaded.entry, snippet })
-            return next
-          })
-        } catch {
-          // Skip entries that fail to load
-        }
+        return { date, snippet }
       }
-    }
 
+      try {
+        const loaded = await getEntryByDate(date)
+        if (!loaded) return null
+        const text = loaded.entry.content
+        const idx = text.toLowerCase().indexOf(normalizedQuery)
+        const snippet = text.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
+        updateCache(prev => {
+          const next = new Map(prev)
+          const ex = next.get(date)
+          if (ex) next.set(date, { ...ex, content: loaded.entry, snippet })
+          return next
+        })
+        return { date, snippet }
+      } catch {
+        // Skip entries that fail to load
+        return null
+      }
+    })
+
+    const results = mapped.filter((r): r is { date: string; snippet: string } => r !== null)
     results.sort((a, b) => b.date.localeCompare(a.date))
     return { results, unindexedCount: 0 }
   }, [isSignedIn, updateCache])
@@ -232,16 +256,13 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
 
     const dates = Array.from(cache.keys()).sort((a, b) => a.localeCompare(b))
     const total = dates.length
-    const results: { date: string; content: string }[] = []
-
-    for (const [i, date] of dates.entries()) {
+    let done = 0
+    const results = await mapWithConcurrency(dates, 4, async (date) => {
       const loaded = await getContent(date)
-      results.push({ date, content: loaded?.entry.content ?? '' })
-      onProgress?.(i + 1, total)
-      if (i < total - 1) {
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-    }
+      done += 1
+      onProgress?.(done, total)
+      return { date, content: loaded?.entry.content ?? '' }
+    })
 
     return results
   }, [isSignedIn, cache, getContent])

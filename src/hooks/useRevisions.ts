@@ -135,15 +135,22 @@ export function useRevisions({ fileId, date, baseVersion, text, savedText, isDir
     setPreviewError(null)
     setDiffHtml(null)
 
-    getRevisionContent(fileId, selectedId).then(async (current) => {
+    const currentPromise = getRevisionContent(fileId, selectedId)
+    const prevId = idx < revisions.length - 1 ? revisions[idx + 1].id : null
+    const prevPromise = prevId ? getRevisionContent(fileId, prevId).catch(() => null) : null
+
+    currentPromise.then(async (current) => {
       if (controller.signal.aborted) return
       const currentContent = current.content
       setPreviewContent(currentContent)
 
-      const prevId = idx < revisions.length - 1 ? revisions[idx + 1].id : null
-      if (prevId) {
+      if (prevPromise) {
         try {
-          const prev = await getRevisionContent(fileId, prevId)
+          const prev = await prevPromise
+          if (!prev) {
+            setDiffHtml(null)
+            return
+          }
           if (controller.signal.aborted) return
 
           const html = await buildDiffHtml(prev.content, currentContent)

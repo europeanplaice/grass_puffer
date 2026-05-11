@@ -144,6 +144,22 @@ test.describe('HistoryModal — preview', () => {
     await expect(page.locator('.history-preview-skeleton')).toHaveCount(0)
   })
 
+  test('starts current and previous revision fetches together for diff preview', async ({ page }) => {
+    await loadHarness(page)
+
+    await page.evaluate(({ revList, contentV3, contentV2 }) => {
+      window.historyHarness.q(
+        { status: 200, body: revList },
+        { status: 200, body: contentV3, delayMs: 200 },
+        { status: 200, body: contentV2, delayMs: 200 },
+      )
+      window.historyHarness.render()
+    }, { revList: REV_LIST, contentV3: CONTENT_V3, contentV2: CONTENT_V2 })
+
+    await expect.poll(async () => (await page.evaluate(() => window.historyHarness.calls())).length).toBe(3)
+    await page.waitForSelector('.history-preview-diff')
+  })
+
   test('shows error when preview fetch fails', async ({ page }) => {
     await loadHarness(page)
 

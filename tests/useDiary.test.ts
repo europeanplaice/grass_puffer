@@ -7,10 +7,21 @@ function fileMeta(version: string, id = 'file-1') {
   return { id, name: 'diary-2026-05-01.json', version }
 }
 
+function datedFileMeta(date: string, version = '1', id = `file-${date}`) {
+  return { id, name: `diary-${date}.json`, version }
+}
+
 function entryResponse(version: string, content = 'hello', id = 'file-1') {
   return {
     entry: { date: '2026-05-01', content, updated_at: '2026-05-01T00:00:00.000Z' },
     meta: fileMeta(version, id),
+  }
+}
+
+function datedEntryResponse(date: string, content: string, version = '1') {
+  return {
+    entry: { date, content, updated_at: '2026-05-01T00:00:00.000Z' },
+    meta: datedFileMeta(date, version),
   }
 }
 
@@ -177,6 +188,58 @@ test.describe('useDiary getContent — session expiry', () => {
 
     const expired = await page.evaluate(() => window.diaryHarness.expiredCalls())
     expect(expired).toBe(1)
+  })
+})
+
+test.describe('useDiary Drive read batching', () => {
+  test('search loads uncached matching entries with bounded parallel requests', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page)
+    await page.evaluate(() => window.diaryHarness.clearCalls())
+
+    const dates = ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05']
+    await page.evaluate(({ files, entries }) => {
+      window.diaryHarness.q(
+        { status: 200, body: { files } },
+        ...entries.map(entry => ({ status: 200, body: entry, delayMs: 200 })),
+      )
+      ;(window as any).__searchResult = null
+      void window.diaryHarness.search('needle').then(result => {
+        ;(window as any).__searchResult = result
+      })
+    }, {
+      files: dates.map(date => datedFileMeta(date)),
+      entries: dates.map(date => datedEntryResponse(date, `text with needle ${date}`)),
+    })
+
+    await expect.poll(async () => (await page.evaluate(() => window.diaryHarness.calls())).length).toBe(6)
+    await expect.poll(async () => page.evaluate(() => (window as any).__searchResult?.results.length ?? 0)).toBe(5)
+  })
+
+  test('exportAll reads entries with bounded parallel requests and preserves sorted output', async ({ page }) => {
+    await loadHarness(page)
+    const dates = ['2026-05-01', '2026-05-02', '2026-05-03', '2026-05-04', '2026-05-05', '2026-05-06']
+    await startHarness(page, { files: dates.map(date => datedFileMeta(date)) })
+    await page.evaluate(() => window.diaryHarness.clearCalls())
+
+    await page.evaluate(({ entries }) => {
+      window.diaryHarness.q(
+        ...entries.map(entry => ({ status: 200, body: entry, delayMs: 200 })),
+      )
+      ;(window as any).__exportResult = null
+      void window.diaryHarness.exportAll().then(result => {
+        ;(window as any).__exportResult = result
+      })
+    }, {
+      entries: dates.map(date => datedEntryResponse(date, `content ${date}`)),
+    })
+
+    await expect.poll(async () => (await page.evaluate(() => window.diaryHarness.calls())).length).toBe(4)
+    await expect.poll(async () => page.evaluate(() => (window as any).__exportResult?.length ?? 0)).toBe(6)
+
+    const resultDates = await page.evaluate(() => (window as any).__exportResult.map((entry: { date: string }) => entry.date))
+    expect(resultDates).toEqual(dates)
+    expect(await page.evaluate(() => window.diaryHarness.progressCalls())).toHaveLength(6)
   })
 })
 

@@ -1,11 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 import { onRequestGet as onSearch } from '../../functions/api/drive/search'
+import { onRequestGet as onGetEntry } from '../../functions/api/drive/entry/[date]'
 import { onRequestGet as onListRevisions } from '../../functions/api/drive/revisions/[fileId]'
 import { onRequestGet as onGetRevision } from '../../functions/api/drive/revisions/[fileId]/[revisionId]'
+import * as drive from '../../functions/_shared/drive'
 
 vi.mock('../../functions/_shared/drive', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../functions/_shared/drive')>()),
   searchEntries: vi.fn().mockResolvedValue([{ id: 'f1' }]),
+  findEntryMeta: vi.fn().mockResolvedValue({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '7' }),
+  getEntryContent: vi.fn().mockResolvedValue({ date: '2026-05-01', content: 'hi', updated_at: '' }),
+  getEntryMeta: vi.fn().mockResolvedValue({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '8' }),
   listRevisions: vi.fn().mockResolvedValue([]),
   getRevisionContent: vi.fn().mockResolvedValue({ date: '2026-05-01', content: 'hi', updated_at: '' }),
 }))
@@ -41,6 +46,22 @@ describe('search handler', () => {
     expect(res.status).toBe(200)
     const body = await res.json() as { files: unknown[] }
     expect(body.files).toHaveLength(1)
+  })
+})
+
+describe('get entry handler', () => {
+  it('returns the meta from the date lookup without an extra Drive metadata fetch', async () => {
+    const ctx = makeContext({ params: { date: '2026-05-01' } })
+    const res = await onGetEntry(ctx as any)
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      entry: { content: 'hi' },
+      meta: { id: 'entry-1', version: '7' },
+    })
+    expect(drive.findEntryMeta).toHaveBeenCalledOnce()
+    expect(drive.getEntryContent).toHaveBeenCalledWith('tok', 'entry-1')
+    expect(drive.getEntryMeta).not.toHaveBeenCalled()
   })
 })
 

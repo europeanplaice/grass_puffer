@@ -4,7 +4,7 @@ import { useDiary, EntryConflictError } from '../src/hooks/useDiary'
 import type { LoadedDiaryEntry } from '../src/types'
 
 type FetchCall = { url: string; method: string }
-type QueuedResponse = { status: number; body: unknown }
+type QueuedResponse = { status: number; body: unknown; delayMs?: number }
 
 const fetchCalls: FetchCall[] = []
 const queue: QueuedResponse[] = []
@@ -13,6 +13,9 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   fetchCalls.push({ url: String(input), method: String(init?.method ?? 'GET') })
   const resp = queue.shift()
   if (!resp) throw new Error(`Unexpected fetch: ${String(input)}`)
+  if (resp.delayMs) {
+    await new Promise(r => setTimeout(r, resp.delayMs))
+  }
   return {
     status: resp.status,
     ok: resp.status >= 200 && resp.status < 300,
@@ -24,9 +27,14 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 
 type SaveFn = (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
 type GetContentFn = (date: string) => Promise<LoadedDiaryEntry | null>
+type SearchFn = (query: string) => Promise<{ results: { date: string; snippet: string }[]; unindexedCount: number }>
+type ExportAllFn = (onProgress?: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
 let _save: SaveFn | null = null
 let _getContent: GetContentFn | null = null
+let _search: SearchFn | null = null
+let _exportAll: ExportAllFn | null = null
 let expiredCount = 0
+let progressCalls: { done: number; total: number }[] = []
 
 function Harness() {
   const diary = useDiary(true, () => { expiredCount++ })
@@ -34,6 +42,8 @@ function Harness() {
   useEffect(() => {
     _save = diary.save
     _getContent = diary.getContent
+    _search = diary.search
+    _exportAll = diary.exportAll
   })
 
   return (
@@ -69,9 +79,20 @@ window.diaryHarness = {
     if (!_getContent) throw new Error('harness not started')
     await _getContent(date)
   },
+  search: async (query) => {
+    if (!_search) throw new Error('harness not started')
+    return _search(query)
+  },
+  exportAll: async () => {
+    if (!_exportAll) throw new Error('harness not started')
+    progressCalls = []
+    return _exportAll((done, total) => progressCalls.push({ done, total }))
+  },
+  progressCalls: () => [...progressCalls],
   resetFolderState: () => {
     queue.splice(0)
     fetchCalls.splice(0)
+    progressCalls = []
   },
   expiredCalls: () => expiredCount,
   clearExpiredCalls: () => { expiredCount = 0 },

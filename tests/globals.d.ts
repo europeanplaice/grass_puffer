@@ -30,7 +30,7 @@ interface Window {
     selectedDates: () => string[]
   }
   diaryHarness: {
-    q: (...responses: { status: number; body: unknown }[]) => void
+    q: (...responses: { status: number; body: unknown; delayMs?: number }[]) => void
     calls: () => { url: string; method: string }[]
     clearCalls: () => void
     start: () => void
@@ -44,6 +44,9 @@ interface Window {
       | { ok: false; conflict: unknown; error: string }
     >
     triggerGetContent: (date: string) => Promise<void>
+    search: (query: string) => Promise<import('../src/hooks/useDiary').SearchResult>
+    exportAll: () => Promise<{ date: string; content: string }[]>
+    progressCalls: () => { done: number; total: number }[]
     resetFolderState: () => void
     expiredCalls: () => number
     clearExpiredCalls: () => void

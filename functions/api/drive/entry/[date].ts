@@ -2,7 +2,6 @@ import type { Env, Data } from '../../../_shared/session'
 import { jsonResponse } from '../../../_shared/session'
 import {
   findEntryMeta,
-  getEntryMeta,
   getEntryContent,
   saveEntry,
   deleteEntry,
@@ -23,11 +22,8 @@ export const onRequestGet: PagesFunction<Env, 'date', Data> = async (context) =>
     const meta = await findEntryMeta(accessToken, sessionId, session, context.env, date)
     if (!meta) return jsonResponse({ error: 'not_found' }, 404)
 
-    const [entry, freshMeta] = await Promise.all([
-      getEntryContent(accessToken, meta.id),
-      getEntryMeta(accessToken, meta.id),
-    ])
-    return jsonResponse({ entry, meta: freshMeta })
+    const entry = await getEntryContent(accessToken, meta.id)
+    return jsonResponse({ entry, meta })
   } catch (e) {
     if (e instanceof DriveError) {
       if (e.status === 404) return jsonResponse({ error: 'not_found' }, 404)
