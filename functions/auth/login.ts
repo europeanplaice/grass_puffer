@@ -1,7 +1,7 @@
 import type { Env } from '../_shared/session'
 import { jsonResponse } from '../_shared/session'
 
-const SCOPE = 'https://www.googleapis.com/auth/drive.file'
+const SCOPE = 'https://www.googleapis.com/auth/drive.file openid email'
 
 function base64url(buf: ArrayBuffer): string {
   return btoa(String.fromCharCode(...new Uint8Array(buf)))

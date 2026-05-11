@@ -120,6 +120,42 @@ describe('onRequestGet (OAuth callback)', () => {
     expect(response.headers.get('Location')).toBe('/')
   })
 
+  it('saves email from id_token into session', async () => {
+    const idTokenPayload = btoa(JSON.stringify({ email: 'user@example.com' }))
+    const idToken = `header.${idTokenPayload}.sig`
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 'at', refresh_token: 'rt', expires_in: 3600, id_token: idToken }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ))
+    const put = vi.fn()
+    const env = makeEnv({ SESSIONS: { get: vi.fn().mockResolvedValue('verifier'), delete: vi.fn(), put } })
+    const request = new Request(callbackUrl({ code: 'abc', state: 'valid-state' }))
+
+    await onRequestGet({ request, env } as any)
+
+    const savedSession = JSON.parse(put.mock.calls[0][1] as string)
+    expect(savedSession.email).toBe('user@example.com')
+  })
+
+  it('saves session without email when id_token is absent', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 'at', refresh_token: 'rt', expires_in: 3600 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    ))
+    const put = vi.fn()
+    const env = makeEnv({ SESSIONS: { get: vi.fn().mockResolvedValue('verifier'), delete: vi.fn(), put } })
+    const request = new Request(callbackUrl({ code: 'abc', state: 'valid-state' }))
+
+    await onRequestGet({ request, env } as any)
+
+    const savedSession = JSON.parse(put.mock.calls[0][1] as string)
+    expect(savedSession.email).toBeUndefined()
+  })
+
   it('redirects to / when returnPath is protocol-relative (//evil.com)', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ access_token: 'at', refresh_token: 'rt', expires_in: 3600 }), {

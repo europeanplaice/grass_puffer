@@ -15,6 +15,7 @@ export interface SessionData {
   expires_at: number // ms since epoch
   folder_id?: string
   renewed_at?: number // ms since epoch — tracks last KV write to throttle sliding TTL renewal
+  email?: string
 }
 
 export interface Data extends Record<string, unknown> {

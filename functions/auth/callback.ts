@@ -41,10 +41,21 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     access_token: string
     refresh_token?: string
     expires_in: number
+    id_token?: string
   }
 
   if (!tokens.refresh_token) {
     return jsonResponse({ error: 'No refresh token received. Revoke app access and try again.' }, 502)
+  }
+
+  let email: string | undefined
+  if (tokens.id_token) {
+    try {
+      const payload = JSON.parse(atob(tokens.id_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))) as { email?: string }
+      email = payload.email
+    } catch {
+      // id_token decode failed — proceed without email
+    }
   }
 
   const sessionId = crypto.randomUUID()
@@ -52,6 +63,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ request, env }) => {
     refresh_token: tokens.refresh_token,
     access_token: tokens.access_token,
     expires_at: Date.now() + tokens.expires_in * 1000,
+    ...(email ? { email } : {}),
   }
   await saveSession(sessionId, session, env)
 

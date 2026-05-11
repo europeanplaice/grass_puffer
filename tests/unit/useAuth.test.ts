@@ -4,7 +4,7 @@ import { useAuth } from '../../src/hooks/useAuth'
 
 const { mockStartSignIn, mockCheckSession, mockRevokeSession } = vi.hoisted(() => ({
   mockStartSignIn: vi.fn(),
-  mockCheckSession: vi.fn().mockResolvedValue(false),
+  mockCheckSession: vi.fn().mockResolvedValue({ signedIn: false, email: null }),
   mockRevokeSession: vi.fn(),
 }))
 
@@ -17,7 +17,7 @@ vi.mock('../../src/api/auth', () => ({
 beforeEach(() => {
   mockStartSignIn.mockReset()
   mockCheckSession.mockReset()
-  mockCheckSession.mockResolvedValue(false)
+  mockCheckSession.mockResolvedValue({ signedIn: false, email: null })
   mockRevokeSession.mockReset()
 })
 
@@ -29,20 +29,36 @@ describe('useAuth', () => {
     expect(result.current.authReady).toBe(false)
   })
 
-  it('sets signedIn when checkSession returns true', async () => {
-    mockCheckSession.mockResolvedValue(true)
+  it('sets signedIn when checkSession returns signedIn true', async () => {
+    mockCheckSession.mockResolvedValue({ signedIn: true, email: null })
 
     const { result } = renderHook(() => useAuth())
     await waitFor(() => expect(result.current.status).toBe('signedIn'))
     expect(result.current.authReady).toBe(true)
   })
 
-  it('sets signedOut when checkSession returns false', async () => {
-    mockCheckSession.mockResolvedValue(false)
+  it('sets signedOut when checkSession returns signedIn false', async () => {
+    mockCheckSession.mockResolvedValue({ signedIn: false, email: null })
 
     const { result } = renderHook(() => useAuth())
     await waitFor(() => expect(result.current.status).toBe('signedOut'))
     expect(result.current.authReady).toBe(true)
+  })
+
+  it('exposes email returned by checkSession', async () => {
+    mockCheckSession.mockResolvedValue({ signedIn: true, email: 'user@example.com' })
+
+    const { result } = renderHook(() => useAuth())
+    await waitFor(() => expect(result.current.status).toBe('signedIn'))
+    expect(result.current.email).toBe('user@example.com')
+  })
+
+  it('exposes null email when checkSession returns no email', async () => {
+    mockCheckSession.mockResolvedValue({ signedIn: true, email: null })
+
+    const { result } = renderHook(() => useAuth())
+    await waitFor(() => expect(result.current.status).toBe('signedIn'))
+    expect(result.current.email).toBeNull()
   })
 
   it('signIn calls startSignIn', async () => {

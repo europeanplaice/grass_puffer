@@ -60,7 +60,7 @@ describe('session check handler', () => {
     const response = await onSessionCheck({ request, env } as any)
     const data = await response.json()
 
-    expect(data).toEqual({ signedIn: true })
+    expect(data).toMatchObject({ signedIn: true })
     expect(put).not.toHaveBeenCalled()
     expect(response.headers.get('Set-Cookie')).toContain('Max-Age=2592000')
   })
