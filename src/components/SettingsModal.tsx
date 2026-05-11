@@ -69,6 +69,19 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
         </div>
         <div className="settings-list">
           <div className="settings-item">
+            <span className="settings-item-label">{t.common.language}</span>
+            <select
+              className="settings-language-select"
+              aria-label={t.common.language}
+              value={language}
+              onChange={event => setLanguage(event.target.value === 'en' ? 'en' : 'ja')}
+            >
+              <option value="ja">{t.common.japanese}</option>
+              <option value="en">{t.common.english}</option>
+            </select>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-item">
             <span className="settings-item-label">{t.settings.theme}</span>
             <select
               className="settings-language-select"
@@ -109,19 +122,6 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
           <div className="settings-item">
             <span className="settings-item-label">{t.settings.exportAllEntries}</span>
             <ExportButton dates={dates} onExport={onExport} />
-          </div>
-          <div className="settings-divider" />
-          <div className="settings-item">
-            <span className="settings-item-label">{t.common.language}</span>
-            <select
-              className="settings-language-select"
-              aria-label={t.common.language}
-              value={language}
-              onChange={event => setLanguage(event.target.value === 'en' ? 'en' : 'ja')}
-            >
-              <option value="ja">{t.common.japanese}</option>
-              <option value="en">{t.common.english}</option>
-            </select>
           </div>
           <div className="settings-divider" />
           <div className="settings-item">
