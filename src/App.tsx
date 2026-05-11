@@ -136,6 +136,7 @@ export default function App() {
   const {
     status,
     tokenExpired,
+    hadSession,
     signIn,
     signOut,
     handleExpired,
@@ -423,7 +424,13 @@ export default function App() {
     }
   }, [isSignedIn, retrySaveAfterReauth, diary.retryPendingSave])
 
-  if (status === 'initializing' || (isSignedIn && !initialLoadComplete)) {
+  if (status === 'initializing') {
+    return hadSession
+      ? <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
+      : null
+  }
+
+  if (isSignedIn && !initialLoadComplete) {
     return <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
   }
 
