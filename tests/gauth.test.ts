@@ -45,22 +45,24 @@ test.afterEach(() => {
 
 test.describe('checkSession', () => {
   test('returns true when server responds signedIn: true', async () => {
-    mockFetch(jsonResponse({ signedIn: true }))
+    mockFetch(jsonResponse({ signedIn: true, email: 'user@example.com' }))
 
     const result = await checkSession()
 
-    expect(result).toBe(true)
+    expect(result.signedIn).toBe(true)
+    expect(result.email).toBe('user@example.com')
     expect(calls).toHaveLength(1)
     expect(calls[0].url).toBe('/auth/session')
     expect(calls[0].init?.credentials).toBe('include')
   })
 
   test('returns false when server responds signedIn: false', async () => {
-    mockFetch(jsonResponse({ signedIn: false }))
+    mockFetch(jsonResponse({ signedIn: false, email: null }))
 
     const result = await checkSession()
 
-    expect(result).toBe(false)
+    expect(result.signedIn).toBe(false)
+    expect(result.email).toBeNull()
   })
 
   test('returns false when fetch throws', async () => {
@@ -68,7 +70,8 @@ test.describe('checkSession', () => {
 
     const result = await checkSession()
 
-    expect(result).toBe(false)
+    expect(result.signedIn).toBe(false)
+    expect(result.email).toBeNull()
   })
 })
 
