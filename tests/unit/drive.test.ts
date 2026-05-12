@@ -176,6 +176,20 @@ describe('getDiaryFileMeta', () => {
     await expect(getDiaryFileMeta('token', 'sid', session, { SESSIONS: { put: vi.fn() } } as any, 'file-1', '2026-05-01'))
       .rejects.toMatchObject({ status: 404, message: 'not_found' })
   })
+
+  it('rejects trashed diary files', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse({
+      id: 'file-1',
+      name: 'diary-2026-05-01.json',
+      mimeType: 'application/json',
+      parents: ['folder-1'],
+      trashed: true,
+    })))
+    const session = { refresh_token: 'rt', access_token: 'at', expires_at: 1000, folder_id: 'folder-1' }
+
+    await expect(getDiaryFileMeta('token', 'sid', session, { SESSIONS: { put: vi.fn() } } as any, 'file-1', '2026-05-01'))
+      .rejects.toMatchObject({ status: 404, message: 'not_found' })
+  })
 })
 
 describe('saveEntry', () => {

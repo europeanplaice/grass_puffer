@@ -140,6 +140,8 @@ export function validateMutationOrigin(request: Request, env: Env): Response | n
   }
 
   const fetchSite = request.headers.get('Sec-Fetch-Site')
+  // 'none' means the request has no browsing context initiator (e.g. browser extension,
+  // direct navigation) — not a cross-site page load, so it is safe to allow.
   if (fetchSite && !['same-origin', 'same-site', 'none'].includes(fetchSite)) {
     return jsonResponse({ error: 'Forbidden' }, 403)
   }
