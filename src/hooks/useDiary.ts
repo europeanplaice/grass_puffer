@@ -113,7 +113,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     if (!isSignedIn) return null
     try {
       const cached = cacheRef.current.get(date)
-      const loaded = await getEntryByDate(date, cached?.content ? cached.meta.version : undefined)
+      const loaded = await getEntryByDate(date, cached?.content ? cached.meta.version : undefined, cached?.meta.id)
       if (loaded === 'not-modified') return { entry: cached!.content!, meta: cached!.meta }
       if (!loaded) return null
       const { entry: content, meta } = loaded
@@ -147,7 +147,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         const cachedMeta = cacheRef.current.get(date)?.meta ?? null
         if (cachedMeta) {
           if (!force && cachedMeta.version !== baseVersion) {
-            const remote = await getEntryByDate(date)
+            const remote = await getEntryByDate(date, undefined, cachedMeta.id)
             if (remote === 'not-modified') throw new Error('Unexpected not-modified')
             throw new EntryConflictError(remote)
           }
@@ -212,10 +212,10 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     const cached = cacheRef.current
     const normalizedQuery = query.toLowerCase()
     const candidates = files
-      .map(f => ({ date: f.name.replace('diary-', '').replace('.json', '') }))
+      .map(f => ({ date: f.name.replace('diary-', '').replace('.json', ''), fileId: f.id }))
       .filter(({ date }) => /^\d{4}-\d{2}-\d{2}$/.test(date))
 
-    const mapped = await mapWithConcurrency(candidates, 5, async ({ date }) => {
+    const mapped = await mapWithConcurrency(candidates, 5, async ({ date, fileId }) => {
       const cachedEntry = cached.get(date)
       if (cachedEntry?.content) {
         const text = cachedEntry.content.content
@@ -225,7 +225,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
       }
 
       try {
-        const loaded = await getEntryByDate(date)
+        const loaded = await getEntryByDate(date, undefined, fileId)
         if (!loaded || loaded === 'not-modified') return null
         const text = loaded.entry.content
         const idx = text.toLowerCase().indexOf(normalizedQuery)

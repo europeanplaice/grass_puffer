@@ -2,6 +2,7 @@ import type { Env, Data } from '../../../_shared/session'
 import { jsonResponse } from '../../../_shared/session'
 import {
   findEntryMeta,
+  getEntryMeta,
   getEntryContent,
   saveEntry,
   deleteEntry,
@@ -19,20 +20,31 @@ export const onRequestGet: PagesFunction<Env, 'date', Data> = async (context) =>
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {
+    const fileIdParam = new URL(context.request.url).searchParams.get('fileId')
+    const trustedFileId = fileIdParam && /^[a-zA-Z0-9_-]{10,60}$/.test(fileIdParam) ? fileIdParam : null
+
     const t0 = Date.now()
-    const meta = await findEntryMeta(accessToken, sessionId, session, context.env, date)
+    let meta = null
+    if (trustedFileId) {
+      try { meta = await getEntryMeta(accessToken, trustedFileId) } catch (e) {
+        if (e instanceof DriveError && e.status === 404) return jsonResponse({ error: 'not_found' }, 404)
+        throw e
+      }
+    } else {
+      meta = await findEntryMeta(accessToken, sessionId, session, context.env, date)
+    }
     const t1 = Date.now()
     if (!meta) return jsonResponse({ error: 'not_found' }, 404)
 
     const ifNoneMatch = context.request.headers.get('If-None-Match')
     if (ifNoneMatch && meta.version && ifNoneMatch === meta.version) {
-      console.log(`[perf] GET entry/${date} findMeta=${t1 - t0}ms 304 not-modified`)
+      console.log(`[perf] GET entry/${date} ${trustedFileId ? 'getMeta' : 'findMeta'}=${t1 - t0}ms 304 not-modified`)
       return new Response(null, { status: 304 })
     }
 
     const entry = await getEntryContent(accessToken, meta.id)
     const t2 = Date.now()
-    console.log(`[perf] GET entry/${date} findMeta=${t1 - t0}ms getContent=${t2 - t1}ms total=${t2 - t0}ms`)
+    console.log(`[perf] GET entry/${date} ${trustedFileId ? 'getMeta' : 'findMeta'}=${t1 - t0}ms getContent=${t2 - t1}ms total=${t2 - t0}ms`)
     return jsonResponse({ entry, meta }, 200, meta.version ? { ETag: meta.version } : undefined)
   } catch (e) {
     if (e instanceof DriveError) {

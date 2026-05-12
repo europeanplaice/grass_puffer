@@ -85,10 +85,11 @@ export async function searchEntries(query: string): Promise<DriveFileMeta[]> {
   return data?.files ?? []
 }
 
-export async function getEntryByDate(date: string, cachedVersion?: string): Promise<LoadedDiaryEntry | null | 'not-modified'> {
+export async function getEntryByDate(date: string, cachedVersion?: string, fileId?: string): Promise<LoadedDiaryEntry | null | 'not-modified'> {
   const headers: Record<string, string> = cachedVersion ? { 'If-None-Match': cachedVersion } : {}
+  const params = fileId ? `?fileId=${encodeURIComponent(fileId)}` : ''
   const { data, status } = await apiFetch<{ entry: DiaryEntry; meta: DriveFileMeta }>(
-    `${BASE}/entry/${encodeURIComponent(date)}`,
+    `${BASE}/entry/${encodeURIComponent(date)}${params}`,
     { headers },
   )
   if (status === 304) return 'not-modified'
