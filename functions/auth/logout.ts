@@ -1,7 +1,10 @@
 import type { Env } from '../_shared/session'
-import { parseSessionId, clearSessionCookie } from '../_shared/session'
+import { parseSessionId, clearSessionCookie, validateMutationOrigin } from '../_shared/session'
 
 export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
+  const originError = validateMutationOrigin(request, env)
+  if (originError) return originError
+
   const sessionId = parseSessionId(request)
   if (sessionId) {
     await env.SESSIONS.delete(`session:${sessionId}`)

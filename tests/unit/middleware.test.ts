@@ -47,6 +47,25 @@ describe('API auth middleware', () => {
     expect(ctx.next).not.toHaveBeenCalled()
   })
 
+  it('rejects cross-site mutation requests before resolving the session', async () => {
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        headers: {
+          Cookie: 'grass_session=sid123',
+          Origin: 'https://attacker.example',
+          'Sec-Fetch-Site': 'cross-site',
+        },
+      }),
+    })
+
+    const response = await onRequest(ctx as any)
+
+    expect(response.status).toBe(403)
+    expect(ctx.next).not.toHaveBeenCalled()
+    expect(ctx.env.SESSIONS.get).not.toHaveBeenCalled()
+  })
+
   it('returns 401 when session not in KV', async () => {
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entries', {

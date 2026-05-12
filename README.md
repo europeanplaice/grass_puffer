@@ -32,7 +32,7 @@ Uses **OAuth 2.0 Authorization Code Flow with PKCE** via Cloudflare Pages Functi
 2. Google redirects back to `/auth/callback` with an authorization code.
 3. The callback handler exchanges the code for access + refresh tokens (server-side, never exposed
    to the browser), stores the session in Cloudflare KV (30-day TTL), and sets an `HttpOnly`
-   `Secure` `SameSite=Lax` session cookie (`grass_session`).
+   `Secure` `SameSite=Strict` session cookie (`grass_session`).
 4. Subsequent requests include the session cookie; the Cloudflare middleware resolves the session,
    refreshes the access token if needed, and proxies the Drive API call.
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { onRequestGet as onSearch } from '../../functions/api/drive/search'
-import { onRequestGet as onGetEntry } from '../../functions/api/drive/entry/[date]'
+import { onRequestGet as onGetEntry, onRequestPost as onPostEntry } from '../../functions/api/drive/entry/[date]'
 import { onRequestGet as onListRevisions } from '../../functions/api/drive/revisions/[fileId]'
 import { onRequestGet as onGetRevision } from '../../functions/api/drive/revisions/[fileId]/[revisionId]'
 import * as drive from '../../functions/_shared/drive'
@@ -11,6 +11,9 @@ vi.mock('../../functions/_shared/drive', async (importOriginal) => ({
   findEntryMeta: vi.fn().mockResolvedValue({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '7' }),
   getEntryContent: vi.fn().mockResolvedValue({ date: '2026-05-01', content: 'hi', updated_at: '' }),
   getEntryMeta: vi.fn().mockResolvedValue({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '8' }),
+  getDiaryFileMeta: vi.fn().mockResolvedValue({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '8' }),
+  ensureFolder: vi.fn().mockResolvedValue('folder-1'),
+  saveEntry: vi.fn().mockResolvedValue({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '9' }),
   listRevisions: vi.fn().mockResolvedValue([]),
   getRevisionContent: vi.fn().mockResolvedValue({ date: '2026-05-01', content: 'hi', updated_at: '' }),
 }))
@@ -63,6 +66,68 @@ describe('get entry handler', () => {
     expect(drive.findEntryMeta).toHaveBeenCalledOnce()
     expect(drive.getEntryContent).toHaveBeenCalledWith('tok', 'entry-1')
     expect(drive.getEntryMeta).not.toHaveBeenCalled()
+  })
+
+  it('validates a provided fileId against the diary folder and date before reading', async () => {
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01?fileId=validFileId1234567890'),
+      params: { date: '2026-05-01' },
+    })
+    const res = await onGetEntry(ctx as any)
+
+    expect(res.status).toBe(200)
+    expect(drive.getDiaryFileMeta).toHaveBeenCalledWith(
+      'tok',
+      'sid',
+      {},
+      {},
+      'validFileId1234567890',
+      '2026-05-01',
+    )
+  })
+})
+
+describe('post entry handler', () => {
+  it('rejects oversized entries', async () => {
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        body: JSON.stringify({ content: 'a'.repeat(500_001) }),
+      }),
+      params: { date: '2026-05-01' },
+    })
+
+    const res = await onPostEntry(ctx as any)
+
+    expect(res.status).toBe(413)
+  })
+
+  it('validates a provided fileId before saving', async () => {
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        body: JSON.stringify({ content: 'updated', fileId: 'validFileId1234567890' }),
+      }),
+      params: { date: '2026-05-01' },
+    })
+
+    const res = await onPostEntry(ctx as any)
+
+    expect(res.status).toBe(200)
+    expect(drive.getDiaryFileMeta).toHaveBeenCalledWith(
+      'tok',
+      'sid',
+      {},
+      {},
+      'validFileId1234567890',
+      '2026-05-01',
+    )
+    expect(drive.saveEntry).toHaveBeenCalledWith(
+      'tok',
+      expect.objectContaining({ date: '2026-05-01', content: 'updated' }),
+      'folder-1',
+      'entry-1',
+    )
   })
 })
 

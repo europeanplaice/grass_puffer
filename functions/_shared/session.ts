@@ -106,3 +106,43 @@ export function jsonResponse(body: unknown, status = 200, extraHeaders?: Record<
     },
   })
 }
+
+function originOf(value: string): string | null {
+  try {
+    return new URL(value).origin
+  } catch {
+    return null
+  }
+}
+
+function allowedOrigins(request: Request, env: Env): Set<string> {
+  const origins = new Set<string>()
+  const sessionOrigin = originOf(env.SESSION_DOMAIN)
+  const requestOrigin = originOf(request.url)
+  if (sessionOrigin) origins.add(sessionOrigin)
+  if (requestOrigin) origins.add(requestOrigin)
+
+  // Local development commonly proxies Vite (5173) to Pages Functions (8788).
+  if (sessionOrigin?.startsWith('http://localhost') || sessionOrigin?.startsWith('http://127.0.0.1')) {
+    origins.add('http://localhost:5173')
+    origins.add('http://127.0.0.1:5173')
+  }
+
+  return origins
+}
+
+export function validateMutationOrigin(request: Request, env: Env): Response | null {
+  if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method.toUpperCase())) return null
+
+  const origin = request.headers.get('Origin')
+  if (origin && !allowedOrigins(request, env).has(origin)) {
+    return jsonResponse({ error: 'Forbidden' }, 403)
+  }
+
+  const fetchSite = request.headers.get('Sec-Fetch-Site')
+  if (fetchSite && !['same-origin', 'same-site', 'none'].includes(fetchSite)) {
+    return jsonResponse({ error: 'Forbidden' }, 403)
+  }
+
+  return null
+}

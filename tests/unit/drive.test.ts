@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import {
   ensureFolder, getEntryContent, saveEntry, deleteEntry,
-  listRevisions, getRevisionContent, DriveError,
+  listRevisions, getRevisionContent, getDiaryFileMeta, DriveError,
 } from '../../functions/_shared/drive'
 
 function mockFetch(response: unknown): void {
@@ -128,6 +128,53 @@ describe('getEntryContent', () => {
       vi.mocked(Math.random).mockRestore()
       vi.useRealTimers()
     }
+  })
+})
+
+describe('getDiaryFileMeta', () => {
+  it('returns metadata for a JSON diary file in the cached diary folder', async () => {
+    const meta = {
+      id: 'file-1',
+      name: 'diary-2026-05-01.json',
+      mimeType: 'application/json',
+      parents: ['folder-1'],
+      trashed: false,
+      version: '2',
+    }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(meta)))
+    const session = { refresh_token: 'rt', access_token: 'at', expires_at: 1000, folder_id: 'folder-1' }
+
+    const result = await getDiaryFileMeta('token', 'sid', session, { SESSIONS: { put: vi.fn() } } as any, 'file-1', '2026-05-01')
+
+    expect(result).toEqual(meta)
+  })
+
+  it('rejects files outside the diary folder', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse({
+      id: 'file-1',
+      name: 'diary-2026-05-01.json',
+      mimeType: 'application/json',
+      parents: ['other-folder'],
+      trashed: false,
+    })))
+    const session = { refresh_token: 'rt', access_token: 'at', expires_at: 1000, folder_id: 'folder-1' }
+
+    await expect(getDiaryFileMeta('token', 'sid', session, { SESSIONS: { put: vi.fn() } } as any, 'file-1', '2026-05-01'))
+      .rejects.toMatchObject({ status: 404, message: 'not_found' })
+  })
+
+  it('rejects diary files for a different date', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse({
+      id: 'file-1',
+      name: 'diary-2026-05-02.json',
+      mimeType: 'application/json',
+      parents: ['folder-1'],
+      trashed: false,
+    })))
+    const session = { refresh_token: 'rt', access_token: 'at', expires_at: 1000, folder_id: 'folder-1' }
+
+    await expect(getDiaryFileMeta('token', 'sid', session, { SESSIONS: { put: vi.fn() } } as any, 'file-1', '2026-05-01'))
+      .rejects.toMatchObject({ status: 404, message: 'not_found' })
   })
 })
 

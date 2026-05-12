@@ -33,6 +33,24 @@ describe('logout handler', () => {
     expect(del).not.toHaveBeenCalled()
   })
 
+  it('rejects cross-site logout requests', async () => {
+    const del = vi.fn()
+    const request = new Request('http://localhost/auth/logout', {
+      method: 'POST',
+      headers: {
+        Cookie: 'grass_session=sid123',
+        Origin: 'https://attacker.example',
+        'Sec-Fetch-Site': 'cross-site',
+      },
+    })
+    const env = { SESSIONS: { delete: del }, SESSION_DOMAIN: 'https://example.com' }
+
+    const response = await onLogout({ request, env } as any)
+
+    expect(response.status).toBe(403)
+    expect(del).not.toHaveBeenCalled()
+  })
+
   it('omits Secure flag on HTTP domains', async () => {
     const request = new Request('http://localhost/auth/logout', {
       headers: { Cookie: 'grass_session=sid' },

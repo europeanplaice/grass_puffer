@@ -10,6 +10,9 @@ export interface DriveFileMeta {
   name: string
   modifiedTime?: string
   version?: string
+  mimeType?: string
+  parents?: string[]
+  trashed?: boolean
 }
 
 export interface DiaryEntry {
@@ -153,11 +156,48 @@ export async function findEntryMeta(token: string, sessionId: string, session: S
 }
 
 export async function getEntryMeta(token: string, fileId: string): Promise<DriveFileMeta> {
-  const fields = encodeURIComponent('id,name,modifiedTime,version')
+  const fields = encodeURIComponent('id,name,modifiedTime,version,mimeType,parents,trashed')
   return driveWithRetry(
     () => fetch(`${BASE}/files/${fileId}?fields=${fields}`, { headers: driveHeaders(token) }),
     r => r.json() as Promise<DriveFileMeta>,
   )
+}
+
+function expectedDiaryName(date?: string): RegExp | string {
+  return date ? `diary-${date}.json` : /^diary-\d{4}-\d{2}-\d{2}\.json$/
+}
+
+function isExpectedDiaryFile(meta: DriveFileMeta, folderId: string, date?: string): boolean {
+  const expectedName = expectedDiaryName(date)
+  const nameMatches = typeof expectedName === 'string'
+    ? meta.name === expectedName
+    : expectedName.test(meta.name)
+
+  return nameMatches
+    && meta.mimeType === 'application/json'
+    && meta.trashed !== true
+    && Array.isArray(meta.parents)
+    && meta.parents.includes(folderId)
+}
+
+export async function getDiaryFileMeta(
+  token: string,
+  sessionId: string,
+  session: SessionData,
+  env: Env,
+  fileId: string,
+  date?: string,
+): Promise<DriveFileMeta> {
+  const [folderId, meta] = await Promise.all([
+    ensureFolder(token, sessionId, session, env),
+    getEntryMeta(token, fileId),
+  ])
+
+  if (!isExpectedDiaryFile(meta, folderId, date)) {
+    throw new DriveError(404, 'not_found')
+  }
+
+  return meta
 }
 
 export async function getEntryContent(token: string, fileId: string): Promise<DiaryEntry> {
