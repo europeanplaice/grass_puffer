@@ -17,6 +17,7 @@ vi.mock('../../functions/_shared/drive', async (importOriginal) => ({
 
 function makeContext(overrides: Record<string, unknown> = {}) {
   return {
+    request: new Request('http://localhost/'),
     data: { accessToken: 'tok', sessionId: 'sid', session: {} },
     env: {},
     ...overrides,

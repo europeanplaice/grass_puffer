@@ -41,7 +41,7 @@ test.describe('recent entry previews', () => {
     })
 
     await page.route('/api/drive/entry/**', async route => {
-      const date = route.request().url().split('/').pop()!
+      const date = new URL(route.request().url()).pathname.split('/').pop()!
       requestLog.push(date)
       if (date === today) {
         await route.fulfill({ status: 404, body: '' })

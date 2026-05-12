@@ -159,25 +159,32 @@ test('loads the selected entry and shows its content', async ({ page }) => {
     })
   })
 
-  await page.route(`/api/drive/entry/${selectedDate}`, async route => {
-    requestLog.push('selected')
-    await selectedEntryGate
-    await route.fulfill({
-      json: {
-        entry: { date: selectedDate, content: 'selected entry content', updated_at: '2026-05-01T00:00:00.000Z' },
-        meta: { id: 'file-selected', name: `diary-${selectedDate}.json`, version: '11' },
-      },
-    })
-  })
+  await page.route('/api/drive/entry/**', async route => {
+    const date = new URL(route.request().url()).pathname.split('/').pop()
+    if (date === selectedDate) {
+      requestLog.push('selected')
+      await selectedEntryGate
+      await route.fulfill({
+        json: {
+          entry: { date: selectedDate, content: 'selected entry content', updated_at: '2026-05-01T00:00:00.000Z' },
+          meta: { id: 'file-selected', name: `diary-${selectedDate}.json`, version: '11' },
+        },
+      })
+      return
+    }
 
-  await page.route(`/api/drive/entry/${olderDate}`, async route => {
-    requestLog.push('older')
-    await route.fulfill({
-      json: {
-        entry: { date: olderDate, content: 'older entry content', updated_at: '2026-04-30T00:00:00.000Z' },
-        meta: { id: 'file-older', name: `diary-${olderDate}.json`, version: '10' },
-      },
-    })
+    if (date === olderDate) {
+      requestLog.push('older')
+      await route.fulfill({
+        json: {
+          entry: { date: olderDate, content: 'older entry content', updated_at: '2026-04-30T00:00:00.000Z' },
+          meta: { id: 'file-older', name: `diary-${olderDate}.json`, version: '10' },
+        },
+      })
+      return
+    }
+
+    await route.fulfill({ status: 404, body: '' })
   })
 
   await page.goto(baseUrl)
