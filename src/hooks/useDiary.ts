@@ -49,7 +49,7 @@ async function mapWithConcurrency<T, R>(
     for (;;) {
       const index = nextIndex++
       if (index >= items.length) return
-      results[index] = await mapper(items[index], index)
+      results.splice(index, 1, await mapper(items.at(index)!, index))
     }
   }
 
