@@ -26,6 +26,7 @@ interface Props {
   isSignedIn: boolean
   onExpired: () => void
   onLoadComplete?: (date: string, entry: LoadedDiaryEntry | null) => void
+  refreshSignal?: number
 }
 
 function SaveIcon() {
@@ -78,7 +79,7 @@ function isMobileLayout(): boolean {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
 }
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, isSignedIn, onExpired, onLoadComplete }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, isSignedIn, onExpired, onLoadComplete, refreshSignal = 0 }: Props) {
   const { t, locale } = useI18n()
   const savedStatus = t.entry.savedStatus
   const [text, setText] = useState('')
@@ -315,6 +316,7 @@ useEffect(() => {
     try {
       const entry = await getContentRef.current(date)
       applyLoadedEntry(entry)
+      onLoadCompleteRef.current?.(date, entry)
       setLoadFailed(false)
       setHasConflict(false)
       setConflictRemote(null)
@@ -335,6 +337,13 @@ useEffect(() => {
 
     await loadFreshEntry()
   }, [loadFreshEntry])
+
+  useEffect(() => {
+    if (refreshSignal <= 0) return
+    if (loadingRef.current || savingRef.current || refreshingRef.current || hasConflictRef.current) return
+    if (textRef.current !== savedTextRef.current) return
+    void loadFreshEntry()
+  }, [refreshSignal, loadFreshEntry])
 
   const handleSaveAndRefresh = useCallback(async () => {
     const ok = await save(true)

@@ -46,6 +46,7 @@ interface Window {
     triggerGetContent: (date: string) => Promise<void>
     search: (query: string) => Promise<import('../src/hooks/useDiary').SearchResult>
     exportAll: () => Promise<{ date: string; content: string }[]>
+    refreshEntries: () => Promise<void>
     progressCalls: () => { done: number; total: number }[]
     resetFolderState: () => void
     expiredCalls: () => number

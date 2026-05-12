@@ -33,6 +33,7 @@ let _save: SaveFn | null = null
 let _getContent: GetContentFn | null = null
 let _search: SearchFn | null = null
 let _exportAll: ExportAllFn | null = null
+let _refreshEntries: (() => Promise<void>) | null = null
 let expiredCount = 0
 let progressCalls: { done: number; total: number }[] = []
 
@@ -44,6 +45,7 @@ function Harness() {
     _getContent = diary.getContent
     _search = diary.search
     _exportAll = diary.exportAll
+    _refreshEntries = diary.refreshEntries
   })
 
   return (
@@ -87,6 +89,10 @@ window.diaryHarness = {
     if (!_exportAll) throw new Error('harness not started')
     progressCalls = []
     return _exportAll((done, total) => progressCalls.push({ done, total }))
+  },
+  refreshEntries: async () => {
+    if (!_refreshEntries) throw new Error('harness not started')
+    await _refreshEntries()
   },
   progressCalls: () => [...progressCalls],
   resetFolderState: () => {

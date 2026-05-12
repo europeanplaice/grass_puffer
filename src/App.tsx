@@ -25,6 +25,7 @@ type RecentPreview = {
 const DATE_HASH_RE = /^\d{4}-\d{2}-\d{2}$/
 const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
 const RECENT_PREVIEW_DELAY_MS = 75
+const FOCUS_REFRESH_MIN_MS = 1000
 
 interface SidebarHistoryState {
   grassPufferSidebar?: boolean
@@ -154,8 +155,10 @@ export default function App() {
   const [reauthSaveResult, setReauthSaveResult] = useState<LoadedDiaryEntry | null>(null)
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [entryRefreshSignal, setEntryRefreshSignal] = useState(0)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
+  const lastFocusRefreshRef = useRef(0)
 
   useEffect(() => {
     selectedDateRef.current = selectedDate
@@ -179,6 +182,7 @@ export default function App() {
     if (!isSignedIn) {
       setInitialLoadComplete(false)
       loadingSeenRef.current = false
+      lastFocusRefreshRef.current = 0
     }
   }, [isSignedIn])
 
@@ -425,6 +429,37 @@ export default function App() {
     }
   }, [isSignedIn, retrySaveAfterReauth, diary.retryPendingSave])
 
+  useEffect(() => {
+    if (!isSignedIn || tokenExpired || !initialLoadComplete) return
+
+    let cancelled = false
+    const refreshFromDrive = () => {
+      if (document.visibilityState === 'hidden') return
+
+      const now = Date.now()
+      if (now - lastFocusRefreshRef.current < FOCUS_REFRESH_MIN_MS) return
+      lastFocusRefreshRef.current = now
+
+      diary.refreshEntries()
+        .then(() => {
+          if (!cancelled && !editorDirtyRef.current) {
+            setEntryRefreshSignal(v => v + 1)
+          }
+        })
+        .catch(e => {
+          if (!cancelled) console.error('Drive refresh failed:', e)
+        })
+    }
+
+    window.addEventListener('focus', refreshFromDrive)
+    document.addEventListener('visibilitychange', refreshFromDrive)
+    return () => {
+      cancelled = true
+      window.removeEventListener('focus', refreshFromDrive)
+      document.removeEventListener('visibilitychange', refreshFromDrive)
+    }
+  }, [isSignedIn, tokenExpired, initialLoadComplete, diary.refreshEntries])
+
   if (status === 'initializing') {
     return hadSession
       ? <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
@@ -545,6 +580,7 @@ export default function App() {
           isSignedIn={!tokenExpired}
           onExpired={onExpired}
           onLoadComplete={handleEntryLoadComplete}
+          refreshSignal={entryRefreshSignal}
         />
       </main>
     </div>

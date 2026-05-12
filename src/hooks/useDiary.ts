@@ -16,6 +16,7 @@ export interface DiaryState {
   save: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
   remove: (date: string) => Promise<void>
   search: (query: string) => Promise<SearchResult>
+  refreshEntries: () => Promise<void>
   retryPendingSave: () => Promise<LoadedDiaryEntry | null>
   exportAll: (onProgress?: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
 }
@@ -78,6 +79,29 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     })
   }, [])
 
+  const loadEntryList = useCallback(async (preserveExistingContent: boolean) => {
+    const files = await listEntries()
+    updateCache(prev => {
+      const next = new Map<string, EntryCache>()
+      for (const f of files) {
+        const date = f.name.replace('diary-', '').replace('.json', '')
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+
+        const existing = prev.get(date)
+        const canReuseContent = Boolean(
+          preserveExistingContent &&
+          existing?.content &&
+          existing.meta.id === f.id &&
+          existing.meta.version === f.version,
+        )
+        next.set(date, canReuseContent
+          ? { ...existing!, meta: f }
+          : { meta: f })
+      }
+      return next
+    })
+  }, [updateCache])
+
   // Load entry list when signed in
   useEffect(() => {
     if (!isSignedIn) {
@@ -90,16 +114,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     setError(null)
     ;(async () => {
       try {
-        const files = await listEntries()
-        const newCache = new Map<string, EntryCache>()
-        for (const f of files) {
-          const date = f.name.replace('diary-', '').replace('.json', '')
-          if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-            newCache.set(date, { meta: f })
-          }
-        }
-        cacheRef.current = newCache
-        setCache(newCache)
+        await loadEntryList(false)
       } catch (e) {
         if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
         setError(String(e))
@@ -107,7 +122,17 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         setLoading(false)
       }
     })()
-  }, [isSignedIn])
+  }, [isSignedIn, loadEntryList])
+
+  const refreshEntries = useCallback(async (): Promise<void> => {
+    if (!isSignedIn) return
+    try {
+      await loadEntryList(true)
+    } catch (e) {
+      if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
+      throw e
+    }
+  }, [isSignedIn, loadEntryList])
 
   const getContent = useCallback(async (date: string): Promise<LoadedDiaryEntry | null> => {
     if (!isSignedIn) return null
@@ -150,6 +175,26 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
             const remote = await getEntryByDate(date, undefined, cachedMeta.id)
             if (remote === 'not-modified') throw new Error('Unexpected not-modified')
             throw new EntryConflictError(remote)
+          }
+          if (!force) {
+            const remote = await getEntryByDate(date, undefined, cachedMeta.id)
+            if (remote === 'not-modified') throw new Error('Unexpected not-modified')
+            if (!remote) {
+              updateCache(p => {
+                const next = new Map(p)
+                next.delete(date)
+                return next
+              })
+              throw new EntryConflictError(null)
+            }
+            if ((remote.meta.version ?? null) !== baseVersion) {
+              updateCache(p => {
+                const next = new Map(p)
+                next.set(date, { meta: remote.meta, content: remote.entry, snippet: remote.entry.content.slice(0, 500) })
+                return next
+              })
+              throw new EntryConflictError(remote)
+            }
           }
           const meta = await saveEntry(date, entry, cachedMeta.id)
           updateCache(p => {
@@ -273,5 +318,5 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
 
   const dates = Array.from(cache.keys()).sort((a, b) => b.localeCompare(a))
 
-  return { loading, error, dates, getContent, save, remove, search, retryPendingSave, exportAll }
+  return { loading, error, dates, getContent, save, remove, search, refreshEntries, retryPendingSave, exportAll }
 }
