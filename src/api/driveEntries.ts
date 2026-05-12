@@ -39,6 +39,7 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ da
     const res = await fetch(url, { ...init, credentials: 'include', cache: 'no-store' })
 
     if (res.ok) return { data: await res.json() as T, status: res.status }
+    if (res.status === 304) return { data: null as T, status: 304 }
     if (res.status === 401) throw new TokenExpiredError()
     if (res.status === 404) return { data: null as T, status: 404 }
 
@@ -84,8 +85,13 @@ export async function searchEntries(query: string): Promise<DriveFileMeta[]> {
   return data?.files ?? []
 }
 
-export async function getEntryByDate(date: string): Promise<LoadedDiaryEntry | null> {
-  const { data, status } = await apiFetch<{ entry: DiaryEntry; meta: DriveFileMeta }>(`${BASE}/entry/${encodeURIComponent(date)}`)
+export async function getEntryByDate(date: string, cachedVersion?: string): Promise<LoadedDiaryEntry | null | 'not-modified'> {
+  const headers: Record<string, string> = cachedVersion ? { 'If-None-Match': cachedVersion } : {}
+  const { data, status } = await apiFetch<{ entry: DiaryEntry; meta: DriveFileMeta }>(
+    `${BASE}/entry/${encodeURIComponent(date)}`,
+    { headers },
+  )
+  if (status === 304) return 'not-modified'
   if (status === 404 || !data) return null
   return { entry: data.entry, meta: data.meta }
 }

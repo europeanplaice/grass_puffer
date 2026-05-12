@@ -19,11 +19,21 @@ export const onRequestGet: PagesFunction<Env, 'date', Data> = async (context) =>
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {
+    const t0 = Date.now()
     const meta = await findEntryMeta(accessToken, sessionId, session, context.env, date)
+    const t1 = Date.now()
     if (!meta) return jsonResponse({ error: 'not_found' }, 404)
 
+    const ifNoneMatch = context.request.headers.get('If-None-Match')
+    if (ifNoneMatch && meta.version && ifNoneMatch === meta.version) {
+      console.log(`[perf] GET entry/${date} findMeta=${t1 - t0}ms 304 not-modified`)
+      return new Response(null, { status: 304 })
+    }
+
     const entry = await getEntryContent(accessToken, meta.id)
-    return jsonResponse({ entry, meta })
+    const t2 = Date.now()
+    console.log(`[perf] GET entry/${date} findMeta=${t1 - t0}ms getContent=${t2 - t1}ms total=${t2 - t0}ms`)
+    return jsonResponse({ entry, meta }, 200, meta.version ? { ETag: meta.version } : undefined)
   } catch (e) {
     if (e instanceof DriveError) {
       if (e.status === 404) return jsonResponse({ error: 'not_found' }, 404)

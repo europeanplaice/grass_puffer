@@ -112,7 +112,9 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
   const getContent = useCallback(async (date: string): Promise<LoadedDiaryEntry | null> => {
     if (!isSignedIn) return null
     try {
-      const loaded = await getEntryByDate(date)
+      const cached = cacheRef.current.get(date)
+      const loaded = await getEntryByDate(date, cached?.content ? cached.meta.version : undefined)
+      if (loaded === 'not-modified') return { entry: cached!.content!, meta: cached!.meta }
       if (!loaded) return null
       const { entry: content, meta } = loaded
       updateCache(prev => {
@@ -146,6 +148,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         if (cachedMeta) {
           if (!force && cachedMeta.version !== baseVersion) {
             const remote = await getEntryByDate(date)
+            if (remote === 'not-modified') throw new Error('Unexpected not-modified')
             throw new EntryConflictError(remote)
           }
           const meta = await saveEntry(date, entry, cachedMeta.id)
@@ -159,6 +162,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
 
         // New entry — check if another device created it first
         const current = await getEntryByDate(date)
+        if (current === 'not-modified') throw new Error('Unexpected not-modified')
         if (!force && (current?.meta.version ?? null) !== baseVersion) {
           throw new EntryConflictError(current)
         }
@@ -222,7 +226,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
 
       try {
         const loaded = await getEntryByDate(date)
-        if (!loaded) return null
+        if (!loaded || loaded === 'not-modified') return null
         const text = loaded.entry.content
         const idx = text.toLowerCase().indexOf(normalizedQuery)
         const snippet = text.slice(Math.max(0, idx - 30), idx + 60).replace(/\n/g, ' ')
