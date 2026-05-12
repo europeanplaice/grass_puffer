@@ -90,10 +90,16 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
         />
       </div>
       {isSearching && hasQuery && (
-        <div className="search-status">{t.search.searching}</div>
+        <div className="search-status" role="status">
+          <span className="search-status-spinner" aria-hidden="true" />
+          <span>{t.search.searching}</span>
+        </div>
       )}
       {entriesLoading && hasQuery && !isSearching && (
-        <div className="search-status">{t.search.loadingEntries}</div>
+        <div className="search-status" role="status">
+          <span className="search-status-spinner" aria-hidden="true" />
+          <span>{t.search.loadingEntries}</span>
+        </div>
       )}
       <AnimatePresence>
         {results.length > 0 && (
