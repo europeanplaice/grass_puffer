@@ -135,6 +135,38 @@ test.describe('useDiary save — conflict detection', () => {
     expect(calls[1].method).toBe('POST')
   })
 
+  test('allows a save when only the remote version advanced but the base content is unchanged', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page)
+
+    await page.evaluate(({ meta }) => {
+      window.diaryHarness.q(
+        { status: 404, body: null },
+        { status: 200, body: meta },
+      )
+    }, { meta: fileMeta('2') })
+
+    await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'draft', null))
+    await page.evaluate(() => window.diaryHarness.clearCalls())
+
+    await page.evaluate(({ remote, saveMeta }) => {
+      window.diaryHarness.q(
+        { status: 200, body: remote },
+        { status: 200, body: saveMeta },
+      )
+    }, { remote: entryResponse('3', 'draft'), saveMeta: fileMeta('4') })
+
+    const second = await page.evaluate(() =>
+      window.diaryHarness.save('2026-05-01', 'draft with more', '2', false, 'draft')
+    )
+
+    expect(second).toMatchObject({ ok: true, result: { meta: { version: '4' } } })
+    const calls = await page.evaluate(() => window.diaryHarness.calls())
+    expect(calls).toHaveLength(2)
+    expect(calls[0].method).toBe('GET')
+    expect(calls[1].method).toBe('POST')
+  })
+
   test('remote conflict is detected even when the local cache version still matches baseVersion', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page, { files: [fileMeta('1')] })

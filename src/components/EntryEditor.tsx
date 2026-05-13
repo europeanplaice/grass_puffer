@@ -12,7 +12,7 @@ import { useI18n } from '../i18n'
 interface Props {
   date: string
   getContent: (date: string) => Promise<LoadedDiaryEntry | null>
-  onSave: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
+  onSave: (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
   onDelete: (date: string) => Promise<void>
   onMenuClick: () => void
   onDirtyChange: (isDirty: boolean) => void
@@ -127,6 +127,16 @@ const loadFailedRef = useRef(loadFailed)
 const refreshingRef = useRef(refreshing)
 const pullDistanceRef = useRef(pullDistance)
 
+const setSavedTextValue = useCallback((value: string) => {
+  savedTextRef.current = value
+  setSavedText(value)
+}, [])
+
+const setBaseVersionValue = useCallback((value: string | null) => {
+  baseVersionRef.current = value
+  setBaseVersion(value)
+}, [])
+
 useEffect(() => {
   textRef.current = text
   savedTextRef.current = savedText
@@ -143,18 +153,18 @@ useEffect(() => {
   const applyLoadedEntry = useCallback((entry: LoadedDiaryEntry | null) => {
     const driveText = entry?.entry.content ?? ''
     setText(driveText)
-    setSavedText(driveText)
-    setBaseVersion(entry?.meta.version ?? null)
+    setSavedTextValue(driveText)
+    setBaseVersionValue(entry?.meta.version ?? null)
     setLastModified(entry?.entry.updated_at ?? null)
     fileIdRef.current = entry?.meta.id ?? null
-  }, [])
+  }, [setBaseVersionValue, setSavedTextValue])
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
     setText('')
-    setSavedText('')
-    setBaseVersion(null)
+    setSavedTextValue('')
+    setBaseVersionValue(null)
     setLastModified(null)
     setStatus('')
     setLoadFailed(false)
@@ -201,8 +211,8 @@ useEffect(() => {
     const currentText = textRef.current
     const previousSavedText = savedTextRef.current
 
-    setSavedText(content)
-    setBaseVersion(reauthSaveResult.meta.version ?? null)
+    setSavedTextValue(content)
+    setBaseVersionValue(reauthSaveResult.meta.version ?? null)
     setLastModified(reauthSaveResult.entry.updated_at ?? null)
     fileIdRef.current = reauthSaveResult.meta.id
 
@@ -210,7 +220,7 @@ useEffect(() => {
       setText(content)
       setStatus(savedStatus)
     }
-  }, [date, reauthSaveResult, savedStatus])
+  }, [date, reauthSaveResult, savedStatus, setBaseVersionValue, setSavedTextValue])
 
   const pendingNavDateRef = useRef(pendingNavDate)
   useEffect(() => { pendingNavDateRef.current = pendingNavDate }, [pendingNavDate])
@@ -229,9 +239,9 @@ useEffect(() => {
     }
     try {
       const currentText = textRef.current
-      const saved = await onSaveRef.current(date, currentText, baseVersionRef.current)
-      setSavedText(currentText)
-      setBaseVersion(saved.meta.version ?? null)
+      const saved = await onSaveRef.current(date, currentText, baseVersionRef.current, undefined, savedTextRef.current)
+      setSavedTextValue(currentText)
+      setBaseVersionValue(saved.meta.version ?? null)
       setLastModified(saved.entry.updated_at ?? null)
       fileIdRef.current = saved.meta.id
       setStatus(savedStatus)
@@ -255,7 +265,7 @@ useEffect(() => {
       setSaving(false)
       if (explicit) setExplicitSaving(false)
     }
-  }, [date, savedStatus, t])
+  }, [date, savedStatus, t, setBaseVersionValue, setSavedTextValue])
 
   const handleExplicitSave = useCallback(async () => {
     const ok = await save(true)
@@ -276,8 +286,8 @@ useEffect(() => {
   const loadRemote = () => {
     const remoteText = conflictRemote?.entry.content ?? ''
     setText(remoteText)
-    setSavedText(remoteText)
-    setBaseVersion(conflictRemote?.meta.version ?? null)
+    setSavedTextValue(remoteText)
+    setBaseVersionValue(conflictRemote?.meta.version ?? null)
     setHasConflict(false)
     setConflictRemote(null)
     setStatus(conflictRemote ? t.entry.loadedLatest : t.entry.remoteDeleted)
@@ -296,8 +306,8 @@ useEffect(() => {
     try {
       const currentText = textRef.current
       const saved = await onSaveRef.current(date, currentText, conflictRemote?.meta.version ?? baseVersionRef.current, true)
-      setSavedText(currentText)
-      setBaseVersion(saved.meta.version ?? null)
+      setSavedTextValue(currentText)
+      setBaseVersionValue(saved.meta.version ?? null)
       setHasConflict(false)
       setConflictRemote(null)
       setStatus(savedStatus)
@@ -595,8 +605,8 @@ useEffect(() => {
         onRestored={(result) => {
           const content = result.entry.content
           setText(content)
-          setSavedText(content)
-          setBaseVersion(result.meta.version ?? null)
+          setSavedTextValue(content)
+          setBaseVersionValue(result.meta.version ?? null)
           setLastModified(result.entry.updated_at ?? null)
           fileIdRef.current = result.meta.id
           setShowHistoryModal(false)

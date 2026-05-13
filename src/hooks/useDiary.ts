@@ -13,7 +13,7 @@ export interface DiaryState {
   error: string | null
   dates: string[]                                      // sorted desc
   getContent: (date: string) => Promise<LoadedDiaryEntry | null>
-  save: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
+  save: (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
   remove: (date: string) => Promise<void>
   search: (query: string) => Promise<SearchResult>
   refreshEntries: () => Promise<void>
@@ -36,7 +36,7 @@ export class EntryConflictError extends Error {
   }
 }
 
-type PendingSave = { date: string; content: string; baseVersion: string | null }
+type PendingSave = { date: string; content: string; baseVersion: string | null; baseContent?: string | null }
 
 async function mapWithConcurrency<T, R>(
   items: T[],
@@ -162,20 +162,16 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     }
   }, [isSignedIn, updateCache])
 
-  const save = useCallback(async (date: string, content: string, baseVersion: string | null, force = false): Promise<LoadedDiaryEntry> => {
+  const save = useCallback(async (date: string, content: string, baseVersion: string | null, force = false, baseContent?: string | null): Promise<LoadedDiaryEntry> => {
     if (!isSignedIn) throw new Error('Not signed in')
 
     const prev = saveQueueRef.current.get(date) ?? Promise.resolve()
     const run = prev.catch(() => {}).then(async (): Promise<LoadedDiaryEntry> => {
       const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
       try {
-        const cachedMeta = cacheRef.current.get(date)?.meta ?? null
+        const cachedEntry = cacheRef.current.get(date) ?? null
+        const cachedMeta = cachedEntry?.meta ?? null
         if (cachedMeta) {
-          if (!force && cachedMeta.version !== baseVersion) {
-            const remote = await getEntryByDate(date, undefined, cachedMeta.id)
-            if (remote === 'not-modified') throw new Error('Unexpected not-modified')
-            throw new EntryConflictError(remote)
-          }
           if (!force) {
             const remote = await getEntryByDate(date, undefined, cachedMeta.id)
             if (remote === 'not-modified') throw new Error('Unexpected not-modified')
@@ -188,15 +184,25 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
               throw new EntryConflictError(null)
             }
             if ((remote.meta.version ?? null) !== baseVersion) {
-              updateCache(p => {
-                const next = new Map(p)
-                next.set(date, { meta: remote.meta, content: remote.entry, snippet: remote.entry.content.slice(0, 500) })
-                return next
-              })
-              throw new EntryConflictError(remote)
+              const remoteMatchesBaseContent = baseContent != null && remote.entry.content === baseContent
+              if (remoteMatchesBaseContent) {
+                updateCache(p => {
+                  const next = new Map(p)
+                  next.set(date, { meta: remote.meta, content: remote.entry, snippet: remote.entry.content.slice(0, 500) })
+                  return next
+                })
+              } else {
+                updateCache(p => {
+                  const next = new Map(p)
+                  next.set(date, { meta: remote.meta, content: remote.entry, snippet: remote.entry.content.slice(0, 500) })
+                  return next
+                })
+                throw new EntryConflictError(remote)
+              }
             }
           }
-          const meta = await saveEntry(date, entry, cachedMeta.id)
+          const latestMeta = cacheRef.current.get(date)?.meta ?? cachedMeta
+          const meta = await saveEntry(date, entry, latestMeta.id)
           updateCache(p => {
             const next = new Map(p)
             next.set(date, { meta, content: entry, snippet: entry.content.slice(0, 500) })
@@ -209,7 +215,8 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         const current = await getEntryByDate(date)
         if (current === 'not-modified') throw new Error('Unexpected not-modified')
         if (!force && (current?.meta.version ?? null) !== baseVersion) {
-          throw new EntryConflictError(current)
+          const currentMatchesBaseContent = Boolean(current && baseContent != null && current.entry.content === baseContent)
+          if (!currentMatchesBaseContent) throw new EntryConflictError(current)
         }
         const meta = await saveEntry(date, entry, current?.meta.id)
         updateCache(p => {
@@ -220,7 +227,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         return { entry, meta }
       } catch (e) {
         if (e instanceof TokenExpiredError) {
-          pendingSaveRef.current = { date, content, baseVersion }
+          pendingSaveRef.current = { date, content, baseVersion, baseContent }
           onExpiredRef.current()
           throw e
         }
@@ -297,7 +304,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     const pending = pendingSaveRef.current
     if (!pending) return null
     pendingSaveRef.current = null
-    return save(pending.date, pending.content, pending.baseVersion)
+    return save(pending.date, pending.content, pending.baseVersion, false, pending.baseContent)
   }, [save])
 
   const exportAll = useCallback(async (onProgress?: (done: number, total: number) => void): Promise<{ date: string; content: string }[]> => {

@@ -39,6 +39,7 @@ interface Window {
       content: string,
       baseVersion: string | null,
       force?: boolean,
+      baseContent?: string | null,
     ) => Promise<
       | { ok: true; result: import('../src/types').LoadedDiaryEntry }
       | { ok: false; conflict: unknown; error: string }

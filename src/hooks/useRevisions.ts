@@ -30,7 +30,7 @@ interface Params {
   savedText: string
   isDirty: boolean
   autoSave: boolean
-  onSave: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
+  onSave: (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
   onRestored: (result: LoadedDiaryEntry) => void
   onExpired: () => void
   messages?: {
@@ -180,7 +180,7 @@ export function useRevisions({ fileId, date, baseVersion, text, savedText, isDir
     setRestoring(true)
     setRestoreError(null)
     try {
-      const result = await onSave(date, previewContent, baseVersion)
+      const result = await onSave(date, previewContent, baseVersion, undefined, savedText)
       onRestored(result)
     } catch (e) {
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
@@ -192,7 +192,7 @@ export function useRevisions({ fileId, date, baseVersion, text, savedText, isDir
     } finally {
       setRestoring(false)
     }
-  }, [previewContent, date, baseVersion, onSave, onRestored, messages.restoreConflict, messages.restoreFailed])
+  }, [previewContent, date, baseVersion, savedText, onSave, onRestored, messages.restoreConflict, messages.restoreFailed])
 
   return {
     revisions,

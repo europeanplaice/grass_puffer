@@ -25,7 +25,7 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   } as Response
 }
 
-type SaveFn = (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
+type SaveFn = (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
 type GetContentFn = (date: string) => Promise<LoadedDiaryEntry | null>
 type SearchFn = (query: string) => Promise<{ results: { date: string; snippet: string }[]; unindexedCount: number }>
 type ExportAllFn = (onProgress?: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
@@ -65,10 +65,10 @@ window.diaryHarness = {
   calls: () => [...fetchCalls],
   clearCalls: () => fetchCalls.splice(0),
   start: () => root.render(<Harness />),
-  save: async (date, content, baseVersion, force) => {
+  save: async (date, content, baseVersion, force, baseContent) => {
     if (!_save) throw new Error('harness not started')
     try {
-      const result = await _save(date, content, baseVersion, force)
+      const result = await _save(date, content, baseVersion, force, baseContent)
       return { ok: true, result }
     } catch (e) {
       if (e instanceof EntryConflictError) {

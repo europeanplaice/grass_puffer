@@ -536,6 +536,27 @@ test.describe('EntryEditor — keyboard save', () => {
   })
 })
 
+test.describe('EntryEditor — repeated saves', () => {
+  test('uses the saved version as the base for the next save of the same entry', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.fill('textarea.editor-textarea', 'first edit')
+    await page.locator('button.btn-save').click()
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+
+    await page.fill('textarea.editor-textarea', 'second edit')
+    await page.locator('button.btn-save').click()
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+
+    const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
+    expect(saveCalls).toEqual([
+      { date: '2026-05-01', content: 'first edit', baseVersion: '1' },
+      { date: '2026-05-01', content: 'second edit', baseVersion: '2' },
+    ])
+  })
+})
+
 test.describe('EntryEditor — conflict resolution', () => {
   test('loads the latest remote content from the conflict panel', async ({ page }) => {
     await loadHarness(page)

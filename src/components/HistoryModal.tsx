@@ -13,7 +13,7 @@ interface Props {
   savedText: string
   isDirty: boolean
   autoSave: boolean
-  onSave: (date: string, content: string, baseVersion: string | null, force?: boolean) => Promise<LoadedDiaryEntry>
+  onSave: (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
   onRestored: (result: LoadedDiaryEntry) => void
   onClose: () => void
   onExpired: () => void
