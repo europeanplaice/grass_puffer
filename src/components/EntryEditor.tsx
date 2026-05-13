@@ -312,8 +312,8 @@ useEffect(() => {
     }
   }
 
-  const loadFreshEntry = useCallback(async () => {
-    setRefreshing(true)
+  const loadFreshEntry = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setRefreshing(true)
     setShowRefreshConfirm(false)
     setStatus('')
     try {
@@ -324,9 +324,9 @@ useEffect(() => {
       setHasConflict(false)
       setConflictRemote(null)
     } catch {
-      setStatus(t.entry.failedToRefresh)
+      if (!silent) setStatus(t.entry.failedToRefresh)
     } finally {
-      setRefreshing(false)
+      if (!silent) setRefreshing(false)
     }
   }, [date, applyLoadedEntry])
 
@@ -345,7 +345,7 @@ useEffect(() => {
     if (refreshSignal <= 0) return
     if (loadingRef.current || savingRef.current || refreshingRef.current || hasConflictRef.current) return
     if (textRef.current !== savedTextRef.current) return
-    void loadFreshEntry()
+    void loadFreshEntry({ silent: true })
   }, [refreshSignal, loadFreshEntry])
 
   const handleSaveAndRefresh = useCallback(async () => {
