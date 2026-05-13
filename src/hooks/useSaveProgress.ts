@@ -12,7 +12,9 @@ function recordTiming(ms: number) {
   const timings = getTimings()
   timings.push(ms)
   if (timings.length > MAX_SAMPLES) timings.shift()
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(timings)) } catch {}
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(timings)) } catch {
+    // Ignore storage write failures; save progress should remain best-effort.
+  }
 }
 
 function getEstimate(): number {
