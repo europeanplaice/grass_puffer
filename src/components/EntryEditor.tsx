@@ -721,7 +721,7 @@ useEffect(() => {
             whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >
-            {status === savedStatus && !saving ? <CheckIcon /> : <SaveIcon />}
+            {saving ? <SpinnerIcon /> : status === savedStatus ? <CheckIcon /> : <SaveIcon />}
             <span className="btn-text">{saving ? t.common.savingEllipsis : status === savedStatus ? t.common.saved : t.entry.save}</span>
           </motion.button>
           <div className="more-menu-container" ref={moreMenuRef}>

@@ -178,6 +178,34 @@ describe('post entry handler', () => {
     })
     expect(drive.saveEntry).not.toHaveBeenCalled()
   })
+
+  it('saves when only the remote version changed and the base content still matches', async () => {
+    vi.mocked(drive.getDiaryFileMeta).mockResolvedValueOnce({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '9' })
+    vi.mocked(drive.getEntryContent).mockResolvedValueOnce({ date: '2026-05-01', content: 'local base', updated_at: '' })
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        body: JSON.stringify({
+          content: 'updated',
+          fileId: 'validFileId1234567890',
+          baseVersion: '8',
+          baseContent: 'local base',
+        }),
+      }),
+      params: { date: '2026-05-01' },
+    })
+
+    const res = await onPostEntry(ctx as any)
+
+    expect(res.status).toBe(200)
+    expect(drive.getEntryContent).toHaveBeenCalledWith('tok', 'entry-1')
+    expect(drive.saveEntry).toHaveBeenCalledWith(
+      'tok',
+      expect.objectContaining({ date: '2026-05-01', content: 'updated' }),
+      'folder-1',
+      'entry-1',
+    )
+  })
 })
 
 describe('list revisions handler', () => {

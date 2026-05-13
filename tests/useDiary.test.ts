@@ -220,6 +220,39 @@ test.describe('useDiary getContent — session expiry', () => {
   })
 })
 
+test.describe('useDiary save — session expiry', () => {
+  test('retryPendingSave preserves baseContent after re-authentication', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page, { files: [fileMeta('1')] })
+    await page.evaluate(() => window.diaryHarness.clearCalls())
+
+    await page.evaluate(() => {
+      window.diaryHarness.q({ status: 401, body: {} })
+    })
+
+    const failed = await page.evaluate(() =>
+      window.diaryHarness.save('2026-05-01', 'pending content', '1', false, 'saved base')
+    )
+    expect(failed).toMatchObject({ ok: false })
+    expect(await page.evaluate(() => window.diaryHarness.expiredCalls())).toBe(1)
+
+    await page.evaluate(({ meta }) => {
+      window.diaryHarness.q({ status: 200, body: meta })
+    }, { meta: fileMeta('2') })
+
+    const retried = await page.evaluate(() => window.diaryHarness.retryPendingSave())
+
+    expect(retried).toMatchObject({ ok: true, result: { meta: { version: '2' } } })
+    const calls = await page.evaluate(() => window.diaryHarness.calls())
+    expect(calls).toHaveLength(2)
+    expect(JSON.parse(calls[1].body ?? '{}')).toMatchObject({
+      fileId: 'file-1',
+      baseVersion: '1',
+      baseContent: 'saved base',
+    })
+  })
+})
+
 test.describe('useDiary Drive read batching', () => {
   test('search loads uncached matching entries with bounded parallel requests', async ({ page }) => {
     await loadHarness(page)

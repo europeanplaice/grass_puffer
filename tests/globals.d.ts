@@ -48,6 +48,10 @@ interface Window {
     search: (query: string) => Promise<import('../src/hooks/useDiary').SearchResult>
     exportAll: () => Promise<{ date: string; content: string }[]>
     refreshEntries: () => Promise<void>
+    retryPendingSave: () => Promise<
+      | { ok: true; result: import('../src/types').LoadedDiaryEntry | null }
+      | { ok: false; conflict: unknown; error: string }
+    >
     progressCalls: () => { done: number; total: number }[]
     resetFolderState: () => void
     expiredCalls: () => number
@@ -67,6 +71,13 @@ interface Window {
       saveDelayMs?: number
     }) => void
     saveCalls: () => { date: string; content: string; baseVersion: string | null; force?: boolean }[]
+    saveCallsWithBaseContent: () => {
+      date: string
+      content: string
+      baseVersion: string | null
+      force?: boolean
+      baseContent?: string | null
+    }[]
     getContentCalls: () => { date: string }[]
     setRemoteEntry: (content: string, version: string | null) => void
     deleteCalls: () => { date: string }[]
@@ -86,6 +97,13 @@ interface Window {
     render: (opts?: { date?: string; fileId?: string; baseVersion?: string | null }) => void
     calls: () => { url: string; method: string }[]
     saveCalls: () => { date: string; content: string; baseVersion: string | null; force?: boolean }[]
+    saveCallsWithBaseContent: () => {
+      date: string
+      content: string
+      baseVersion: string | null
+      force?: boolean
+      baseContent?: string | null
+    }[]
     restoredCalls: () => import('../src/types').LoadedDiaryEntry[]
     closeCalls: () => number
     expiredCalls: () => number

@@ -34,6 +34,7 @@ let _getContent: GetContentFn | null = null
 let _search: SearchFn | null = null
 let _exportAll: ExportAllFn | null = null
 let _refreshEntries: (() => Promise<void>) | null = null
+let _retryPendingSave: (() => Promise<LoadedDiaryEntry | null>) | null = null
 let expiredCount = 0
 let progressCalls: { done: number; total: number }[] = []
 
@@ -46,6 +47,7 @@ function Harness() {
     _search = diary.search
     _exportAll = diary.exportAll
     _refreshEntries = diary.refreshEntries
+    _retryPendingSave = diary.retryPendingSave
   })
 
   return (
@@ -93,6 +95,18 @@ window.diaryHarness = {
   refreshEntries: async () => {
     if (!_refreshEntries) throw new Error('harness not started')
     await _refreshEntries()
+  },
+  retryPendingSave: async () => {
+    if (!_retryPendingSave) throw new Error('harness not started')
+    try {
+      const result = await _retryPendingSave()
+      return { ok: true, result }
+    } catch (e) {
+      if (e instanceof EntryConflictError) {
+        return { ok: false, conflict: e.remote, error: 'conflict' }
+      }
+      return { ok: false, conflict: null, error: String(e) }
+    }
   },
   progressCalls: () => [...progressCalls],
   resetFolderState: () => {

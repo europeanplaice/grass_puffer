@@ -174,6 +174,20 @@ test.describe('driveEntries proxy API', () => {
     })
   })
 
+  test('saveEntry maps deleted-entry conflicts to SaveConflictError with null remote', async () => {
+    mockFetch(jsonResponse({ conflict: null }, 409))
+
+    const entry = { date: '2026-04-29', content: 'updated', updated_at: '2026-04-29T00:00:00.000Z' }
+    const err = await saveEntry('2026-04-29', entry, {
+      fileId: 'entry-1',
+      baseVersion: '2',
+      baseContent: 'local base',
+    }).catch(e => e)
+
+    expect(err).toBeInstanceOf(SaveConflictError)
+    expect((err as SaveConflictError).remote).toBeNull()
+  })
+
   test('deleteEntry sends DELETE to /api/drive/entry/:date', async () => {
     mockFetch(textResponse('', 204))
 

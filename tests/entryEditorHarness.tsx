@@ -8,6 +8,7 @@ import { I18nProvider } from '../src/i18n'
 import '../src/styles.css'
 
 type SaveCall = { date: string; content: string; baseVersion: string | null; force?: boolean }
+type FullSaveCall = SaveCall & { baseContent?: string | null }
 type DeleteCall = { date: string }
 type NavCall = { date: string | null }
 type WindowOpenCall = { url: string; target: string }
@@ -17,6 +18,7 @@ type LoadCompleteCall = { date: string; content: string | null; version: string 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
 let saveCalls: SaveCall[] = []
+let fullSaveCalls: FullSaveCall[] = []
 let deleteCalls: DeleteCall[] = []
 let pendingNavigateCalls: NavCall[] = []
 let cancelNavigationCalls: NavCall[] = []
@@ -84,11 +86,12 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
           meta: { id: 'file-1', name: `diary-${date}.json`, version: currentRemoteVersion ?? undefined },
         }
       }}
-      onSave={async (d, content, baseVer, force) => {
+      onSave={async (d, content, baseVer, force, baseContent) => {
         if (currentSaveDelayMs > 0) {
           await delaySave(currentSaveDelayMs)
         }
         saveCalls.push({ date: d, content, baseVersion: baseVer, force })
+        fullSaveCalls.push({ date: d, content, baseVersion: baseVer, force, baseContent })
         if (currentSaveReject === 'conflict' && !force) {
           const remote: LoadedDiaryEntry = {
             entry: { date: d, content: 'remote content', updated_at: new Date().toISOString() },
@@ -150,6 +153,7 @@ window.editorHarness = {
     saveDelayMs?: number
   }) => {
     saveCalls = []
+    fullSaveCalls = []
     deleteCalls = []
     pendingNavigateCalls = []
     cancelNavigationCalls = []
@@ -181,6 +185,7 @@ window.editorHarness = {
     )
   },
   saveCalls: () => [...saveCalls],
+  saveCallsWithBaseContent: () => [...fullSaveCalls],
   getContentCalls: () => [...getContentCalls],
   setRemoteEntry: (content, version) => {
     currentRemoteContent = content
@@ -193,6 +198,7 @@ window.editorHarness = {
   dirtyChanges: () => [...dirtyChanges],
   clearCalls: () => {
     saveCalls = []
+    fullSaveCalls = []
     deleteCalls = []
     pendingNavigateCalls = []
     cancelNavigationCalls = []

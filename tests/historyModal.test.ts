@@ -223,7 +223,7 @@ test.describe('HistoryModal — restore button', () => {
 
   test('restore calls onSave with the selected content and closes modal', async ({ page }) => {
     await loadHarness(page)
-    await renderModal(page)
+    await renderModal(page, { baseVersion: '7', savedText: 'current saved content' })
 
     // Clicking rev-2: need rev-2 content and rev-1 (previous) content
     await page.evaluate(({ contentV2, contentV1 }) => {
@@ -243,6 +243,12 @@ test.describe('HistoryModal — restore button', () => {
     expect(saveCalls).toHaveLength(1)
     expect(saveCalls[0].content).toBe(CONTENT_V2.content)
     expect(saveCalls[0].date).toBe('2026-05-01')
+    const [fullSaveCall] = await page.evaluate(() => window.historyHarness.saveCallsWithBaseContent())
+    expect(fullSaveCall).toMatchObject({
+      content: CONTENT_V2.content,
+      baseVersion: '7',
+      baseContent: 'current saved content',
+    })
 
     const restoredCalls = await page.evaluate(() => window.historyHarness.restoredCalls())
     expect(restoredCalls).toHaveLength(1)

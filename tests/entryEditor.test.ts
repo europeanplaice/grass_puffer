@@ -534,6 +534,23 @@ test.describe('EntryEditor — keyboard save', () => {
     ])
     await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
   })
+
+  test('Ctrl+S passes the saved text as baseContent', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await page.fill('textarea.editor-textarea', 'keyboard saved content')
+    await page.keyboard.press('Control+S')
+
+    await expect.poll(() => page.evaluate(() => window.editorHarness.saveCallsWithBaseContent().length)).toBe(1)
+    const [call] = await page.evaluate(() => window.editorHarness.saveCallsWithBaseContent())
+    expect(call).toMatchObject({
+      date: '2026-05-01',
+      content: 'keyboard saved content',
+      baseVersion: '1',
+      baseContent: 'saved content',
+    })
+  })
 })
 
 test.describe('EntryEditor — repeated saves', () => {
@@ -554,6 +571,18 @@ test.describe('EntryEditor — repeated saves', () => {
       { date: '2026-05-01', content: 'first edit', baseVersion: '1' },
       { date: '2026-05-01', content: 'second edit', baseVersion: '2' },
     ])
+
+    const fullSaveCalls = await page.evaluate(() => window.editorHarness.saveCallsWithBaseContent())
+    expect(fullSaveCalls[0]).toMatchObject({
+      content: 'first edit',
+      baseVersion: '1',
+      baseContent: 'saved content',
+    })
+    expect(fullSaveCalls[1]).toMatchObject({
+      content: 'second edit',
+      baseVersion: '2',
+      baseContent: 'first edit',
+    })
   })
 })
 

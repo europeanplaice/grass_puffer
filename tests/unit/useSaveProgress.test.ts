@@ -7,7 +7,7 @@ const STORAGE_KEY = 'gp-save-timings'
 beforeEach(() => {
   localStorage.clear()
   vi.useFakeTimers()
-  vi.stubGlobal('requestAnimationFrame', vi.fn())
+  vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1))
   vi.stubGlobal('cancelAnimationFrame', vi.fn())
 })
 
@@ -130,5 +130,24 @@ describe('useSaveProgress', () => {
     const { result } = renderHook(() => useSaveProgress())
     act(() => vi.advanceTimersByTime(1000))
     expect(result.current.progress).toBeNull()
+  })
+
+  it('advances toward 90% using animation frames and the current estimate', () => {
+    vi.spyOn(performance, 'now').mockReturnValue(0)
+    const raf = vi.mocked(requestAnimationFrame)
+    const { result } = renderHook(() => useSaveProgress())
+
+    act(() => result.current.startSave())
+    expect(result.current.progress).toBe(0)
+
+    act(() => {
+      raf.mock.calls[0][0](2000)
+    })
+    expect(result.current.progress).toBeCloseTo(0.45)
+
+    act(() => {
+      raf.mock.calls.at(-1)![0](5000)
+    })
+    expect(result.current.progress).toBe(0.9)
   })
 })

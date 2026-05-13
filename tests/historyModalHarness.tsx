@@ -9,10 +9,12 @@ import '../src/styles.css'
 type FetchCall = { url: string; method: string }
 type QueuedResponse = { status: number; body: unknown; delayMs?: number }
 type SaveCall = { date: string; content: string; baseVersion: string | null; force?: boolean }
+type FullSaveCall = SaveCall & { baseContent?: string | null }
 
 const fetchCalls: FetchCall[] = []
 const queue: QueuedResponse[] = []
 const saveCalls: SaveCall[] = []
+const fullSaveCalls: FullSaveCall[] = []
 const restoredCalls: LoadedDiaryEntry[] = []
 let closeCalls = 0
 let expiredCalls = 0
@@ -58,8 +60,9 @@ function App({ date, fileId, baseVersion, text, savedText, isDirty, autoSave }: 
       savedText={savedText}
       isDirty={isDirty}
       autoSave={autoSave}
-      onSave={async (d, content, bv, force) => {
+      onSave={async (d, content, bv, force, baseContent) => {
         saveCalls.push({ date: d, content, baseVersion: bv, force })
+        fullSaveCalls.push({ date: d, content, baseVersion: bv, force, baseContent })
         if (saveReject === 'conflict') {
           const remote: LoadedDiaryEntry = {
             entry: { date: d, content: 'remote', updated_at: new Date().toISOString() },
@@ -92,6 +95,7 @@ window.historyHarness = {
   render: (opts: RenderOpts = {}) => {
     fetchCalls.splice(0)
     saveCalls.splice(0)
+    fullSaveCalls.splice(0)
     restoredCalls.splice(0)
     closeCalls = 0
     expiredCalls = 0
@@ -113,6 +117,7 @@ window.historyHarness = {
   },
   calls: () => [...fetchCalls],
   saveCalls: () => [...saveCalls],
+  saveCallsWithBaseContent: () => [...fullSaveCalls],
   restoredCalls: () => [...restoredCalls],
   closeCalls: () => closeCalls,
   expiredCalls: () => expiredCalls,
