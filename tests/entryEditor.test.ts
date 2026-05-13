@@ -13,6 +13,7 @@ async function renderEditor(
     version?: string | null
     saveReject?: 'conflict' | 'error'
     getContentReject?: 'tokenExpired' | 'error'
+    deleteReject?: 'error'
     pendingNavDate?: string | null
     token?: string | null
   } = {},
@@ -21,11 +22,12 @@ async function renderEditor(
   const initialContent = opts.initialContent ?? ''
   const version = opts.version ?? null
   const getContentReject = opts.getContentReject
+  const deleteReject = opts.deleteReject
   await page.evaluate(
-    ({ date, initialContent, version, saveReject, getContentReject, pendingNavDate, token }) => {
-      window.editorHarness.render({ date, initialContent, version, saveReject, getContentReject, pendingNavDate, token })
+    ({ date, initialContent, version, saveReject, getContentReject, deleteReject, pendingNavDate, token }) => {
+      window.editorHarness.render({ date, initialContent, version, saveReject, getContentReject, deleteReject, pendingNavDate, token })
     },
-    { date, initialContent, version, saveReject: opts.saveReject, getContentReject, pendingNavDate: opts.pendingNavDate, token: opts.token },
+    { date, initialContent, version, saveReject: opts.saveReject, getContentReject, deleteReject, pendingNavDate: opts.pendingNavDate, token: opts.token },
   )
   // Wait for textarea to be visible (loading done)
   await page.waitForSelector('textarea.editor-textarea')
@@ -701,6 +703,35 @@ test.describe('EntryEditor — delete confirmation', () => {
     expect(await page.evaluate(() => window.editorHarness.deleteCalls())).toEqual([
       { date: '2026-05-01' },
     ])
+  })
+
+  test('clears editor content after deletion', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
+
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('saved content')
+
+    await page.getByRole('button', { name: 'More options' }).click()
+    await page.locator('.more-menu-delete').click()
+    await page.locator('.delete-modal-input').fill('confirm')
+    await page.locator('.delete-modal-actions .btn-delete').click()
+
+    await expect(page.locator('.delete-modal')).toHaveCount(0)
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('')
+  })
+
+  test('shows error status and preserves content when deletion fails', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1', deleteReject: 'error' })
+
+    await page.getByRole('button', { name: 'More options' }).click()
+    await page.locator('.more-menu-delete').click()
+    await page.locator('.delete-modal-input').fill('confirm')
+    await page.locator('.delete-modal-actions .btn-delete').click()
+
+    await expect(page.locator('.delete-modal')).toHaveCount(0)
+    await expect(page.locator('textarea.editor-textarea')).toHaveValue('saved content')
+    await expect(page.locator('.editor-status-line')).toHaveText('Delete failed.')
   })
 })
 

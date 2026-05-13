@@ -32,6 +32,8 @@ let saveCompleteCalls: SaveCompleteCall[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
 let currentGetContentReject: 'tokenExpired' | 'error' | undefined = undefined
+let currentDeleteReject: 'error' | undefined = undefined
+let currentDeleteDelayMs = 0
 let expiredCount = 0
 let currentToken: string | null = null
 let currentSaveDelayMs = 0
@@ -113,6 +115,8 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
       }}
       onDelete={async (d) => {
         deleteCalls.push({ date: d })
+        if (currentDeleteDelayMs > 0) await delaySave(currentDeleteDelayMs)
+        if (currentDeleteReject === 'error') throw new Error('Network error')
       }}
       onMenuClick={() => { menuClickCount++ }}
       onDirtyChange={(isDirty) => { dirtyChanges.push(isDirty) }}
@@ -151,6 +155,8 @@ window.editorHarness = {
     version?: string | null
     saveReject?: 'conflict' | 'error'
     getContentReject?: 'tokenExpired' | 'error'
+    deleteReject?: 'error'
+    deleteDelayMs?: number
     autoSave?: boolean
     getContentDelayMs?: number
     pendingNavDate?: string | null
@@ -170,6 +176,8 @@ window.editorHarness = {
     saveCompleteCalls = []
     currentSaveReject = opts.saveReject
     currentGetContentReject = opts.getContentReject
+    currentDeleteReject = opts.deleteReject
+    currentDeleteDelayMs = opts.deleteDelayMs ?? 0
     currentToken = opts.token ?? null
     currentSaveDelayMs = opts.saveDelayMs ?? 0
     currentRemoteContent = opts.initialContent ?? ''

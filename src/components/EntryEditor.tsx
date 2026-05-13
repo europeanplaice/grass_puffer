@@ -94,6 +94,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [loadFailed, setLoadFailed] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteInput, setDeleteInput] = useState('')
+  const [deleting, setDeleting] = useState(false)
   const [showMoreMenu, setShowMoreMenu] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [lastModified, setLastModified] = useState<string | null>(null)
@@ -394,8 +395,18 @@ useEffect(() => {
   }
 
   const confirmDelete = async () => {
-    setShowDeleteModal(false)
-    await onDelete(date)
+    setDeleting(true)
+    try {
+      await onDelete(date)
+      setShowDeleteModal(false)
+      applyLoadedEntry(null)
+      setStatus('')
+    } catch {
+      setStatus(t.entry.deleteFailed)
+      setShowDeleteModal(false)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   // Drive auto-save after a short idle period (only when auto-save is enabled)
@@ -647,12 +658,13 @@ useEffect(() => {
               placeholder={t.entry.confirmKeyword}
             />
             <div className="delete-modal-actions">
-              <button onClick={() => setShowDeleteModal(false)}>{t.common.cancel}</button>
+              <button onClick={() => setShowDeleteModal(false)} disabled={deleting}>{t.common.cancel}</button>
               <button
-                className="btn-delete"
+                className={`btn-delete${deleting ? ' btn-saving' : ''}`}
                 onClick={confirmDelete}
-                disabled={deleteInput !== t.entry.confirmKeyword}
-              >{t.common.delete}</button>
+                disabled={deleteInput !== t.entry.confirmKeyword || deleting}
+                aria-busy={deleting}
+              >{deleting ? <><SpinnerIcon />{t.common.deletingEllipsis}</> : t.common.delete}</button>
             </div>
           </motion.div>
         </motion.div>

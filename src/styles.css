@@ -1513,6 +1513,23 @@ body {
 }
 .delete-modal-actions button:not(:disabled):hover { background: var(--sidebar-bg); }
 .delete-modal-actions button:disabled { opacity: 0.45; cursor: default; }
+.delete-modal-actions .btn-delete[aria-busy="true"] {
+  opacity: 1;
+  cursor: progress;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  animation: delete-button-pulse 1.1s ease-in-out infinite;
+}
+@keyframes delete-button-pulse {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+.delete-modal-actions .btn-delete[aria-busy="true"] .btn-saving-spinner {
+  border-color: rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+}
 .session-expired-overlay {
   position: fixed;
   inset: 0;
