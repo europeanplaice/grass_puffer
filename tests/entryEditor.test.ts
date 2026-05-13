@@ -754,8 +754,8 @@ test.describe('EntryEditor — Open in Drive', () => {
   })
 })
 
-test.describe('EntryEditor — saving overlay', () => {
-  test('shows saving overlay on explicit save button click', async ({ page }) => {
+test.describe('EntryEditor — save progress', () => {
+  test('shows inline saving state without overlay on explicit save button click', async ({ page }) => {
     await loadHarness(page)
     await page.evaluate(() => {
       window.editorHarness.render({
@@ -770,17 +770,16 @@ test.describe('EntryEditor — saving overlay', () => {
     await page.fill('textarea.editor-textarea', 'new content')
     await page.locator('button.btn-save').click()
 
-    // Overlay should appear while saving
-    await expect(page.locator('.saving-overlay')).toBeVisible()
-    await expect(page.locator('.saving-spinner')).toBeVisible()
-    await expect(page.locator('.saving-text')).toHaveText('Saving…')
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-busy', 'true', { timeout: 2000 })
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saving')
+    await expect(page.locator('button.btn-save .btn-saving-spinner')).toBeVisible()
+    await expect(page.locator('button.btn-save .btn-text')).toHaveText('Saving…')
+    await expect(page.locator('.saving-overlay')).toHaveCount(0)
 
-    // Wait for save to complete
-    await page.waitForSelector('.saving-overlay', { state: 'hidden' })
     await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
   })
 
-  test('shows saving overlay on Ctrl+S save', async ({ page }) => {
+  test('shows inline saving state without overlay on Ctrl+S save', async ({ page }) => {
     await loadHarness(page)
     await page.evaluate(() => {
       window.editorHarness.render({
@@ -799,13 +798,11 @@ test.describe('EntryEditor — saving overlay', () => {
 
     // Wait for the save button to enter saving state (aria-busy="true")
     await expect(page.locator('button.btn-save')).toHaveAttribute('aria-busy', 'true', { timeout: 2000 })
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saving')
+    await expect(page.locator('button.btn-save .btn-saving-spinner')).toBeVisible()
+    await expect(page.locator('.saving-overlay')).toHaveCount(0)
 
-    // Overlay should be visible while saving
-    await expect(page.locator('.saving-overlay')).toBeVisible()
-
-    // Wait for save to complete
-    await page.waitForSelector('.saving-overlay', { state: 'hidden', timeout: 5000 })
-    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved', { timeout: 5000 })
   })
 
   test('does not show saving overlay on auto-save', async ({ page }) => {

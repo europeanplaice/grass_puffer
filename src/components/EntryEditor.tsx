@@ -87,7 +87,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [explicitSaving, setExplicitSaving] = useState(false)
   const [status, setStatus] = useState('')
   const [loadFailed, setLoadFailed] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -120,7 +119,6 @@ const textRef = useRef(text)
 const savedTextRef = useRef(savedText)
 const baseVersionRef = useRef(baseVersion)
 const savingRef = useRef(saving)
-const explicitSavingRef = useRef(explicitSaving)
 const hasConflictRef = useRef(hasConflict)
 const loadingRef = useRef(loading)
 const loadFailedRef = useRef(loadFailed)
@@ -142,13 +140,12 @@ useEffect(() => {
   savedTextRef.current = savedText
   baseVersionRef.current = baseVersion
   savingRef.current = saving
-  explicitSavingRef.current = explicitSaving
   hasConflictRef.current = hasConflict
   loadingRef.current = loading
   loadFailedRef.current = loadFailed
   refreshingRef.current = refreshing
   pullDistanceRef.current = pullDistance
-}, [text, savedText, baseVersion, saving, explicitSaving, hasConflict, loading, loadFailed, refreshing, pullDistance])
+}, [text, savedText, baseVersion, saving, hasConflict, loading, loadFailed, refreshing, pullDistance])
 
   const applyLoadedEntry = useCallback((entry: LoadedDiaryEntry | null) => {
     const driveText = entry?.entry.content ?? ''
@@ -232,7 +229,6 @@ useEffect(() => {
     if (loadFailedRef.current) return false
     setSaving(true)
     if (explicit) {
-      setExplicitSaving(true)
       setStatus('')
       setHasConflict(false)
       setConflictRemote(null)
@@ -263,7 +259,6 @@ useEffect(() => {
       return false
     } finally {
       setSaving(false)
-      if (explicit) setExplicitSaving(false)
     }
   }, [date, savedStatus, t, setBaseVersionValue, setSavedTextValue])
 
@@ -301,7 +296,6 @@ useEffect(() => {
 
   const overwriteRemote = async () => {
     setSaving(true)
-    setExplicitSaving(true)
     setStatus('')
     try {
       const currentText = textRef.current
@@ -315,7 +309,6 @@ useEffect(() => {
       setStatus(t.entry.saveFailed)
     } finally {
       setSaving(false)
-      setExplicitSaving(false)
     }
   }
 
@@ -652,21 +645,6 @@ useEffect(() => {
               >{t.common.delete}</button>
             </div>
           </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-    <AnimatePresence>
-      {explicitSaving && (
-        <motion.div className="saving-overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-        >
-          <div className="saving-modal">
-            <span className="saving-spinner" aria-hidden="true" />
-            <span className="saving-text">{t.entry.savingOverlay}</span>
-          </div>
         </motion.div>
       )}
     </AnimatePresence>
