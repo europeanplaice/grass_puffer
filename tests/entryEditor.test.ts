@@ -662,6 +662,21 @@ test.describe('EntryEditor — conflict resolution', () => {
     ])
     await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
   })
+
+  test('calls onSaveComplete after overwriting a remote conflict', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'local base', version: '1', saveReject: 'conflict' })
+
+    await page.fill('textarea.editor-textarea', 'local edits')
+    await page.locator('button.btn-save').click()
+    await page.waitForSelector('.conflict-panel')
+
+    await page.getByRole('button', { name: 'Overwrite' }).click()
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+
+    const calls = await page.evaluate(() => window.editorHarness.saveCompleteCalls())
+    expect(calls).toEqual([{ date: '2026-05-01', content: 'local edits' }])
+  })
 })
 
 test.describe('EntryEditor — delete confirmation', () => {

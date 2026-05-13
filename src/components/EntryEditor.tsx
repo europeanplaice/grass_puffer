@@ -314,6 +314,7 @@ useEffect(() => {
       setHasConflict(false)
       setConflictRemote(null)
       setStatus(savedStatus)
+      onSaveCompleteRef.current?.(date, currentText)
     } catch {
       setStatus(t.entry.saveFailed)
     } finally {
