@@ -8,6 +8,7 @@ import { todayYmd, yesterdayYmd, weekdayLabel, diaryDateLabel } from '../utils/d
 import { HistoryModal } from './HistoryModal'
 import { shareEntry } from '../utils/share'
 import { useI18n } from '../i18n'
+import { useSaveProgress } from '../hooks/useSaveProgress'
 
 interface Props {
   date: string
@@ -81,6 +82,7 @@ function isMobileLayout(): boolean {
 
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, isSignedIn, onExpired, onLoadComplete, refreshSignal = 0 }: Props) {
   const { t, locale } = useI18n()
+  const { progress: saveProgress, startSave, completeSave } = useSaveProgress()
   const savedStatus = t.entry.savedStatus
   const [text, setText] = useState('')
   const [savedText, setSavedText] = useState('')
@@ -228,11 +230,13 @@ useEffect(() => {
     if (savingRef.current) return false
     if (loadFailedRef.current) return false
     setSaving(true)
+    startSave()
     if (explicit) {
       setStatus('')
       setHasConflict(false)
       setConflictRemote(null)
     }
+    let success = false
     try {
       const currentText = textRef.current
       const saved = await onSaveRef.current(date, currentText, baseVersionRef.current, undefined, savedTextRef.current)
@@ -242,10 +246,10 @@ useEffect(() => {
       fileIdRef.current = saved.meta.id
       setStatus(savedStatus)
       setShowRefreshConfirm(false)
+      success = true
       return true
     } catch (e) {
       if (!explicit) {
-        // Auto-save silently swallows errors; conflicts surface on next manual save
         console.error('Auto-save failed:', e)
         return false
       }
@@ -259,8 +263,9 @@ useEffect(() => {
       return false
     } finally {
       setSaving(false)
+      completeSave(success)
     }
-  }, [date, savedStatus, t, setBaseVersionValue, setSavedTextValue])
+  }, [date, savedStatus, t, setBaseVersionValue, setSavedTextValue, startSave, completeSave])
 
   const handleExplicitSave = useCallback(async () => {
     const ok = await save(true)
@@ -656,6 +661,20 @@ useEffect(() => {
       >
         <span className="pull-refresh-spinner" />
       </div>
+      {saveProgress !== null && (
+        <div className="save-progress-bar" aria-hidden="true">
+          <div
+            className="save-progress-bar-fill"
+            style={{
+              width: `${saveProgress * 100}%`,
+              opacity: saveProgress >= 1 ? 0 : 1,
+              transition: saveProgress >= 1
+                ? 'width 0.15s ease-out, opacity 0.45s ease 0.1s'
+                : 'width 60ms linear',
+            }}
+          />
+        </div>
+      )}
       <div className="editor-header">
         <div className="editor-date-group">
           <button className="btn-menu" onClick={onMenuClick} title={t.entry.openMenu}>☰</button>
@@ -702,9 +721,7 @@ useEffect(() => {
             whileTap={{ scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >
-            {saving
-              ? <span className="btn-saving-spinner" aria-hidden="true" />
-              : status === savedStatus ? <CheckIcon /> : <SaveIcon />}
+            {status === savedStatus && !saving ? <CheckIcon /> : <SaveIcon />}
             <span className="btn-text">{saving ? t.common.savingEllipsis : status === savedStatus ? t.common.saved : t.entry.save}</span>
           </motion.button>
           <div className="more-menu-container" ref={moreMenuRef}>
