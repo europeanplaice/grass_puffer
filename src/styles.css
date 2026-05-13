@@ -52,6 +52,7 @@
   --danger-hover: #a93226;
   --save-success-bg: #437a55;
   --save-success-flash: #5fad77;
+  --save-progress: #c58f22;
   --save-glow: rgba(90,122,90,0.25);
   --save-btn-shadow: rgba(44,44,44,0.18);
   --spinner-border: rgba(255,255,255,0.42);
@@ -111,6 +112,7 @@
   --danger-hover: #c0392b;
   --save-success-bg: #437a55;
   --save-success-flash: #5fad77;
+  --save-progress: #d8ad4a;
   --save-glow: rgba(107,155,107,0.3);
   --save-btn-shadow: rgba(200,200,200,0.15);
   --spinner-border: rgba(255,255,255,0.25);
@@ -1064,7 +1066,7 @@ body {
 }
 .save-progress-bar-fill {
   height: 100%;
-  background: var(--accent);
+  background: var(--save-progress);
   border-radius: 0 2px 2px 0;
 }
 .editor {
