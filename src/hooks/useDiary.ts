@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { DiaryEntry, DriveFileMeta, LoadedDiaryEntry } from '../types'
-import { listEntries, searchEntries, getEntryByDate, saveEntry, deleteEntry, TokenExpiredError } from '../api/driveEntries'
+import { listEntries, searchEntries, getEntryByDate, saveEntry, deleteEntry, TokenExpiredError, SaveConflictError } from '../api/driveEntries'
 
 interface EntryCache {
   meta: DriveFileMeta
@@ -169,40 +169,9 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     const run = prev.catch(() => {}).then(async (): Promise<LoadedDiaryEntry> => {
       const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
       try {
-        const cachedEntry = cacheRef.current.get(date) ?? null
-        const cachedMeta = cachedEntry?.meta ?? null
+        const cachedMeta = cacheRef.current.get(date)?.meta ?? null
         if (cachedMeta) {
-          if (!force) {
-            const remote = await getEntryByDate(date, undefined, cachedMeta.id)
-            if (remote === 'not-modified') throw new Error('Unexpected not-modified')
-            if (!remote) {
-              updateCache(p => {
-                const next = new Map(p)
-                next.delete(date)
-                return next
-              })
-              throw new EntryConflictError(null)
-            }
-            if ((remote.meta.version ?? null) !== baseVersion) {
-              const remoteMatchesBaseContent = baseContent != null && remote.entry.content === baseContent
-              if (remoteMatchesBaseContent) {
-                updateCache(p => {
-                  const next = new Map(p)
-                  next.set(date, { meta: remote.meta, content: remote.entry, snippet: remote.entry.content.slice(0, 500) })
-                  return next
-                })
-              } else {
-                updateCache(p => {
-                  const next = new Map(p)
-                  next.set(date, { meta: remote.meta, content: remote.entry, snippet: remote.entry.content.slice(0, 500) })
-                  return next
-                })
-                throw new EntryConflictError(remote)
-              }
-            }
-          }
-          const latestMeta = cacheRef.current.get(date)?.meta ?? cachedMeta
-          const meta = await saveEntry(date, entry, latestMeta.id)
+          const meta = await saveEntry(date, entry, { fileId: cachedMeta.id, baseVersion, baseContent, force })
           updateCache(p => {
             const next = new Map(p)
             next.set(date, { meta, content: entry, snippet: entry.content.slice(0, 500) })
@@ -211,14 +180,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
           return { entry, meta }
         }
 
-        // New entry — check if another device created it first
-        const current = await getEntryByDate(date)
-        if (current === 'not-modified') throw new Error('Unexpected not-modified')
-        if (!force && (current?.meta.version ?? null) !== baseVersion) {
-          const currentMatchesBaseContent = Boolean(current && baseContent != null && current.entry.content === baseContent)
-          if (!currentMatchesBaseContent) throw new EntryConflictError(current)
-        }
-        const meta = await saveEntry(date, entry, current?.meta.id)
+        const meta = await saveEntry(date, entry, { baseVersion, baseContent, force })
         updateCache(p => {
           const next = new Map(p)
           next.set(date, { meta, content: entry, snippet: entry.content.slice(0, 500) })
@@ -230,6 +192,22 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
           pendingSaveRef.current = { date, content, baseVersion, baseContent }
           onExpiredRef.current()
           throw e
+        }
+        if (e instanceof SaveConflictError) {
+          if (e.remote) {
+            updateCache(p => {
+              const next = new Map(p)
+              next.set(date, { meta: e.remote!.meta, content: e.remote!.entry, snippet: e.remote!.entry.content.slice(0, 500) })
+              return next
+            })
+          } else {
+            updateCache(p => {
+              const next = new Map(p)
+              next.delete(date)
+              return next
+            })
+          }
+          throw new EntryConflictError(e.remote)
         }
         throw e
       } finally {

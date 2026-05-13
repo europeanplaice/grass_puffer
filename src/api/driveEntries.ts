@@ -18,6 +18,27 @@ export class DriveHttpError extends Error {
   }
 }
 
+export class SaveConflictError extends Error {
+  remote: LoadedDiaryEntry | null
+
+  constructor(remote: LoadedDiaryEntry | null) {
+    super('Entry was changed on another device')
+    this.name = 'SaveConflictError'
+    this.remote = remote
+  }
+}
+
+interface SaveEntryOptions {
+  fileId?: string
+  baseVersion?: string | null
+  baseContent?: string | null
+  force?: boolean
+}
+
+interface SaveConflictResponse {
+  conflict: LoadedDiaryEntry | null
+}
+
 function shouldRetry(status: number): boolean {
   return status === 429 || status >= 500
 }
@@ -33,12 +54,13 @@ function retryDelay(attempt: number): number {
   }
 }
 
-export async function apiFetch<T>(url: string, init?: RequestInit): Promise<{ data: T; status: number }> {
+export async function apiFetch<T>(url: string, init?: RequestInit, acceptedStatuses: number[] = []): Promise<{ data: T; status: number }> {
   const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { ...init, credentials: 'include', cache: 'no-store' })
 
     if (res.ok) return { data: await res.json() as T, status: res.status }
+    if (acceptedStatuses.includes(res.status)) return { data: await res.json() as T, status: res.status }
     if (res.status === 304) return { data: null as T, status: 304 }
     if (res.status === 401) throw new TokenExpiredError()
     if (res.status === 404) return { data: null as T, status: 404 }
@@ -97,13 +119,21 @@ export async function getEntryByDate(date: string, cachedVersion?: string, fileI
   return { entry: data.entry, meta: data.meta }
 }
 
-export async function saveEntry(date: string, entry: DiaryEntry, fileId?: string): Promise<DriveFileMeta> {
-  const { data } = await apiFetch<DriveFileMeta>(`${BASE}/entry/${encodeURIComponent(date)}`, {
+export async function saveEntry(date: string, entry: DiaryEntry, optionsOrFileId: SaveEntryOptions | string = {}): Promise<DriveFileMeta> {
+  const options = typeof optionsOrFileId === 'string' ? { fileId: optionsOrFileId } : optionsOrFileId
+  const { data, status } = await apiFetch<DriveFileMeta | SaveConflictResponse>(`${BASE}/entry/${encodeURIComponent(date)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content: entry.content, fileId }),
-  })
-  return data
+    body: JSON.stringify({
+      content: entry.content,
+      fileId: options.fileId,
+      baseVersion: options.baseVersion,
+      baseContent: options.baseContent,
+      force: options.force,
+    }),
+  }, [409])
+  if (status === 409) throw new SaveConflictError((data as SaveConflictResponse).conflict ?? null)
+  return data as DriveFileMeta
 }
 
 export async function deleteEntry(date: string): Promise<void> {

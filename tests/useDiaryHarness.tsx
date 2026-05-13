@@ -3,14 +3,14 @@ import { createRoot } from 'react-dom/client'
 import { useDiary, EntryConflictError } from '../src/hooks/useDiary'
 import type { LoadedDiaryEntry } from '../src/types'
 
-type FetchCall = { url: string; method: string }
+type FetchCall = { url: string; method: string; body?: string }
 type QueuedResponse = { status: number; body: unknown; delayMs?: number }
 
 const fetchCalls: FetchCall[] = []
 const queue: QueuedResponse[] = []
 
 globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-  fetchCalls.push({ url: String(input), method: String(init?.method ?? 'GET') })
+  fetchCalls.push({ url: String(input), method: String(init?.method ?? 'GET'), body: typeof init?.body === 'string' ? init.body : undefined })
   const resp = queue.shift()
   if (!resp) throw new Error(`Unexpected fetch: ${String(input)}`)
   if (resp.delayMs) {

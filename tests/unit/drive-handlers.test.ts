@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { onRequestGet as onSearch } from '../../functions/api/drive/search'
 import { onRequestGet as onGetEntry, onRequestPost as onPostEntry } from '../../functions/api/drive/entry/[date]'
 import { onRequestGet as onListRevisions } from '../../functions/api/drive/revisions/[fileId]'
@@ -26,6 +26,10 @@ function makeContext(overrides: Record<string, unknown> = {}) {
     ...overrides,
   }
 }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+})
 
 describe('search handler', () => {
   it('returns empty array for blank query', async () => {
@@ -128,6 +132,51 @@ describe('post entry handler', () => {
       'folder-1',
       'entry-1',
     )
+    expect(drive.getEntryContent).not.toHaveBeenCalled()
+  })
+
+  it('does not read remote content when the provided baseVersion matches', async () => {
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        body: JSON.stringify({ content: 'updated', fileId: 'validFileId1234567890', baseVersion: '8' }),
+      }),
+      params: { date: '2026-05-01' },
+    })
+
+    const res = await onPostEntry(ctx as any)
+
+    expect(res.status).toBe(200)
+    expect(drive.getEntryContent).not.toHaveBeenCalled()
+    expect(drive.saveEntry).toHaveBeenCalled()
+  })
+
+  it('returns a conflict without saving when the remote content changed', async () => {
+    vi.mocked(drive.getDiaryFileMeta).mockResolvedValueOnce({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '9' })
+    vi.mocked(drive.getEntryContent).mockResolvedValueOnce({ date: '2026-05-01', content: 'remote edit', updated_at: '' })
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        body: JSON.stringify({
+          content: 'updated',
+          fileId: 'validFileId1234567890',
+          baseVersion: '8',
+          baseContent: 'local base',
+        }),
+      }),
+      params: { date: '2026-05-01' },
+    })
+
+    const res = await onPostEntry(ctx as any)
+
+    expect(res.status).toBe(409)
+    expect(await res.json()).toMatchObject({
+      conflict: {
+        entry: { content: 'remote edit' },
+        meta: { version: '9' },
+      },
+    })
+    expect(drive.saveEntry).not.toHaveBeenCalled()
   })
 })
 

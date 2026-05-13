@@ -31,7 +31,7 @@ interface Window {
   }
   diaryHarness: {
     q: (...responses: { status: number; body: unknown; delayMs?: number }[]) => void
-    calls: () => { url: string; method: string }[]
+    calls: () => { url: string; method: string; body?: string }[]
     clearCalls: () => void
     start: () => void
     save: (

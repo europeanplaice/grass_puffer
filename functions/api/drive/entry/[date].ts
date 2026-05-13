@@ -14,6 +14,14 @@ import type { DiaryEntry } from '../../../_shared/drive'
 const MAX_ENTRY_CONTENT_LENGTH = 500_000
 const MAX_ENTRY_BODY_BYTES = 1_000_000
 
+type SaveRequestBody = {
+  content: string
+  fileId?: string
+  baseVersion?: string | null
+  baseContent?: string | null
+  force?: boolean
+}
+
 export const onRequestGet: PagesFunction<Env, 'date', Data> = async (context) => {
   const { accessToken, sessionId, session } = context.data
   const date = context.params.date as string
@@ -64,29 +72,53 @@ export const onRequestPost: PagesFunction<Env, 'date', Data> = async (context) =
     return jsonResponse({ error: 'Entry is too large' }, 413)
   }
 
-  let body: { content: string; fileId?: string }
+  let body: SaveRequestBody
   try {
-    body = await context.request.json() as { content: string; fileId?: string }
+    body = await context.request.json() as SaveRequestBody
   } catch {
     return jsonResponse({ error: 'Invalid JSON body' }, 400)
   }
 
   if (typeof body.content !== 'string') return jsonResponse({ error: 'content is required' }, 400)
   if (body.content.length > MAX_ENTRY_CONTENT_LENGTH) return jsonResponse({ error: 'Entry is too large' }, 413)
+  if (body.baseVersion !== undefined && body.baseVersion !== null && typeof body.baseVersion !== 'string') {
+    return jsonResponse({ error: 'Invalid baseVersion' }, 400)
+  }
+  if (body.baseContent !== undefined && body.baseContent !== null && typeof body.baseContent !== 'string') {
+    return jsonResponse({ error: 'Invalid baseContent' }, 400)
+  }
+  if (body.force !== undefined && typeof body.force !== 'boolean') return jsonResponse({ error: 'Invalid force' }, 400)
 
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {
+    const hasBaseVersion = Object.prototype.hasOwnProperty.call(body, 'baseVersion')
     const entry: DiaryEntry = { date, content: body.content, updated_at: new Date().toISOString() }
     const folderId = await ensureFolder(accessToken, sessionId, session, context.env)
     let fileId: string | undefined
+    let meta = null
     if (body.fileId) {
       if (!/^[a-zA-Z0-9_-]{10,200}$/.test(body.fileId)) return jsonResponse({ error: 'Invalid file ID' }, 400)
-      const meta = await getDiaryFileMeta(accessToken, sessionId, session, context.env, body.fileId, date)
+      try {
+        meta = await getDiaryFileMeta(accessToken, sessionId, session, context.env, body.fileId, date)
+      } catch (e) {
+        if (e instanceof DriveError && e.status === 404) return jsonResponse({ conflict: null }, 409)
+        throw e
+      }
       fileId = meta.id
     } else {
-      fileId = (await findEntryMeta(accessToken, sessionId, session, context.env, date))?.id
+      meta = await findEntryMeta(accessToken, sessionId, session, context.env, date)
+      fileId = meta?.id
+      if (!meta && hasBaseVersion && !body.force && body.baseVersion != null) return jsonResponse({ conflict: null }, 409)
     }
+
+    if (meta && hasBaseVersion && !body.force && (meta.version ?? null) !== (body.baseVersion ?? null)) {
+      const remoteEntry = await getEntryContent(accessToken, meta.id)
+      if (body.baseContent == null || remoteEntry.content !== body.baseContent) {
+        return jsonResponse({ conflict: { entry: remoteEntry, meta } }, 409)
+      }
+    }
+
     const savedMeta = await saveEntry(accessToken, entry, folderId, fileId)
     return jsonResponse(savedMeta)
   } catch (e) {

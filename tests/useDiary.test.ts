@@ -38,16 +38,13 @@ async function startHarness(page: import('@playwright/test').Page, extraEntries:
 }
 
 test.describe('useDiary save — conflict detection', () => {
-  test('first save of a new entry checks existence then POSTs', async ({ page }) => {
+  test('first save of a new entry posts once and lets the API check existence', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
     await page.evaluate(({ meta }) => {
-      window.diaryHarness.q(
-        { status: 404, body: null },  // getEntryByDate → not found
-        { status: 200, body: meta },  // saveEntry POST
-      )
+      window.diaryHarness.q({ status: 200, body: meta })
     }, { meta: fileMeta('1') })
 
     const result = await page.evaluate(() =>
@@ -58,34 +55,25 @@ test.describe('useDiary save — conflict detection', () => {
 
     const calls = await page.evaluate(() => window.diaryHarness.calls())
     expect(calls[0].url).toBe('/api/drive/entry/2026-05-01')
-    expect(calls[0].method).toBe('GET')
-    expect(calls[1].url).toBe('/api/drive/entry/2026-05-01')
-    expect(calls[1].method).toBe('POST')
-    expect(calls).toHaveLength(2)
+    expect(calls[0].method).toBe('POST')
+    expect(calls).toHaveLength(1)
   })
 
-  test('second save verifies the remote version before updating the cached file', async ({ page }) => {
+  test('second save posts once with the cached file and base version', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)
 
     // First save — seeds the cache with file-1 at version 1
     await page.evaluate(({ meta }) => {
-      window.diaryHarness.q(
-        { status: 404, body: null },  // getEntryByDate → not found
-        { status: 200, body: meta },  // saveEntry POST
-      )
+      window.diaryHarness.q({ status: 200, body: meta })
     }, { meta: fileMeta('1') })
 
     await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'hello', null))
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
-    // Second save: cached version matches baseVersion, then remote version is verified before PATCH
-    await page.evaluate(({ remote, saveMeta }) => {
-      window.diaryHarness.q(
-        { status: 200, body: remote },
-        { status: 200, body: saveMeta },
-      )
-    }, { remote: entryResponse('1'), saveMeta: fileMeta('2') })
+    await page.evaluate(({ saveMeta }) => {
+      window.diaryHarness.q({ status: 200, body: saveMeta })
+    }, { saveMeta: fileMeta('2') })
 
     const second = await page.evaluate(() =>
       window.diaryHarness.save('2026-05-01', 'hello world', '1')
@@ -94,11 +82,10 @@ test.describe('useDiary save — conflict detection', () => {
     expect(second).toMatchObject({ ok: true, result: { meta: { version: '2' } } })
 
     const calls = await page.evaluate(() => window.diaryHarness.calls())
-    expect(calls[0].url).toBe('/api/drive/entry/2026-05-01?fileId=file-1')
-    expect(calls[0].method).toBe('GET')
-    expect(calls[1].url).toBe('/api/drive/entry/2026-05-01')
-    expect(calls[1].method).toBe('POST')
-    expect(calls).toHaveLength(2)
+    expect(calls[0].url).toBe('/api/drive/entry/2026-05-01')
+    expect(calls[0].method).toBe('POST')
+    expect(JSON.parse(calls[0].body ?? '{}')).toMatchObject({ fileId: 'file-1', baseVersion: '1' })
+    expect(calls).toHaveLength(1)
   })
 
   test('no false conflict when cached version matches baseVersion', async ({ page }) => {
@@ -107,22 +94,15 @@ test.describe('useDiary save — conflict detection', () => {
 
     // First save → version 5 in cache
     await page.evaluate(({ meta }) => {
-      window.diaryHarness.q(
-        { status: 404, body: null },
-        { status: 200, body: meta },
-      )
+      window.diaryHarness.q({ status: 200, body: meta })
     }, { meta: fileMeta('5') })
 
     await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'draft', null))
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
-    // Second save with matching baseVersion → remote check confirms no conflict, then PATCH
-    await page.evaluate(({ remote, saveMeta }) => {
-      window.diaryHarness.q(
-        { status: 200, body: remote },
-        { status: 200, body: saveMeta },
-      )
-    }, { remote: entryResponse('5'), saveMeta: fileMeta('6') })
+    await page.evaluate(({ saveMeta }) => {
+      window.diaryHarness.q({ status: 200, body: saveMeta })
+    }, { saveMeta: fileMeta('6') })
 
     const second = await page.evaluate(() =>
       window.diaryHarness.save('2026-05-01', 'draft with more', '5')
@@ -130,9 +110,8 @@ test.describe('useDiary save — conflict detection', () => {
 
     expect(second).toMatchObject({ ok: true, result: { meta: { version: '6' } } })
     const calls = await page.evaluate(() => window.diaryHarness.calls())
-    expect(calls).toHaveLength(2)
-    expect(calls[0].method).toBe('GET')
-    expect(calls[1].method).toBe('POST')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].method).toBe('POST')
   })
 
   test('allows a save when only the remote version advanced but the base content is unchanged', async ({ page }) => {
@@ -140,21 +119,15 @@ test.describe('useDiary save — conflict detection', () => {
     await startHarness(page)
 
     await page.evaluate(({ meta }) => {
-      window.diaryHarness.q(
-        { status: 404, body: null },
-        { status: 200, body: meta },
-      )
+      window.diaryHarness.q({ status: 200, body: meta })
     }, { meta: fileMeta('2') })
 
     await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'draft', null))
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
-    await page.evaluate(({ remote, saveMeta }) => {
-      window.diaryHarness.q(
-        { status: 200, body: remote },
-        { status: 200, body: saveMeta },
-      )
-    }, { remote: entryResponse('3', 'draft'), saveMeta: fileMeta('4') })
+    await page.evaluate(({ saveMeta }) => {
+      window.diaryHarness.q({ status: 200, body: saveMeta })
+    }, { saveMeta: fileMeta('4') })
 
     const second = await page.evaluate(() =>
       window.diaryHarness.save('2026-05-01', 'draft with more', '2', false, 'draft')
@@ -162,9 +135,9 @@ test.describe('useDiary save — conflict detection', () => {
 
     expect(second).toMatchObject({ ok: true, result: { meta: { version: '4' } } })
     const calls = await page.evaluate(() => window.diaryHarness.calls())
-    expect(calls).toHaveLength(2)
-    expect(calls[0].method).toBe('GET')
-    expect(calls[1].method).toBe('POST')
+    expect(calls).toHaveLength(1)
+    expect(calls[0].method).toBe('POST')
+    expect(JSON.parse(calls[0].body ?? '{}')).toMatchObject({ baseVersion: '2', baseContent: 'draft' })
   })
 
   test('remote conflict is detected even when the local cache version still matches baseVersion', async ({ page }) => {
@@ -173,7 +146,7 @@ test.describe('useDiary save — conflict detection', () => {
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
     await page.evaluate(({ remote }) => {
-      window.diaryHarness.q({ status: 200, body: remote })
+      window.diaryHarness.q({ status: 409, body: { conflict: remote } })
     }, { remote: entryResponse('2', 'remote changed text') })
 
     const result = await page.evaluate(() =>
@@ -185,7 +158,7 @@ test.describe('useDiary save — conflict detection', () => {
 
     const calls = await page.evaluate(() => window.diaryHarness.calls())
     expect(calls).toHaveLength(1)
-    expect(calls[0].method).toBe('GET')
+    expect(calls[0].method).toBe('POST')
   })
 
   test('real conflict is detected when cached version differs from baseVersion', async ({ page }) => {
@@ -194,10 +167,7 @@ test.describe('useDiary save — conflict detection', () => {
 
     // First save → cache has version 2
     await page.evaluate(({ meta }) => {
-      window.diaryHarness.q(
-        { status: 404, body: null },
-        { status: 200, body: meta },
-      )
+      window.diaryHarness.q({ status: 200, body: meta })
     }, { meta: fileMeta('2') })
 
     await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'my text', null))
@@ -210,10 +180,9 @@ test.describe('useDiary save — conflict detection', () => {
       return window.diaryHarness.triggerGetContent('2026-05-01')
     }, { entry3: entryResponse('3', 'remote text') })
 
-    // Now cache has version 3, but our baseVersion is 2 → conflict
-    // getEntryByDate is called to get the remote entry for conflict display
+    // Now cache has version 3, but our baseVersion is 2 → conflict returned by the save API
     await page.evaluate(({ entry3 }) => {
-      window.diaryHarness.q({ status: 200, body: entry3 })
+      window.diaryHarness.q({ status: 409, body: { conflict: entry3 } })
     }, { entry3: entryResponse('3', 'remote text') })
 
     const result = await page.evaluate(() =>
@@ -332,10 +301,7 @@ test.describe('useDiary save — entry not found at save time', () => {
     await page.evaluate(() => window.diaryHarness.clearCalls())
 
     await page.evaluate(({ meta }) => {
-      window.diaryHarness.q(
-        { status: 404, body: null },  // getEntryByDate → not found (no conflict)
-        { status: 200, body: meta },  // saveEntry POST
-      )
+      window.diaryHarness.q({ status: 200, body: meta })
     }, { meta: fileMeta('1') })
 
     const result = await page.evaluate(() =>
@@ -343,6 +309,9 @@ test.describe('useDiary save — entry not found at save time', () => {
     )
 
     expect(result).toMatchObject({ ok: true, result: { meta: { version: '1' } } })
+    const calls = await page.evaluate(() => window.diaryHarness.calls())
+    expect(calls).toHaveLength(1)
+    expect(calls[0].method).toBe('POST')
   })
 
   test('force save overwrites even when versions differ', async ({ page }) => {

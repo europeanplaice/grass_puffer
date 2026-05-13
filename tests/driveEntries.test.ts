@@ -3,6 +3,7 @@ import type { DriveFileMeta } from '../src/types'
 import {
   TokenExpiredError,
   DriveHttpError,
+  SaveConflictError,
   listEntries,
   searchEntries,
   getEntryByDate,
@@ -147,6 +148,30 @@ test.describe('driveEntries proxy API', () => {
 
     const body = JSON.parse(String(calls[0].init?.body))
     expect(body.fileId).toBe('entry-1')
+  })
+
+  test('saveEntry sends conflict metadata and throws on 409 conflict', async () => {
+    const conflict = {
+      entry: { date: '2026-04-29', content: 'remote', updated_at: '2026-04-29T00:00:00.000Z' },
+      meta: { id: 'entry-1', name: 'diary-2026-04-29.json', version: '3' },
+    }
+    mockFetch(jsonResponse({ conflict }, 409))
+
+    const entry = { date: '2026-04-29', content: 'updated', updated_at: '2026-04-29T00:00:00.000Z' }
+    const err = await saveEntry('2026-04-29', entry, {
+      fileId: 'entry-1',
+      baseVersion: '2',
+      baseContent: 'local base',
+    }).catch(e => e)
+
+    expect(err).toBeInstanceOf(SaveConflictError)
+    expect((err as SaveConflictError).remote).toEqual(conflict)
+    const body = JSON.parse(String(calls[0].init?.body))
+    expect(body).toMatchObject({
+      fileId: 'entry-1',
+      baseVersion: '2',
+      baseContent: 'local base',
+    })
   })
 
   test('deleteEntry sends DELETE to /api/drive/entry/:date', async () => {
