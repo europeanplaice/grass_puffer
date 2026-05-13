@@ -269,32 +269,22 @@ export default function App() {
     selectDate(todayYmd())
   }, [selectDate])
 
+  const updateRecentPreview = useCallback((date: string, content: string) => {
+    setRecentPreviews(prev => {
+      const next = new Map(prev)
+      next.set(date, {
+        snippet: firstLinePreview(content),
+        hasContent: Boolean(content.trim()),
+        loading: false,
+      })
+      return next
+    })
+  }, [])
+
   const handleEntryLoadComplete = useCallback((loadedDate: string, loaded: LoadedDiaryEntry | null) => {
     if (loadedDate !== selectedDateRef.current) return
-
-    setRecentPreviews(prev => {
-      const next = new Map(prev)
-      const content = loaded?.entry.content ?? ''
-      next.set(loadedDate, {
-        snippet: firstLinePreview(content),
-        hasContent: Boolean(content.trim()),
-        loading: false,
-      })
-      return next
-    })
-  }, [])
-
-  const handleSaveComplete = useCallback((savedDate: string, content: string) => {
-    setRecentPreviews(prev => {
-      const next = new Map(prev)
-      next.set(savedDate, {
-        snippet: firstLinePreview(content),
-        hasContent: Boolean(content.trim()),
-        loading: false,
-      })
-      return next
-    })
-  }, [])
+    updateRecentPreview(loadedDate, loaded?.entry.content ?? '')
+  }, [updateRecentPreview])
 
   const handlePendingNavigate = useCallback(() => {
     if (pendingDate) doNavigateToDate(pendingDate)
@@ -426,7 +416,10 @@ export default function App() {
     let cancelled = false
     diary.retryPendingSave()
       .then(result => {
-        if (!cancelled && result) setReauthSaveResult(result)
+        if (!cancelled && result) {
+          setReauthSaveResult(result)
+          updateRecentPreview(result.entry.date, result.entry.content)
+        }
       })
       .catch(e => {
         if (e instanceof TokenExpiredError) return
@@ -439,7 +432,7 @@ export default function App() {
     return () => {
       cancelled = true
     }
-  }, [isSignedIn, retrySaveAfterReauth, diary.retryPendingSave])
+  }, [isSignedIn, retrySaveAfterReauth, diary.retryPendingSave, updateRecentPreview])
 
   useEffect(() => {
     if (!isSignedIn || tokenExpired || !initialLoadComplete) return
@@ -592,7 +585,7 @@ export default function App() {
           isSignedIn={!tokenExpired}
           onExpired={onExpired}
           onLoadComplete={handleEntryLoadComplete}
-          onSaveComplete={handleSaveComplete}
+          onSaveComplete={updateRecentPreview}
           refreshSignal={entryRefreshSignal}
         />
       </main>
