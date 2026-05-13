@@ -92,6 +92,30 @@ test.describe('EntryEditor — date header', () => {
     ])
   })
 
+  test('calls onSaveComplete with date and content after a successful save', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: '', version: null })
+
+    await page.locator('textarea.editor-textarea').fill('hello world')
+    await page.locator('button.btn-save').click()
+    await expect(page.locator('button.btn-save')).toHaveAttribute('aria-label', 'Saved')
+
+    const calls = await page.evaluate(() => window.editorHarness.saveCompleteCalls())
+    expect(calls).toEqual([{ date: '2026-05-01', content: 'hello world' }])
+  })
+
+  test('does not call onSaveComplete when save fails', async ({ page }) => {
+    await loadHarness(page)
+    await renderEditor(page, { date: '2026-05-01', initialContent: 'existing', version: '1', saveReject: 'error' })
+
+    await page.locator('textarea.editor-textarea').fill('edited text')
+    await page.locator('button.btn-save').click()
+    await expect(page.locator('.editor-status-line')).toContainText('Save failed')
+
+    const calls = await page.evaluate(() => window.editorHarness.saveCompleteCalls())
+    expect(calls).toHaveLength(0)
+  })
+
   test('shows an editor placeholder for empty entries', async ({ page }) => {
     await loadHarness(page)
     await renderEditor(page, { date: '2026-05-02', initialContent: '', version: null })

@@ -27,6 +27,7 @@ interface Props {
   isSignedIn: boolean
   onExpired: () => void
   onLoadComplete?: (date: string, entry: LoadedDiaryEntry | null) => void
+  onSaveComplete?: (date: string, content: string) => void
   refreshSignal?: number
 }
 
@@ -80,7 +81,7 @@ function isMobileLayout(): boolean {
   return window.matchMedia(MOBILE_MEDIA_QUERY).matches
 }
 
-export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, isSignedIn, onExpired, onLoadComplete, refreshSignal = 0 }: Props) {
+export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, isSignedIn, onExpired, onLoadComplete, onSaveComplete, refreshSignal = 0 }: Props) {
   const { t, locale } = useI18n()
   const { progress: saveProgress, startSave, completeSave } = useSaveProgress()
   const savedStatus = t.entry.savedStatus
@@ -116,6 +117,8 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   useEffect(() => { getContentRef.current = getContent }, [getContent])
   const onLoadCompleteRef = useRef(onLoadComplete)
   useEffect(() => { onLoadCompleteRef.current = onLoadComplete }, [onLoadComplete])
+  const onSaveCompleteRef = useRef(onSaveComplete)
+  useEffect(() => { onSaveCompleteRef.current = onSaveComplete }, [onSaveComplete])
 
 const textRef = useRef(text)
 const savedTextRef = useRef(savedText)
@@ -247,6 +250,7 @@ useEffect(() => {
       setStatus(savedStatus)
       setShowRefreshConfirm(false)
       success = true
+      onSaveCompleteRef.current?.(date, currentText)
       return true
     } catch (e) {
       if (!explicit) {

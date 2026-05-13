@@ -284,6 +284,18 @@ export default function App() {
     })
   }, [])
 
+  const handleSaveComplete = useCallback((savedDate: string, content: string) => {
+    setRecentPreviews(prev => {
+      const next = new Map(prev)
+      next.set(savedDate, {
+        snippet: firstLinePreview(content),
+        hasContent: Boolean(content.trim()),
+        loading: false,
+      })
+      return next
+    })
+  }, [])
+
   const handlePendingNavigate = useCallback(() => {
     if (pendingDate) doNavigateToDate(pendingDate)
   }, [pendingDate, doNavigateToDate])
@@ -580,6 +592,7 @@ export default function App() {
           isSignedIn={!tokenExpired}
           onExpired={onExpired}
           onLoadComplete={handleEntryLoadComplete}
+          onSaveComplete={handleSaveComplete}
           refreshSignal={entryRefreshSignal}
         />
       </main>

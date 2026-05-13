@@ -14,6 +14,7 @@ type NavCall = { date: string | null }
 type WindowOpenCall = { url: string; target: string }
 type GetContentCall = { date: string }
 type LoadCompleteCall = { date: string; content: string | null; version: string | null }
+type SaveCompleteCall = { date: string; content: string }
 
 const root = createRoot(document.getElementById('root') as HTMLElement)
 
@@ -27,6 +28,7 @@ let getContentCalls: GetContentCall[] = []
 let menuClickCount = 0
 let dirtyChanges: boolean[] = []
 let loadCompleteCalls: LoadCompleteCall[] = []
+let saveCompleteCalls: SaveCompleteCall[] = []
 
 let currentSaveReject: 'conflict' | 'error' | undefined
 let currentGetContentReject: 'tokenExpired' | 'error' | undefined = undefined
@@ -121,6 +123,9 @@ function App({ date, autoSave, getContentDelayMs, pendingNavDate: initialPending
           version: loaded?.meta.version ?? null,
         })
       }}
+      onSaveComplete={(savedDate, content) => {
+        saveCompleteCalls.push({ date: savedDate, content })
+      }}
       onPrevDay={() => {}}
       onNextDay={() => {}}
       pendingNavDate={pendingNavDate}
@@ -162,6 +167,7 @@ window.editorHarness = {
     menuClickCount = 0
     dirtyChanges = []
     loadCompleteCalls = []
+    saveCompleteCalls = []
     currentSaveReject = opts.saveReject
     currentGetContentReject = opts.getContentReject
     currentToken = opts.token ?? null
@@ -207,9 +213,11 @@ window.editorHarness = {
     menuClickCount = 0
     dirtyChanges = []
     loadCompleteCalls = []
+    saveCompleteCalls = []
   },
   windowOpenCalls: () => [...windowOpenCalls],
   loadCompleteCalls: () => [...loadCompleteCalls],
+  saveCompleteCalls: () => [...saveCompleteCalls],
   EntryConflictError,
   setToken: (token: string | null) => {
     currentToken = token
