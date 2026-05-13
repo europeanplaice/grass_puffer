@@ -8,6 +8,7 @@ dist
 docs/
 CLAUDE.md
 .playwright-mcp/
+playwright-report/
 .codex
 .serena/
 memo.txt
