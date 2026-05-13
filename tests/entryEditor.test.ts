@@ -473,7 +473,7 @@ test.describe('EntryEditor — refresh entry', () => {
 })
 
 test.describe('EntryEditor — auto-save', () => {
-  test('auto-save fires after 3 seconds of dirty state and briefly shows saved state', async ({ page }) => {
+  test('auto-save fires after a short idle period and briefly shows saved state', async ({ page }) => {
     await loadHarness(page)
     await page.clock.install({ time: 0 })
     await renderEditor(page, { date: '2026-05-01', initialContent: '' })
@@ -482,8 +482,8 @@ test.describe('EntryEditor — auto-save', () => {
     // Ensure React has registered the auto-save timer after the fill
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 0)))
 
-    // Advance the clock to exactly 3001ms — past the 3000ms auto-save threshold
-    await page.clock.fastForward(3001)
+    // Advance just past the 1500ms auto-save threshold
+    await page.clock.fastForward(1501)
     // Give React time to process the callback
     await page.waitForFunction(() => window.editorHarness.saveCalls().length > 0)
 
@@ -512,8 +512,8 @@ test.describe('EntryEditor — auto-save', () => {
     // Type more content to re-arm the dirty/auto-save timer
     await page.fill('textarea.editor-textarea', 'more edits while conflicted')
 
-    // Advance well past 3s
-    await page.clock.fastForward(4000)
+    // Advance well past the auto-save threshold
+    await page.clock.fastForward(2500)
 
     // Auto-save should NOT have fired because hasConflict is true
     const saveCalls = await page.evaluate(() => window.editorHarness.saveCalls())
@@ -827,7 +827,7 @@ test.describe('EntryEditor — saving overlay', () => {
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 0)))
 
     // Advance past auto-save threshold
-    await page.clock.fastForward(3001)
+    await page.clock.fastForward(1501)
     await page.waitForFunction(() => window.editorHarness.saveCalls().length > 0)
 
     // Overlay should NOT appear during auto-save

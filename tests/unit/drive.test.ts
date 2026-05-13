@@ -193,7 +193,7 @@ describe('getDiaryFileMeta', () => {
 })
 
 describe('saveEntry', () => {
-  it('PATCHes when fileId is provided (update)', async () => {
+  it('PATCHes media only when fileId is provided (update)', async () => {
     const meta = { id: 'file-1', name: 'diary-2026-05-01.json', version: '2' }
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(meta)))
     const entry = { date: '2026-05-01', content: 'updated', updated_at: '2026-05-01T00:00:00.000Z' }
@@ -203,7 +203,10 @@ describe('saveEntry', () => {
     expect(result.version).toBe('2')
     const fetchCall = (vi.mocked(fetch).mock.calls[0] as any)
     expect(fetchCall[0]).toContain('/files/file-1')
+    expect(fetchCall[0]).toContain('uploadType=media')
     expect(fetchCall[1].method).toBe('PATCH')
+    expect(fetchCall[1].headers['Content-Type']).toBe('application/json; charset=UTF-8')
+    expect(JSON.parse(fetchCall[1].body)).toEqual(entry)
   })
 
   it('POSTes when no fileId (create)', async () => {

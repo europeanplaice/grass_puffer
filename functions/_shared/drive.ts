@@ -233,12 +233,11 @@ export async function saveEntry(
   const fields = encodeURIComponent('id,name,modifiedTime,version')
 
   if (fileId) {
-    const { contentType, data } = buildMultipart({}, body)
     return driveWithRetry(
-      () => fetch(`${UPLOAD_BASE}/files/${fileId}?uploadType=multipart&fields=${fields}`, {
+      () => fetch(`${UPLOAD_BASE}/files/${fileId}?uploadType=media&fields=${fields}`, {
         method: 'PATCH',
-        headers: driveHeaders(token, { 'Content-Type': contentType }),
-        body: data,
+        headers: driveHeaders(token, { 'Content-Type': 'application/json; charset=UTF-8' }),
+        body,
       }),
       r => r.json() as Promise<DriveFileMeta>,
     )

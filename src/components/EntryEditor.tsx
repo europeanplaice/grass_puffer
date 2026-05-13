@@ -54,7 +54,7 @@ const entryVariants = {
 
 const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
-const AUTO_SAVE_MS = 3000
+const AUTO_SAVE_MS = 1500
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
 const PULL_REFRESH_THRESHOLD = 72
@@ -395,7 +395,7 @@ useEffect(() => {
     await onDelete(date)
   }
 
-  // Drive auto-save after 3s of being dirty (only when auto-save is enabled)
+  // Drive auto-save after a short idle period (only when auto-save is enabled)
   useEffect(() => {
     if (!autoSave || !isDirty) return
     const id = window.setTimeout(() => {
