@@ -1850,6 +1850,8 @@ body {
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
+  .save-progress-bar { height: 5px; }
+
   :root {
     --mobile-save-action-space: calc(
       4.5rem + env(safe-area-inset-bottom) + var(--mobile-keyboard-inset-bottom, 0px)
