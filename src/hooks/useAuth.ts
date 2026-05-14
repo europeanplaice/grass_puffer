@@ -5,7 +5,6 @@ export type AuthStatus = 'initializing' | 'signedOut' | 'signedIn'
 
 export interface AuthState {
   status: AuthStatus
-  authReady: boolean
   tokenExpired: boolean
   hadSession: boolean
   email: string | null
@@ -34,8 +33,6 @@ export function useAuth(): AuthState {
     return () => { cancelled = true }
   }, [])
 
-  const authReady = status !== 'initializing'
-
   const signIn = useCallback(() => {
     startSignIn()
   }, [])
@@ -55,5 +52,5 @@ export function useAuth(): AuthState {
     startSignIn()
   }, [])
 
-  return { status, authReady, tokenExpired, hadSession, email, signIn, signOut, handleExpired, retryAfterExpired }
+  return { status, tokenExpired, hadSession, email, signIn, signOut, handleExpired, retryAfterExpired }
 }

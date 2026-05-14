@@ -50,7 +50,7 @@ async function mapWithConcurrency<T, R>(
     for (;;) {
       const index = nextIndex++
       if (index >= items.length) return
-      results.splice(index, 1, await mapper(items.at(index)!, index))
+      results[index] = await mapper(items[index], index)
     }
   }
 
@@ -170,17 +170,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
       const entry: DiaryEntry = { date, content, updated_at: new Date().toISOString() }
       try {
         const cachedMeta = cacheRef.current.get(date)?.meta ?? null
-        if (cachedMeta) {
-          const meta = await saveEntry(date, entry, { fileId: cachedMeta.id, baseVersion, baseContent, force })
-          updateCache(p => {
-            const next = new Map(p)
-            next.set(date, { meta, content: entry, snippet: entry.content.slice(0, 500) })
-            return next
-          })
-          return { entry, meta }
-        }
-
-        const meta = await saveEntry(date, entry, { baseVersion, baseContent, force })
+        const meta = await saveEntry(date, entry, { fileId: cachedMeta?.id, baseVersion, baseContent, force })
         updateCache(p => {
           const next = new Map(p)
           next.set(date, { meta, content: entry, snippet: entry.content.slice(0, 500) })

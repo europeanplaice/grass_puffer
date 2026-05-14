@@ -54,8 +54,9 @@ function retryDelay(attempt: number): number {
   }
 }
 
+const MAX_RETRIES = 3
+
 export async function apiFetch<T>(url: string, init?: RequestInit, acceptedStatuses: number[] = []): Promise<{ data: T; status: number }> {
-  const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { ...init, credentials: 'include', cache: 'no-store' })
 
@@ -66,7 +67,7 @@ export async function apiFetch<T>(url: string, init?: RequestInit, acceptedStatu
     if (res.status === 404) return { data: null as T, status: 404 }
 
     const body = await res.text()
-    if (shouldRetry(res.status) && attempt < delays.length) {
+    if (shouldRetry(res.status) && attempt < MAX_RETRIES) {
       let delay = retryDelay(attempt)
       const ra = res.headers.get('Retry-After')
       if (ra) { const s = parseFloat(ra); if (!isNaN(s)) delay = s * 1000 }
@@ -78,7 +79,6 @@ export async function apiFetch<T>(url: string, init?: RequestInit, acceptedStatu
 }
 
 async function apiFetchNoContent(url: string, init?: RequestInit): Promise<void> {
-  const delays = [250, 500, 1000]
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { ...init, credentials: 'include', cache: 'no-store' })
 
@@ -86,7 +86,7 @@ async function apiFetchNoContent(url: string, init?: RequestInit): Promise<void>
     if (res.status === 401) throw new TokenExpiredError()
 
     const body = await res.text()
-    if (shouldRetry(res.status) && attempt < delays.length) {
+    if (shouldRetry(res.status) && attempt < MAX_RETRIES) {
       let delay = retryDelay(attempt)
       const ra = res.headers.get('Retry-After')
       if (ra) { const s = parseFloat(ra); if (!isNaN(s)) delay = s * 1000 }

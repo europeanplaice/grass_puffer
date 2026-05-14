@@ -26,7 +26,6 @@ describe('useAuth', () => {
     mockCheckSession.mockImplementation(() => new Promise(() => {}))
     const { result } = renderHook(() => useAuth())
     expect(result.current.status).toBe('initializing')
-    expect(result.current.authReady).toBe(false)
   })
 
   it('sets signedIn when checkSession returns signedIn true', async () => {
@@ -34,7 +33,6 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
     await waitFor(() => expect(result.current.status).toBe('signedIn'))
-    expect(result.current.authReady).toBe(true)
   })
 
   it('sets signedOut when checkSession returns signedIn false', async () => {
@@ -42,7 +40,6 @@ describe('useAuth', () => {
 
     const { result } = renderHook(() => useAuth())
     await waitFor(() => expect(result.current.status).toBe('signedOut'))
-    expect(result.current.authReady).toBe(true)
   })
 
   it('exposes email returned by checkSession', async () => {

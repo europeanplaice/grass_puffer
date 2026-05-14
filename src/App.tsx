@@ -172,11 +172,7 @@ export default function App() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
   const loadingSeenRef = useRef(false)
 
-  const onExpired = useCallback(() => {
-    handleExpired()
-  }, [handleExpired])
-
-  const diary = useDiary(isSignedIn, onExpired)
+  const diary = useDiary(isSignedIn, handleExpired)
 
   useEffect(() => {
     if (!isSignedIn) {
@@ -217,10 +213,8 @@ export default function App() {
       if (hashDate) {
         setSelectedDate(hashDate)
         selectedDateRef.current = hashDate
-        setSidebarOpen(false)
-      } else {
-        setSidebarOpen(false)
       }
+      setSidebarOpen(false)
     }
     window.addEventListener('popstate', handlePopState)
     return () => window.removeEventListener('popstate', handlePopState)
@@ -583,7 +577,7 @@ export default function App() {
           onCancelNavigation={handleCancelNavigation}
           reauthSaveResult={reauthSaveResult}
           isSignedIn={!tokenExpired}
-          onExpired={onExpired}
+          onExpired={handleExpired}
           onLoadComplete={handleEntryLoadComplete}
           onSaveComplete={updateRecentPreview}
           refreshSignal={entryRefreshSignal}
