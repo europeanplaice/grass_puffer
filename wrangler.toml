@@ -1,11 +1,11 @@
-name = "grass-puffer"
+name = "linger"
 compatibility_date = "2024-11-01"
 pages_build_output_dir = "dist"
 
 # Environment variables (secrets set via dashboard or `wrangler pages secret put`):
 #   GOOGLE_CLIENT_ID     = <OAuth 2.0 client ID>
 #   GOOGLE_CLIENT_SECRET = <OAuth 2.0 client secret>
-#   SESSION_DOMAIN       = https://grasspuffer.europeanplaice.com
+#   SESSION_DOMAIN       = https://linger.europeanplaice.com
 
 [[kv_namespaces]]
 binding = "SESSIONS"

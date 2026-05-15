@@ -1,8 +1,8 @@
-# Grass Puffer — Google Drive Diary
+# Linger — Google Drive Diary
 
 A minimalist personal diary app. Entries are stored as JSON files in your own Google Drive.
 
-**[-> Open the app](https://grasspuffer.europeanplaice.com/)**
+**[-> Open the app](https://linger.europeanplaice.com/)**
 
 ## Features
 
@@ -17,7 +17,7 @@ A minimalist personal diary app. Entries are stored as JSON files in your own Go
 - View and restore past revisions of an entry
 - Export all entries as a ZIP of JSON files
 - Settings modal for theme (light / dark / system), font, and language (English / Japanese)
-- Data stays in your Google Drive (`GrassPuffer Diary/` folder), one JSON file per day
+- Data stays in your Google Drive (`linger_diary/` folder), one JSON file per day
 - Warns before reload or date changes when there are unsaved edits
 - Works on mobile with a drawer sidebar, Android back-button support, and keyboard-aware layout
 - Installable as a Progressive Web App
@@ -32,7 +32,7 @@ Uses **OAuth 2.0 Authorization Code Flow with PKCE** via Cloudflare Pages Functi
 2. Google redirects back to `/auth/callback` with an authorization code.
 3. The callback handler exchanges the code for access + refresh tokens (server-side, never exposed
    to the browser), stores the session in Cloudflare KV (30-day TTL), and sets an `HttpOnly`
-   `Secure` `SameSite=Strict` session cookie (`grass_session`).
+   `Secure` `SameSite=Strict` session cookie (`linger_session`).
 4. Subsequent requests include the session cookie; the Cloudflare middleware resolves the session,
    refreshes the access token if needed, and proxies the Drive API call.
 
@@ -43,7 +43,7 @@ All Drive API v3 calls are made server-side by Cloudflare Pages Functions at `/a
 The browser never holds an OAuth token. Diary entries are stored as individual JSON files:
 
 ```
-/GrassPuffer Diary/
+/linger_diary/
   diary-YYYY-MM-DD.json   ← { date, content, updated_at }
 ```
 
@@ -60,11 +60,11 @@ Drive 429/5xx responses are retried with exponential backoff.
 
 ### Local storage
 The browser stores only non-sensitive preferences in `localStorage`:
-- `grass_puffer_autosave` — whether auto-save is enabled
-- `grass_puffer_theme` — `light` / `dark` / `system`
-- `grass_puffer_font` — font preference
-- `grass_puffer_language` — `en` / `ja`
-- `grass_puffer_had_session` — `true`/`false` flag indicating whether the user was previously signed in (used to show the "continue with your previous session" prompt on the login screen)
+- `linger_autosave` — whether auto-save is enabled
+- `linger_theme` — `light` / `dark` / `system`
+- `linger_font` — font preference
+- `linger_language` — `en` / `ja`
+- `linger_had_session` — `true`/`false` flag indicating whether the user was previously signed in (used to show the "continue with your previous session" prompt on the login screen)
 
 No tokens or diary content are ever written to `localStorage`.
 

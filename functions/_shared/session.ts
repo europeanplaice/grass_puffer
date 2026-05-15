@@ -1,6 +1,6 @@
 export const SESSION_TTL = 60 * 60 * 24 * 30 // 30 days
 
-const COOKIE_NAME = 'grass_session'
+const COOKIE_NAME = 'linger_session'
 
 export interface Env {
   SESSIONS: KVNamespace

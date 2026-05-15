@@ -60,14 +60,14 @@ export default defineConfig({
         const distDir = resolve(__dirname, 'dist')
         if (!existsSync(distDir)) mkdirSync(distDir)
         const content = readFileSync(src, 'utf-8')
-          .replace('__CACHE_VERSION__', `grass-puffer-dev-${Date.now()}`)
+          .replace('__CACHE_VERSION__', `linger-dev-${Date.now()}`)
         writeFileSync(resolve(distDir, 'sw.js'), content)
       },
       configureServer(server) {
         server.middlewares.use((req, res, next) => {
           if (req.url !== '/sw.js') return next()
           const content = readFileSync(resolve(__dirname, 'public/sw.js'), 'utf-8')
-            .replace('__CACHE_VERSION__', `grass-puffer-dev-${Date.now()}`)
+            .replace('__CACHE_VERSION__', `linger-dev-${Date.now()}`)
           res.setHeader('Content-Type', 'application/javascript')
           res.end(content)
         })
@@ -102,7 +102,7 @@ export default defineConfig({
         const version = hashDistFiles(distPath).slice(0, 16)
         const content = readFileSync(swPath, 'utf-8').replace(
           '__CACHE_VERSION__',
-          `grass-puffer-${version}`,
+          `linger-${version}`,
         )
         writeFileSync(swPath, content)
       },

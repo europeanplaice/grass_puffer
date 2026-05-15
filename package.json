@@ -1,5 +1,5 @@
 {
-  "name": "grass-puffer",
+  "name": "linger",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,7 +11,7 @@
     "test:unit": "vitest run",
     "preview": "wrangler pages dev dist",
     "lint": "eslint src tests",
-    "cf:deploy": "wrangler pages deploy dist --project-name=grass-puffer"
+    "cf:deploy": "wrangler pages deploy dist --project-name=linger"
   },
   "dependencies": {
     "@github/relative-time-element": "^5.0.0",

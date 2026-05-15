@@ -182,7 +182,7 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
             {' · '}
             <a href="/terms-of-service.html" target="_blank" rel="noopener noreferrer">{t.settings.termsOfService}</a>
             {' · '}
-            <a href="https://github.com/europeanplaice/grass_puffer" target="_blank" rel="noopener noreferrer">{t.settings.github}</a>
+            <a href="https://github.com/europeanplaice/linger" target="_blank" rel="noopener noreferrer">{t.settings.github}</a>
           </div>
         </div>
       </motion.div>

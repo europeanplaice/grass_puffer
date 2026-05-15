@@ -99,7 +99,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=grass-puffer
+          command: pages deploy dist --project-name=linger
 
   codeql:
     needs: [deploy]
