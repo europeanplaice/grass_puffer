@@ -141,6 +141,17 @@ npm test          # run the Playwright e2e test suite
 npm run test:unit # run Vitest unit tests
 ```
 
+#### UI preview params
+
+Some UI states are hard to trigger naturally during development. Append `?preview=<value>` to the dev server URL to force them:
+
+| Param | Effect |
+|---|---|
+| `?preview=update-banner` | Forces the SW update banner visible at the top of the app |
+| `?preview=empty-state` | Forces the "No entries yet" hint in the sidebar |
+
+Params can be combined: `?preview=update-banner&preview=empty-state`
+
 > Note: Google OAuth requires the redirect URI to be registered. For local dev, add
 > `http://localhost:8788/auth/callback` to your OAuth client's Authorized redirect URIs.
 
