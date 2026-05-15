@@ -63,3 +63,26 @@ test.describe('sidebar empty state', () => {
     await expect(page.locator('.sidebar-empty-hint')).toHaveCount(0)
   })
 })
+
+test.describe('sidebar error state', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('grass_puffer_language', 'en')
+    })
+    await page.route('/auth/session', route => route.fulfill({ json: { signedIn: true } }))
+    await page.route('/api/drive/entries', route => route.abort())
+  })
+
+  test('shows error message when entries fail to load', async ({ page }) => {
+    await page.goto(baseUrl)
+    const errorEl = page.locator('.sidebar-status.error')
+    await expect(errorEl).toBeVisible()
+    await expect(errorEl).toContainText('Failed to load entries')
+  })
+
+  test('does not show empty hint when there is a load error', async ({ page }) => {
+    await page.goto(baseUrl)
+    await expect(page.locator('.sidebar-status.error')).toBeVisible()
+    await expect(page.locator('.sidebar-empty-hint')).toHaveCount(0)
+  })
+})
