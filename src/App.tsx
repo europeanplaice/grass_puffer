@@ -147,7 +147,10 @@ export default function App() {
   } = useAuth()
   const { mode: themeMode, setMode: setThemeMode, toggleTheme } = useTheme()
   const { mode: fontMode, toggleFont } = useFont()
-  const updateAvailable = useServiceWorkerUpdate()
+  const swUpdateAvailable = useServiceWorkerUpdate()
+  const previewParams = new URLSearchParams(window.location.search).getAll('preview')
+  const updateAvailable = swUpdateAvailable || previewParams.includes('update-banner')
+  const forceEmptyState = previewParams.includes('empty-state')
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
@@ -511,7 +514,7 @@ export default function App() {
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         {diary.loading && <div className="sidebar-status">{t.app.loadingEntries}</div>}
         {diary.error && <div className="sidebar-status error">{t.app.loadError}</div>}
-        {!diary.loading && !diary.error && initialLoadComplete && diary.dates.length === 0 && (
+        {!diary.loading && !diary.error && (initialLoadComplete && diary.dates.length === 0 || forceEmptyState) && (
           <p className="sidebar-empty-hint">{t.app.noEntriesHint}</p>
         )}
         {recentDates.length > 0 && <h2 className="entry-list-heading">{t.app.recent}</h2>}
