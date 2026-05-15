@@ -65,7 +65,7 @@
     When you sign in, a session is created and stored in Cloudflare KV with a 30-day expiry.
     The session record contains your Google refresh token and a cached access token.
     Your browser receives a session identifier as an <code>HttpOnly</code>, <code>Secure</code>,
-    <code>SameSite=Strict</code> cookie (<code>grass_session</code>). The cookie contains only the
+    <code>SameSite=Strict</code> cookie (<code>linger_session</code>). The cookie contains only the
     session ID — no tokens or diary content.
   </p>
 

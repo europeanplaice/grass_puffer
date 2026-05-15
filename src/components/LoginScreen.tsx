@@ -16,6 +16,7 @@ export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
         <AppIcon className="login-logo" />
         <h1>{t.documentTitle}</h1>
         <p>{t.login.privateDiary}</p>
+        <p className="login-scope-note">{t.login.driveFileScope}</p>
         {tokenExpired && (
           <p className="session-expired-msg">
             {t.login.sessionExpiredShort}
