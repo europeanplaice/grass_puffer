@@ -4,6 +4,7 @@ import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { useTheme } from './hooks/useTheme'
 import { useFont } from './hooks/useFont'
+import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate'
 import { LoginScreen } from './components/LoginScreen'
 import { SessionExpiredModal } from './components/SessionExpiredModal'
 import { CalendarView } from './components/CalendarView'
@@ -146,6 +147,7 @@ export default function App() {
   } = useAuth()
   const { mode: themeMode, setMode: setThemeMode, toggleTheme } = useTheme()
   const { mode: fontMode, toggleFont } = useFont()
+  const updateAvailable = useServiceWorkerUpdate()
   const [selectedDate, setSelectedDate] = useState(todayYmd)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [editorDirty, setEditorDirty] = useState(false)
@@ -481,7 +483,15 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="app">
+    <div className={`app${updateAvailable ? ' app--has-update-banner' : ''}`}>
+      {updateAvailable && (
+        <div className="update-banner" role="status">
+          <span>{t.update.available}</span>
+          <button className="update-banner-reload" onClick={() => window.location.reload()}>
+            {t.update.reload}
+          </button>
+        </div>
+      )}
       <AnimatePresence>
         {tokenExpired && <SessionExpiredModal onReauth={handleReauth} />}
       </AnimatePresence>
@@ -500,7 +510,10 @@ export default function App() {
         <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         {diary.loading && <div className="sidebar-status">{t.app.loadingEntries}</div>}
-        {diary.error && <div className="sidebar-status error">{diary.error}</div>}
+        {diary.error && <div className="sidebar-status error">{t.app.loadError}</div>}
+        {!diary.loading && !diary.error && initialLoadComplete && diary.dates.length === 0 && (
+          <p className="sidebar-empty-hint">{t.app.noEntriesHint}</p>
+        )}
         {recentDates.length > 0 && <h2 className="entry-list-heading">{t.app.recent}</h2>}
         <ul className="entry-list">
           {recentDates.map(d => {
@@ -553,6 +566,7 @@ export default function App() {
             dates={diary.dates}
             onExport={diary.exportAll}
             onClose={() => setSettingsOpen(false)}
+            email={email ?? undefined}
           />
         )}
       </AnimatePresence>

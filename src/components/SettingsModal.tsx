@@ -15,9 +15,10 @@ interface SettingsModalProps {
   dates: string[]
   onExport: (onProgress: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
   onClose: () => void
+  email?: string
 }
 
-export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeModeChange, fontMode, onFontToggle, dates, onExport, onClose }: SettingsModalProps) {
+export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeModeChange, fontMode, onFontToggle, dates, onExport, onClose, email }: SettingsModalProps) {
   const { t, language, setLanguage } = useI18n()
   const overlayRef = useRef<HTMLDivElement>(null)
   const [shareMsg, setShareMsg] = useState<string | null>(null)
@@ -166,6 +167,14 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
             <ul className="settings-about-list">
               {t.settings.storageItems.map(item => <li key={item}>{item}</li>)}
             </ul>
+            <a
+              href={`https://drive.google.com/drive/search?q=%22GrassPuffer+Diary%22${email ? `&authuser=${encodeURIComponent(email)}` : ''}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="settings-drive-link"
+            >
+              {t.settings.viewInDrive} ↗
+            </a>
           </div>
           <div className="settings-divider" />
           <div className="settings-legal">

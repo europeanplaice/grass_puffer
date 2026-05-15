@@ -117,6 +117,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         await loadEntryList(false)
       } catch (e) {
         if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
+        console.error('Failed to load diary entries:', e)
         setError(String(e))
       } finally {
         setLoading(false)

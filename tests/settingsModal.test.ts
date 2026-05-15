@@ -256,3 +256,45 @@ test.describe('SettingsModal — export confirm modal', () => {
     // This test is limited by harness design; skip for now
   })
 })
+
+test.describe('SettingsModal — Drive folder link', () => {
+  test('shows a link to the Drive folder', async ({ page }) => {
+    await loadHarness(page)
+    await render(page, { modalOpen: true })
+
+    const link = page.locator('.settings-drive-link')
+    await expect(link).toBeVisible()
+    await expect(link).toContainText('Google Drive')
+    const href = await link.getAttribute('href')
+    expect(href).toContain('drive.google.com')
+    expect(href).toContain('GrassPuffer')
+  })
+
+  test('link opens in a new tab', async ({ page }) => {
+    await loadHarness(page)
+    await render(page, { modalOpen: true })
+
+    const link = page.locator('.settings-drive-link')
+    await expect(link).toHaveAttribute('target', '_blank')
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  test('link includes authuser param when email is provided', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => window.settingsHarness.render({ modalOpen: true, email: 'test@example.com' }))
+    await page.waitForSelector('.settings-modal')
+
+    const link = page.locator('.settings-drive-link')
+    const href = await link.getAttribute('href')
+    expect(href).toContain('authuser=test%40example.com')
+  })
+
+  test('link has no authuser param when email is not provided', async ({ page }) => {
+    await loadHarness(page)
+    await render(page, { modalOpen: true })
+
+    const link = page.locator('.settings-drive-link')
+    const href = await link.getAttribute('href')
+    expect(href).not.toContain('authuser')
+  })
+})

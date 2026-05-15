@@ -15,9 +15,10 @@ interface AppProps {
   autoSave: boolean
   modalOpen: boolean
   themeMode: 'light' | 'dark' | 'system'
+  email?: string
 }
 
-function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme }: AppProps) {
+function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme, email }: AppProps) {
   const [autoSave, setAutoSave] = useState(initialAutoSave)
   const [open, setOpen] = useState(initialOpen)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(initialTheme)
@@ -51,6 +52,7 @@ function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: ini
           dates={['2026-05-01', '2026-05-02']}
           onExport={handleExport}
           onClose={() => setOpen(false)}
+          email={email}
         />
       )}
     </>
@@ -58,7 +60,7 @@ function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: ini
 }
 
 window.settingsHarness = {
-  render: ({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme }: { autoSave?: boolean; modalOpen?: boolean; themeMode?: 'light' | 'dark' | 'system' } = {}) => {
+  render: ({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme, email }: { autoSave?: boolean; modalOpen?: boolean; themeMode?: 'light' | 'dark' | 'system'; email?: string } = {}) => {
     exportCalls.splice(0)
     exportReject = false
     root.render(
@@ -67,6 +69,7 @@ window.settingsHarness = {
           autoSave={initialAutoSave ?? true}
           modalOpen={initialOpen ?? true}
           themeMode={initialTheme ?? 'light'}
+          email={email}
           key={Date.now()}
         />
       </I18nProvider>

@@ -793,6 +793,15 @@ body {
   padding: 0.05em 0.3em;
   border-radius: 3px;
 }
+.settings-drive-link {
+  color: var(--accent);
+  display: inline-block;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  text-decoration: none;
+}
+.settings-drive-link:hover { text-decoration: underline; }
+
 .settings-legal {
   display: flex;
   gap: 0.25rem;
@@ -924,9 +933,50 @@ body {
   opacity: 0.9;
 }
 
+/* ── SW update banner ── */
+.update-banner {
+  align-items: center;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  font-size: 0.875rem;
+  gap: 1rem;
+  justify-content: center;
+  left: 0;
+  padding: 0.45rem 1rem;
+  position: fixed;
+  right: 0;
+  top: 0;
+  /* Keep below modal overlays (z-index 200) so the banner doesn't cover dialogs */
+  z-index: 50;
+}
+.update-banner-reload {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.82rem;
+  padding: 0.2rem 0.65rem;
+}
+.update-banner-reload:hover { background: rgba(255, 255, 255, 0.32); }
+/* Push app content below the fixed banner (box-sizing: border-box means
+   the 100dvh height absorbs the padding, so content starts below the banner) */
+.app--has-update-banner {
+  padding-top: 2.2rem;
+}
+
 /* ── Entry list ── */
 .sidebar-status { padding: 0.4rem 1rem; font-size: 0.82rem; color: var(--text-muted); }
 .sidebar-status.error { color: var(--danger); }
+.sidebar-empty-hint {
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  margin: 0;
+  padding: 0.5rem 1rem;
+  text-align: center;
+}
 .entry-list-heading {
   color: var(--text-muted);
   font-size: 0.72rem;
