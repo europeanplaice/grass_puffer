@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { baseUrl } from './baseUrl'
 
-// Default storageState (storageState.en.json) does NOT include grass_puffer_had_session,
+// Default storageState (storageState.en.json) does NOT include linger_had_session,
 // so each test starts without a prior-session hint unless explicitly set.
 
 test('no app shell shown during auth check when no prior session', async ({ page }) => {
@@ -25,7 +25,7 @@ test('no app shell shown during auth check when no prior session', async ({ page
 
 test('app shell shown during auth check when prior session hint is set', async ({ page }) => {
   await page.addInitScript(() => {
-    window.localStorage.setItem('grass_puffer_had_session', 'true')
+    window.localStorage.setItem('linger_had_session', 'true')
   })
 
   let releaseSession!: () => void
@@ -51,7 +51,7 @@ test('app shell shown during auth check when prior session hint is set', async (
   await expect(page.locator('.editor-textarea')).toBeVisible()
 })
 
-test('sets grass_puffer_had_session to true after successful session check', async ({ page }) => {
+test('sets linger_had_session to true after successful session check', async ({ page }) => {
   await page.route('/auth/session', async route => {
     await route.fulfill({ json: { signedIn: true } })
   })
@@ -65,11 +65,11 @@ test('sets grass_puffer_had_session to true after successful session check', asy
   await page.goto(baseUrl)
   await expect(page.locator('.editor-textarea')).toBeVisible()
 
-  const value = await page.evaluate(() => localStorage.getItem('grass_puffer_had_session'))
+  const value = await page.evaluate(() => localStorage.getItem('linger_had_session'))
   expect(value).toBe('true')
 })
 
-test('sets grass_puffer_had_session to false after failed session check', async ({ page }) => {
+test('sets linger_had_session to false after failed session check', async ({ page }) => {
   await page.route('/auth/session', async route => {
     await route.fulfill({ json: { signedIn: false } })
   })
@@ -77,13 +77,13 @@ test('sets grass_puffer_had_session to false after failed session check', async 
   await page.goto(baseUrl)
   await expect(page.locator('.login-screen')).toBeVisible()
 
-  const value = await page.evaluate(() => localStorage.getItem('grass_puffer_had_session'))
+  const value = await page.evaluate(() => localStorage.getItem('linger_had_session'))
   expect(value).toBe('false')
 })
 
-test('clears grass_puffer_had_session on sign-out', async ({ page }) => {
+test('clears linger_had_session on sign-out', async ({ page }) => {
   await page.addInitScript(() => {
-    window.localStorage.setItem('grass_puffer_had_session', 'true')
+    window.localStorage.setItem('linger_had_session', 'true')
   })
 
   await page.route('/auth/session', async route => {
@@ -105,6 +105,6 @@ test('clears grass_puffer_had_session on sign-out', async ({ page }) => {
   await page.locator('.btn-signout').click()
   await expect(page.locator('.login-screen')).toBeVisible()
 
-  const value = await page.evaluate(() => localStorage.getItem('grass_puffer_had_session'))
+  const value = await page.evaluate(() => localStorage.getItem('linger_had_session'))
   expect(value).toBe('false')
 })

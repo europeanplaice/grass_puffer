@@ -7,7 +7,7 @@ test.describe('recent entry previews', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('grass_puffer_language', 'en')
+      window.localStorage.setItem('linger_language', 'en')
       const RealDate = Date
       const fixedNow = new RealDate('2026-05-09T12:00:00+09:00').getTime()
       class MockDate extends RealDate {

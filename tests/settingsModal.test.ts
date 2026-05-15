@@ -18,7 +18,7 @@ async function render(
 test.describe('SettingsModal — auto-save toggle', () => {
   test('is checked by default when localStorage has no value', async ({ page }) => {
     await loadHarness(page)
-    await page.evaluate(() => localStorage.removeItem('grass_puffer_autosave'))
+    await page.evaluate(() => localStorage.removeItem('linger_autosave'))
     await render(page)
 
     const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
@@ -27,7 +27,7 @@ test.describe('SettingsModal — auto-save toggle', () => {
 
   test('is unchecked when localStorage is set to false', async ({ page }) => {
     await loadHarness(page)
-    await page.evaluate(() => localStorage.setItem('grass_puffer_autosave', 'false'))
+    await page.evaluate(() => localStorage.setItem('linger_autosave', 'false'))
     await render(page, { autoSave: false })
 
     const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
@@ -36,7 +36,7 @@ test.describe('SettingsModal — auto-save toggle', () => {
 
   test('toggling off persists false to localStorage', async ({ page }) => {
     await loadHarness(page)
-    await page.evaluate(() => localStorage.removeItem('grass_puffer_autosave'))
+    await page.evaluate(() => localStorage.removeItem('linger_autosave'))
     await render(page)
 
     const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
@@ -49,12 +49,12 @@ test.describe('SettingsModal — auto-save toggle', () => {
 
   test('toggling on persists true to localStorage', async ({ page }) => {
     await loadHarness(page)
-    await page.evaluate(() => localStorage.setItem('grass_puffer_autosave', 'false'))
+    await page.evaluate(() => localStorage.setItem('linger_autosave', 'false'))
     await render(page, { autoSave: false })
 
     const toggle = page.locator('.settings-item:has-text("Auto-save") .settings-switch')
     await toggle.click()
-    await page.waitForFunction(() => localStorage.getItem('grass_puffer_autosave') === 'true')
+    await page.waitForFunction(() => localStorage.getItem('linger_autosave') === 'true')
 
     const stored = await page.evaluate(() => window.settingsHarness.getStoredAutoSave())
     expect(stored).toBe('true')
@@ -163,7 +163,7 @@ test.describe('SettingsModal — about data storage', () => {
 
     const listItems = page.locator('.settings-about').filter({ hasText: 'About data storage' }).locator('.settings-about-list li')
     await expect(listItems).toHaveCount(4)
-    await expect(listItems.nth(0)).toContainText('GrassPuffer Diary')
+    await expect(listItems.nth(0)).toContainText('linger_diary')
     await expect(listItems.nth(1)).toContainText('diary-YYYY-MM-DD.json')
     await expect(listItems.nth(2)).toContainText('{ date, content, updated_at }')
     await expect(listItems.nth(3)).toContainText('drive.file')
@@ -267,7 +267,7 @@ test.describe('SettingsModal — Drive folder link', () => {
     await expect(link).toContainText('Google Drive')
     const href = await link.getAttribute('href')
     expect(href).toContain('drive.google.com/drive/search')
-    expect(href).toContain('GrassPuffer+Diary')
+    expect(href).toContain('linger_diary')
   })
 
   test('link opens in a new tab', async ({ page }) => {

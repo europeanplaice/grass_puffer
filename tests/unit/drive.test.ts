@@ -232,8 +232,8 @@ describe('saveEntry', () => {
     const fetchCall = (vi.mocked(fetch).mock.calls[0] as any)
     const contentType = fetchCall[1].headers['Content-Type']
     expect(contentType).toContain('multipart/related')
-    expect(contentType).toContain('boundary=grass_puffer_boundary')
-    expect(fetchCall[1].body).toContain('grass_puffer_boundary')
+    expect(contentType).toContain('boundary=linger_boundary')
+    expect(fetchCall[1].body).toContain('linger_boundary')
   })
 })
 

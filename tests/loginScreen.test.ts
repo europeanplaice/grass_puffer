@@ -29,7 +29,7 @@ test.describe('LoginScreen — language toggle', () => {
 
   test('clicking EN switches UI to English', async ({ page }) => {
     await page.goto(`${baseUrl}/tests/loginScreenHarness.html`)
-    await page.evaluate(() => localStorage.setItem('grass_puffer_language', 'ja'))
+    await page.evaluate(() => localStorage.setItem('linger_language', 'ja'))
     await render(page)
 
     await page.locator('.login-lang-toggle button', { hasText: 'EN' }).click()
@@ -41,7 +41,7 @@ test.describe('LoginScreen — language toggle', () => {
 
   test('clicking 日本語 switches UI to Japanese', async ({ page }) => {
     await page.goto(`${baseUrl}/tests/loginScreenHarness.html`)
-    await page.evaluate(() => localStorage.setItem('grass_puffer_language', 'en'))
+    await page.evaluate(() => localStorage.setItem('linger_language', 'en'))
     await render(page)
 
     await page.locator('.login-lang-toggle button', { hasText: '日本語' }).click()

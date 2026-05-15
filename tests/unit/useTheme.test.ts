@@ -21,7 +21,7 @@ beforeEach(() => {
 
 test('initializes with stored theme from localStorage', () => {
   mockSystemTheme('light')
-  localStorage.setItem('grass_puffer_theme', 'dark')
+  localStorage.setItem('linger_theme', 'dark')
   const { result } = renderHook(() => useTheme())
   expect(result.current.mode).toBe('dark')
   expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
@@ -29,29 +29,29 @@ test('initializes with stored theme from localStorage', () => {
 
 test('defaults to system when no stored theme', () => {
   mockSystemTheme('light')
-  localStorage.removeItem('grass_puffer_theme')
+  localStorage.removeItem('linger_theme')
   const { result } = renderHook(() => useTheme())
   expect(result.current.mode).toBe('system')
 })
 
 test('toggleTheme cycles dark → light → dark', () => {
   mockSystemTheme('light')
-  localStorage.setItem('grass_puffer_theme', 'dark')
+  localStorage.setItem('linger_theme', 'dark')
   const { result } = renderHook(() => useTheme())
   expect(result.current.mode).toBe('dark')
 
   act(() => result.current.toggleTheme())
   expect(result.current.mode).toBe('light')
-  expect(localStorage.getItem('grass_puffer_theme')).toBe('light')
+  expect(localStorage.getItem('linger_theme')).toBe('light')
 
   act(() => result.current.toggleTheme())
   expect(result.current.mode).toBe('dark')
-  expect(localStorage.getItem('grass_puffer_theme')).toBe('dark')
+  expect(localStorage.getItem('linger_theme')).toBe('dark')
 })
 
 test('effectiveTheme returns system preference when mode is system', () => {
   mockSystemTheme('dark')
-  localStorage.removeItem('grass_puffer_theme')
+  localStorage.removeItem('linger_theme')
   const { result } = renderHook(() => useTheme())
   expect(result.current.effectiveTheme).toBe('dark')
 })
@@ -63,46 +63,46 @@ test('setMode changes mode to dark and persists to localStorage', () => {
 
   act(() => result.current.setMode('dark'))
   expect(result.current.mode).toBe('dark')
-  expect(localStorage.getItem('grass_puffer_theme')).toBe('dark')
+  expect(localStorage.getItem('linger_theme')).toBe('dark')
 })
 
 test('setMode changes mode to system and persists to localStorage', () => {
   mockSystemTheme('light')
-  localStorage.setItem('grass_puffer_theme', 'dark')
+  localStorage.setItem('linger_theme', 'dark')
   const { result } = renderHook(() => useTheme())
 
   act(() => result.current.setMode('system'))
   expect(result.current.mode).toBe('system')
-  expect(localStorage.getItem('grass_puffer_theme')).toBe('system')
+  expect(localStorage.getItem('linger_theme')).toBe('system')
 })
 
 test('readStoredTheme reads system from localStorage', () => {
   mockSystemTheme('light')
-  localStorage.setItem('grass_puffer_theme', 'system')
+  localStorage.setItem('linger_theme', 'system')
   const { result } = renderHook(() => useTheme())
   expect(result.current.mode).toBe('system')
 })
 
 test('toggleTheme from system mode (dark effective) switches to light', () => {
   mockSystemTheme('dark')
-  localStorage.removeItem('grass_puffer_theme')
+  localStorage.removeItem('linger_theme')
   const { result } = renderHook(() => useTheme())
   expect(result.current.mode).toBe('system')
   expect(result.current.effectiveTheme).toBe('dark')
 
   act(() => result.current.toggleTheme())
   expect(result.current.mode).toBe('light')
-  expect(localStorage.getItem('grass_puffer_theme')).toBe('light')
+  expect(localStorage.getItem('linger_theme')).toBe('light')
 })
 
 test('toggleTheme from system mode (light effective) switches to dark', () => {
   mockSystemTheme('light')
-  localStorage.removeItem('grass_puffer_theme')
+  localStorage.removeItem('linger_theme')
   const { result } = renderHook(() => useTheme())
   expect(result.current.mode).toBe('system')
   expect(result.current.effectiveTheme).toBe('light')
 
   act(() => result.current.toggleTheme())
   expect(result.current.mode).toBe('dark')
-  expect(localStorage.getItem('grass_puffer_theme')).toBe('dark')
+  expect(localStorage.getItem('linger_theme')).toBe('dark')
 })

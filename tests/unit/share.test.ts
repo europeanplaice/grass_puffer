@@ -15,7 +15,7 @@ describe('share utils', () => {
       const result = await shareApp()
 
       expect(mockShare).toHaveBeenCalledWith({
-        title: 'Grass Puffer Diary',
+        title: 'Linger',
         text: 'Google Drive で管理するプライベート日記アプリ',
         url: 'https://example.com',
       })

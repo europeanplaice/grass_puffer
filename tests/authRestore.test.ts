@@ -3,7 +3,7 @@ import { baseUrl } from './baseUrl'
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    window.localStorage.setItem('grass_puffer_language', 'en')
+    window.localStorage.setItem('linger_language', 'en')
   })
 })
 

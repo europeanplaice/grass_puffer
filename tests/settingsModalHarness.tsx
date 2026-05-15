@@ -27,7 +27,7 @@ function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: ini
   const handleAutoSaveToggle = useCallback(() => {
     setAutoSave(prev => {
       const next = !prev
-      localStorage.setItem('grass_puffer_autosave', String(next))
+      localStorage.setItem('linger_autosave', String(next))
       return next
     })
   }, [])
@@ -75,8 +75,8 @@ window.settingsHarness = {
       </I18nProvider>
     )
   },
-  getStoredAutoSave: () => localStorage.getItem('grass_puffer_autosave'),
-  getStoredTheme: () => localStorage.getItem('grass_puffer_theme'),
+  getStoredAutoSave: () => localStorage.getItem('linger_autosave'),
+  getStoredTheme: () => localStorage.getItem('linger_theme'),
   exportCalls: () => [...exportCalls],
   setExportReject: (v: boolean) => { exportReject = v },
 }

@@ -4,7 +4,7 @@ import { baseUrl } from './baseUrl'
 test.describe('sidebar empty state', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('grass_puffer_language', 'en')
+      window.localStorage.setItem('linger_language', 'en')
     })
   })
 
@@ -67,7 +67,7 @@ test.describe('sidebar empty state', () => {
 test.describe('sidebar error state', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
-      window.localStorage.setItem('grass_puffer_language', 'en')
+      window.localStorage.setItem('linger_language', 'en')
     })
     await page.route('/auth/session', route => route.fulfill({ json: { signedIn: true } }))
     await page.route('/api/drive/entries', route => route.abort())

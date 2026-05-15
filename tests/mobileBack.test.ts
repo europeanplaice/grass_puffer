@@ -13,7 +13,7 @@ function adjacentDate(date: string): string {
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.addInitScript(() => {
-    window.localStorage.setItem('grass_puffer_language', 'en')
+    window.localStorage.setItem('linger_language', 'en')
   })
   await page.route('/auth/session', async route => {
     await route.fulfill({ json: { signedIn: true } })

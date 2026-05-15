@@ -7,7 +7,7 @@ test.describe('i18n', () => {
     const page = await context.newPage()
 
     await page.addInitScript(() => {
-      localStorage.removeItem('grass_puffer_language')
+      localStorage.removeItem('linger_language')
     })
 
     await page.goto(`${baseUrl}/tests/loginScreenHarness.html`)
@@ -17,7 +17,7 @@ test.describe('i18n', () => {
 
     await expect(page.getByRole('button', { name: 'Google でログイン' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'ja')
-    await expect(page).toHaveTitle('クサフグ日記')
+    await expect(page).toHaveTitle('Linger')
 
     await context.close()
   })
@@ -27,7 +27,7 @@ test.describe('i18n', () => {
   const page = await context.newPage()
 
   await page.addInitScript(() => {
-    localStorage.removeItem('grass_puffer_language')
+    localStorage.removeItem('linger_language')
   })
 
   await page.goto(`${baseUrl}/tests/loginScreenHarness.html`)
@@ -37,7 +37,7 @@ test.describe('i18n', () => {
 
   await expect(page.getByRole('button', { name: 'Sign in with Google' })).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-  await expect(page).toHaveTitle('Grass Puffer Diary')
+  await expect(page).toHaveTitle('Linger')
 
   await context.close()
 })
@@ -47,7 +47,7 @@ test('falls back to browser language when no stored preference (ja)', async ({ b
   const page = await context.newPage()
 
   await page.addInitScript(() => {
-    localStorage.removeItem('grass_puffer_language')
+    localStorage.removeItem('linger_language')
   })
 
   await page.goto(`${baseUrl}/tests/loginScreenHarness.html`)
@@ -57,14 +57,14 @@ test('falls back to browser language when no stored preference (ja)', async ({ b
 
   await expect(page.getByRole('button', { name: 'Google でログイン' })).toBeVisible()
   await expect(page.locator('html')).toHaveAttribute('lang', 'ja')
-  await expect(page).toHaveTitle('クサフグ日記')
+  await expect(page).toHaveTitle('Linger')
 
   await context.close()
 })
 
 test('switches between Japanese and English from settings and persists the choice', async ({ page }) => {
     await page.addInitScript(() => {
-      localStorage.setItem('grass_puffer_language', 'ja')
+      localStorage.setItem('linger_language', 'ja')
     })
 
     await page.goto(`${baseUrl}/tests/settingsModalHarness.html`)
@@ -78,6 +78,6 @@ test('switches between Japanese and English from settings and persists the choic
 
     await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
-    await expect.poll(() => page.evaluate(() => localStorage.getItem('grass_puffer_language'))).toBe('en')
+    await expect.poll(() => page.evaluate(() => localStorage.getItem('linger_language'))).toBe('en')
   })
 })
