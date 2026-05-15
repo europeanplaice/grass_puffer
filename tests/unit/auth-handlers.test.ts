@@ -10,7 +10,7 @@ describe('logout handler', () => {
   it('deletes session and clears cookie', async () => {
     const del = vi.fn()
     const request = new Request('http://localhost/auth/logout', {
-      headers: { Cookie: 'grass_session=sid123' },
+      headers: { Cookie: 'linger_session=sid123' },
     })
     const env = { SESSIONS: { delete: del }, SESSION_DOMAIN: 'https://example.com' }
 
@@ -38,7 +38,7 @@ describe('logout handler', () => {
     const request = new Request('http://localhost/auth/logout', {
       method: 'POST',
       headers: {
-        Cookie: 'grass_session=sid123',
+        Cookie: 'linger_session=sid123',
         Origin: 'https://attacker.example',
         'Sec-Fetch-Site': 'cross-site',
       },
@@ -53,7 +53,7 @@ describe('logout handler', () => {
 
   it('omits Secure flag on HTTP domains', async () => {
     const request = new Request('http://localhost/auth/logout', {
-      headers: { Cookie: 'grass_session=sid' },
+      headers: { Cookie: 'linger_session=sid' },
     })
     const env = { SESSIONS: { delete: vi.fn() }, SESSION_DOMAIN: 'http://localhost:8788' }
 
@@ -68,7 +68,7 @@ describe('session check handler', () => {
   it('returns signedIn: true when session exists', async () => {
     const put = vi.fn()
     const request = new Request('http://localhost/auth/session', {
-      headers: { Cookie: 'grass_session=sid123' },
+      headers: { Cookie: 'linger_session=sid123' },
     })
     const env = {
       SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify({})), put },
@@ -95,7 +95,7 @@ describe('session check handler', () => {
 
   it('returns signedIn: false when session not in KV', async () => {
     const request = new Request('http://localhost/auth/session', {
-      headers: { Cookie: 'grass_session=sid123' },
+      headers: { Cookie: 'linger_session=sid123' },
     })
     const env = { SESSIONS: { get: vi.fn().mockResolvedValue(null) } }
 

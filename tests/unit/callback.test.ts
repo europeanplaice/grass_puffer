@@ -113,7 +113,7 @@ describe('onRequestGet (OAuth callback)', () => {
 
     expect(response.status).toBe(302)
     const setCookie = response.headers.get('Set-Cookie')
-    expect(setCookie).toContain('grass_session=')
+    expect(setCookie).toContain('linger_session=')
     expect(setCookie).toContain('HttpOnly')
     expect(setCookie).toContain('Secure')
     expect(setCookie).toContain('Max-Age=')

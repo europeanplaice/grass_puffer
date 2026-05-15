@@ -52,7 +52,7 @@ describe('API auth middleware', () => {
       request: new Request('http://localhost/api/drive/entry/2026-05-01', {
         method: 'POST',
         headers: {
-          Cookie: 'grass_session=sid123',
+          Cookie: 'linger_session=sid123',
           Origin: 'https://attacker.example',
           'Sec-Fetch-Site': 'cross-site',
         },
@@ -69,7 +69,7 @@ describe('API auth middleware', () => {
   it('returns 401 when session not in KV', async () => {
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entries', {
-        headers: { Cookie: 'grass_session=sid123' },
+        headers: { Cookie: 'linger_session=sid123' },
       }),
       env: { SESSIONS: { get: vi.fn().mockResolvedValue(null) } },
     })
@@ -85,7 +85,7 @@ describe('API auth middleware', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 })))
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entries', {
-        headers: { Cookie: 'grass_session=sid123' },
+        headers: { Cookie: 'linger_session=sid123' },
       }),
       env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(expiredSession)), put: vi.fn() } },
     })
@@ -101,7 +101,7 @@ describe('API auth middleware', () => {
     const put = vi.fn()
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entries', {
-        headers: { Cookie: 'grass_session=sid123' },
+        headers: { Cookie: 'linger_session=sid123' },
       }),
       env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(session)), put } },
     })
@@ -126,7 +126,7 @@ describe('API auth middleware', () => {
     const put = vi.fn()
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entries', {
-        headers: { Cookie: 'grass_session=sid123' },
+        headers: { Cookie: 'linger_session=sid123' },
       }),
       env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(session)), put } },
     })
@@ -141,7 +141,7 @@ describe('API auth middleware', () => {
     const put = vi.fn()
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entries', {
-        headers: { Cookie: 'grass_session=sid123' },
+        headers: { Cookie: 'linger_session=sid123' },
       }),
       env: { SESSIONS: { get: vi.fn().mockResolvedValue(JSON.stringify(session)), put } },
     })

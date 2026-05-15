@@ -22,7 +22,7 @@ describe('parseSessionId', () => {
   }
 
   it('extracts session cookie from Cookie header', () => {
-    expect(parseSessionId(mockRequest('grass_session=abc123; other=val'))).toBe('abc123')
+    expect(parseSessionId(mockRequest('linger_session=abc123; other=val'))).toBe('abc123')
   })
 
   it('returns null when no Cookie header', () => {
@@ -30,7 +30,7 @@ describe('parseSessionId', () => {
   })
 
   it('returns null when session cookie value is empty', () => {
-    expect(parseSessionId(mockRequest('grass_session=; other=val'))).toBeNull()
+    expect(parseSessionId(mockRequest('linger_session=; other=val'))).toBeNull()
   })
 
   it('returns null when session cookie is absent', () => {
@@ -38,7 +38,7 @@ describe('parseSessionId', () => {
   })
 
   it('decodes URI-encoded session ID', () => {
-    expect(parseSessionId(mockRequest('grass_session=hello%20world'))).toBe('hello world')
+    expect(parseSessionId(mockRequest('linger_session=hello%20world'))).toBe('hello world')
   })
 })
 
@@ -73,7 +73,7 @@ describe('saveSession', () => {
 describe('makeSessionCookie', () => {
   it('creates a secure HttpOnly session cookie', () => {
     const cookie = makeSessionCookie('abc123', 3600, true)
-    expect(cookie).toContain('grass_session=abc123')
+    expect(cookie).toContain('linger_session=abc123')
     expect(cookie).toContain('HttpOnly')
     expect(cookie).toContain('Secure')
     expect(cookie).toContain('SameSite=Strict')
@@ -86,14 +86,14 @@ describe('makeSessionCookie', () => {
   })
 
   it('encodes the session ID', () => {
-    expect(makeSessionCookie('a b', 3600)).toContain('grass_session=a%20b')
+    expect(makeSessionCookie('a b', 3600)).toContain('linger_session=a%20b')
   })
 })
 
 describe('clearSessionCookie', () => {
   it('creates a cookie with Max-Age=0', () => {
     const cookie = clearSessionCookie(true)
-    expect(cookie).toContain('grass_session=')
+    expect(cookie).toContain('linger_session=')
     expect(cookie).toContain('Max-Age=0')
     expect(cookie).toContain('Secure')
   })
