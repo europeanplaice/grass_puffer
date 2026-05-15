@@ -266,8 +266,8 @@ test.describe('SettingsModal — Drive folder link', () => {
     await expect(link).toBeVisible()
     await expect(link).toContainText('Google Drive')
     const href = await link.getAttribute('href')
-    expect(href).toContain('drive.google.com')
-    expect(href).toContain('GrassPuffer')
+    expect(href).toContain('drive.google.com/drive/search')
+    expect(href).toContain('GrassPuffer+Diary')
   })
 
   test('link opens in a new tab', async ({ page }) => {
