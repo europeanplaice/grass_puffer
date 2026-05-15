@@ -44,7 +44,7 @@ export function ExportButton({ dates, onExport }: ExportButtonProps) {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `grass_puffer_diary_export_${new Date().toISOString().slice(0, 10)}.zip`
+      a.download = `linger_diary_export_${new Date().toISOString().slice(0, 10)}.zip`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

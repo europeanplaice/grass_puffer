@@ -1,13 +1,13 @@
 {
-  "name": "Grass Puffer Diary",
-  "short_name": "Grass Puffer Diary",
+  "name": "Linger",
+  "short_name": "Linger",
   "description": "A private diary app backed by your Google Drive.",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#f7f1df",
-  "theme_color": "#5e9b58",
+  "theme_color": "#2c3e50",
   "icons": [
     {
       "src": "icon.svg",

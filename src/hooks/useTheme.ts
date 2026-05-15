@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'grass_puffer_theme'
+const STORAGE_KEY = 'linger_theme'
 
 function getSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'

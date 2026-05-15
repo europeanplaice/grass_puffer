@@ -3,14 +3,14 @@ import type { ReactNode } from 'react'
 
 export type Language = 'ja' | 'en'
 
-const STORAGE_KEY = 'grass_puffer_language'
+const STORAGE_KEY = 'linger_language'
 
 type Dictionary = typeof dictionaries.en
 
 const dictionaries = {
   en: {
-    appTitle: 'Diary',
-    documentTitle: 'Grass Puffer Diary',
+    appTitle: 'Linger',
+    documentTitle: 'Linger',
     common: {
       cancel: 'Cancel',
       delete: 'Delete',
@@ -154,7 +154,7 @@ const dictionaries = {
       aboutDataStorage: 'About data storage',
       storageIntro: 'Your diary entries are stored in your Google Drive:',
       storageItems: [
-        'A folder named GrassPuffer Diary is created automatically',
+        'A folder named linger_diary is created automatically',
         'One JSON file per day: diary-YYYY-MM-DD.json',
         'Format: { date, content, updated_at }',
         'This app only accesses files it created (scope: drive.file)',
@@ -195,8 +195,8 @@ const dictionaries = {
     },
   },
   ja: {
-     appTitle: 'クサフグ日記',
-     documentTitle: 'クサフグ日記',
+     appTitle: 'Linger',
+     documentTitle: 'Linger',
     common: {
       cancel: 'キャンセル',
       delete: '削除',
@@ -327,7 +327,7 @@ const dictionaries = {
       aboutDataStorage: 'データ保存について',
       storageIntro: '日記は Google Drive に保存されます:',
       storageItems: [
-        'GrassPuffer Diary というフォルダが自動作成されます',
+        'linger_diary というフォルダが自動作成されます',
         '1日につき1つの JSON ファイル: diary-YYYY-MM-DD.json',
         '形式: { date, content, updated_at }',
         'このアプリは自分で作成したファイルだけにアクセスします（scope: drive.file）',

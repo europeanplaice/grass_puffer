@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Privacy Policy — Grass Puffer Diary</title>
+  <title>Privacy Policy — Linger</title>
   <style>
     body {
       font-family: 'Helvetica Neue', Arial, sans-serif;
@@ -25,13 +25,13 @@
   </style>
 </head>
 <body>
-  <a href="/" class="back">← Back to Grass Puffer Diary</a>
+  <a href="/" class="back">← Back to Linger</a>
   <h1>Privacy Policy</h1>
   <p class="meta">Last updated: May 9, 2026</p>
 
   <h2>1. Overview</h2>
   <p>
-    Grass Puffer Diary is a personal diary app. Your diary entries are stored in your own Google Drive.
+    Linger is a personal diary app. Your diary entries are stored in your own Google Drive.
     The app uses Cloudflare Pages Functions as a thin backend layer to handle OAuth authentication and
     to proxy Google Drive API requests — it does not store or process your diary content.
   </p>
@@ -40,7 +40,7 @@
   <p>The app accesses the following via OAuth:</p>
   <ul>
     <li>A Google OAuth access token and refresh token, used solely to read and write diary files in your Google Drive</li>
-    <li>Files in your Google Drive that were created by this app (JSON files inside the <code>GrassPuffer Diary/</code> folder)</li>
+    <li>Files in your Google Drive that were created by this app (JSON files inside the <code>linger_diary/</code> folder)</li>
   </ul>
   <p>
     The refresh token is stored server-side in <strong>Cloudflare KV</strong> (a key-value store provided by
@@ -72,11 +72,11 @@
   <h2>5. Local Storage</h2>
   <p>This app uses <code>localStorage</code> to persist non-sensitive preferences only:</p>
   <ul>
-    <li><code>grass_puffer_autosave</code> — whether auto-save is enabled</li>
-    <li><code>grass_puffer_theme</code> — theme preference (<code>light</code> / <code>dark</code> / <code>system</code>)</li>
-    <li><code>grass_puffer_font</code> — font preference</li>
-    <li><code>grass_puffer_language</code> — language preference (<code>en</code> / <code>ja</code>)</li>
-    <li><code>grass_puffer_had_session</code> — a <code>true</code>/<code>false</code> flag indicating whether the user was previously signed in, used to show a "continue with your previous session" prompt on the login screen</li>
+    <li><code>linger_autosave</code> — whether auto-save is enabled</li>
+    <li><code>linger_theme</code> — theme preference (<code>light</code> / <code>dark</code> / <code>system</code>)</li>
+    <li><code>linger_font</code> — font preference</li>
+    <li><code>linger_language</code> — language preference (<code>en</code> / <code>ja</code>)</li>
+    <li><code>linger_had_session</code> — a <code>true</code>/<code>false</code> flag indicating whether the user was previously signed in, used to show a "continue with your previous session" prompt on the login screen</li>
   </ul>
   <p>None of these contain diary content or authentication tokens.</p>
 
@@ -100,7 +100,7 @@
 
   <h2>9. Deleting Your Data</h2>
   <p>
-    All diary content is stored in the <code>GrassPuffer Diary/</code> folder in your Google Drive.
+    All diary content is stored in the <code>linger_diary/</code> folder in your Google Drive.
     You can delete it at any time by removing that folder.<br />
     To delete your server-side session, sign out from within the app or revoke access via
     <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">Google Account → Apps &amp; services</a>.

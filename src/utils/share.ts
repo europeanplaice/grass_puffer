@@ -1,6 +1,6 @@
 export async function shareApp(): Promise<'shared' | 'copied'> {
   const data = {
-    title: 'Grass Puffer Diary',
+    title: 'Linger',
     text: 'Google Drive で管理するプライベート日記アプリ',
     url: window.location.origin,
   };

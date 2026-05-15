@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 
 type FontMode = 'serif' | 'sans'
 
-const STORAGE_KEY = 'grass_puffer_font'
+const STORAGE_KEY = 'linger_font'
 
 function readStoredFont(): FontMode {
   const stored = localStorage.getItem(STORAGE_KEY)

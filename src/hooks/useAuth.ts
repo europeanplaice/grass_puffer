@@ -19,14 +19,14 @@ export function useAuth(): AuthState {
   const [tokenExpired, setTokenExpired] = useState(false)
   const [email, setEmail] = useState<string | null>(null)
   const [hadSession] = useState<boolean>(
-    () => localStorage.getItem('grass_puffer_had_session') === 'true'
+    () => localStorage.getItem('linger_had_session') === 'true'
   )
 
   useEffect(() => {
     let cancelled = false
     checkSession().then(info => {
       if (cancelled) return
-      localStorage.setItem('grass_puffer_had_session', String(info.signedIn))
+      localStorage.setItem('linger_had_session', String(info.signedIn))
       setStatus(info.signedIn ? 'signedIn' : 'signedOut')
       setEmail(info.email)
     })
@@ -39,7 +39,7 @@ export function useAuth(): AuthState {
 
   const signOut = useCallback(() => {
     revokeSession().catch(() => {})
-    localStorage.setItem('grass_puffer_had_session', 'false')
+    localStorage.setItem('linger_had_session', 'false')
     setStatus('signedOut')
     setTokenExpired(false)
   }, [])

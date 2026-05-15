@@ -1,7 +1,7 @@
 import type { Env, SessionData } from './session'
 import { saveSession, SESSION_TTL } from './session'
 
-const FOLDER_NAME = 'GrassPuffer Diary'
+const FOLDER_NAME = 'linger_diary'
 const BASE = 'https://www.googleapis.com/drive/v3'
 const UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3'
 
@@ -39,7 +39,7 @@ function driveHeaders(token: string, extra?: Record<string, string>): Record<str
     Authorization: `Bearer ${token}`,
     'Cache-Control': 'no-cache',
     'Accept-Encoding': 'gzip',
-    'User-Agent': 'GrassPuffer Diary (gzip)',
+    'User-Agent': 'linger_diary (gzip)',
     ...extra,
   }
 }
@@ -208,7 +208,7 @@ export async function getEntryContent(token: string, fileId: string): Promise<Di
 }
 
 function buildMultipart(meta: object, body: string): { contentType: string; data: string } {
-  const boundary = 'grass_puffer_boundary'
+  const boundary = 'linger_boundary'
   const parts = [
     `--${boundary}`,
     'Content-Type: application/json; charset=UTF-8',

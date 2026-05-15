@@ -168,7 +168,7 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
               {t.settings.storageItems.map(item => <li key={item}>{item}</li>)}
             </ul>
             <a
-              href={`https://drive.google.com/drive/search?q=GrassPuffer+Diary${email ? `&authuser=${encodeURIComponent(email)}` : ''}`}
+              href={`https://drive.google.com/drive/search?q=linger_diary${email ? `&authuser=${encodeURIComponent(email)}` : ''}`}
               target="_blank"
               rel="noopener noreferrer"
               className="settings-drive-link"
