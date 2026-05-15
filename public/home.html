@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Linger — Private Diary</title>
+  <meta name="description" content="Linger is a private diary app that stores your entries in your own Google Drive." />
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+      color: #2c3e50;
+      line-height: 1.7;
+      background: #faf9f6;
+    }
+    .hero {
+      text-align: center;
+      padding: 2rem 0 3rem;
+    }
+    .hero img {
+      width: 72px;
+      height: 72px;
+      margin-bottom: 1rem;
+    }
+    h1 { font-size: 2.2rem; margin: 0 0 0.5rem; }
+    .subtitle { font-size: 1.05rem; color: #555; margin: 0 0 1.8rem; }
+    .btn {
+      display: inline-block;
+      background: #2c3e50;
+      color: #fff;
+      padding: 0.65rem 1.8rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.95rem;
+    }
+    h2 {
+      font-size: 1.05rem;
+      margin-top: 2.5rem;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.3rem;
+    }
+    p { font-size: 0.95rem; color: #555; }
+    ul { padding-left: 1.4rem; }
+    li { font-size: 0.95rem; color: #555; }
+    code { font-size: 0.88rem; background: #eee; padding: 0.1em 0.35em; border-radius: 3px; }
+    a { color: #5a7a5a; }
+    .footer {
+      margin-top: 3rem;
+      font-size: 0.85rem;
+      color: #888;
+      border-top: 1px solid #ddd;
+      padding-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <img src="/icon.svg" alt="Linger logo" />
+    <h1>Linger</h1>
+    <p class="subtitle">Your private diary, stored in your own Google Drive.</p>
+    <a href="/" class="btn">Open app</a>
+  </div>
+
+  <h2>What is Linger?</h2>
+  <p>
+    Linger is a personal diary web app. Write daily entries and access them from any device.
+    Your entries are saved as individual files inside your own Google Drive account — you retain
+    full ownership and control of your data at all times.
+  </p>
+
+  <h2>Features</h2>
+  <ul>
+    <li>Write and edit diary entries with a clean, distraction-free editor</li>
+    <li>Browse entries on a monthly calendar view</li>
+    <li>Full-text search across all your entries</li>
+    <li>View and restore previous versions of any entry</li>
+    <li>Export all entries as a ZIP file</li>
+    <li>Available in English and Japanese</li>
+  </ul>
+
+  <h2>Data &amp; Privacy</h2>
+  <p>
+    Linger signs in with your Google account and requests the
+    <code>drive.file</code> OAuth scope. This scope grants access
+    <strong>only to files this app created</strong> — it cannot read, modify, or delete
+    any other files in your Google Drive.
+  </p>
+  <p>
+    Diary entries reside entirely in your own Google Drive folder (<code>linger_diary/</code>).
+    No diary content is stored on Linger's servers. OAuth tokens are handled server-side and
+    are never exposed to the browser.
+  </p>
+
+  <div class="footer">
+    <a href="/privacy.html">Privacy Policy</a> &nbsp;·&nbsp;
+    <a href="/terms-of-service.html">Terms of Service</a>
+  </div>
+</body>
+</html>
