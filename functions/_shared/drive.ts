@@ -119,7 +119,7 @@ async function withFolderFallback<T>(
 
 export async function listEntries(token: string, sessionId: string, session: SessionData, env: Env): Promise<DriveFileMeta[]> {
   return withFolderFallback(token, sessionId, session, env, async folderId => {
-    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='application/json'`)
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='text/plain'`)
     const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
     const res = await driveWithRetry(
       () => fetch(`${BASE}/files?q=${q}&fields=${fields}&pageSize=1000`, { headers: driveHeaders(token) }),
@@ -132,7 +132,7 @@ export async function listEntries(token: string, sessionId: string, session: Ses
 export async function searchEntries(token: string, sessionId: string, session: SessionData, env: Env, query: string): Promise<DriveFileMeta[]> {
   const escapedQuery = query.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
   return withFolderFallback(token, sessionId, session, env, async folderId => {
-    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='application/json' and fullText contains '${escapedQuery}'`)
+    const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and mimeType='text/plain' and fullText contains '${escapedQuery}'`)
     const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
     const res = await driveWithRetry(
       () => fetch(`${BASE}/files?q=${q}&fields=${fields}&pageSize=1000`, { headers: driveHeaders(token) }),
@@ -143,7 +143,7 @@ export async function searchEntries(token: string, sessionId: string, session: S
 }
 
 export async function findEntryMeta(token: string, sessionId: string, session: SessionData, env: Env, date: string): Promise<DriveFileMeta | null> {
-  const filename = `diary-${date}.json`.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+  const filename = `diary-${date}.md`.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
   return withFolderFallback(token, sessionId, session, env, async folderId => {
     const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name='${filename}'`)
     const fields = encodeURIComponent('files(id,name,modifiedTime,version)')
@@ -164,7 +164,7 @@ export async function getEntryMeta(token: string, fileId: string): Promise<Drive
 }
 
 function expectedDiaryName(date?: string): RegExp | string {
-  return date ? `diary-${date}.json` : /^diary-\d{4}-\d{2}-\d{2}\.json$/
+  return date ? `diary-${date}.md` : /^diary-\d{4}-\d{2}-\d{2}\.md$/
 }
 
 function isExpectedDiaryFile(meta: DriveFileMeta, folderId: string, date?: string): boolean {
@@ -174,7 +174,7 @@ function isExpectedDiaryFile(meta: DriveFileMeta, folderId: string, date?: strin
     : expectedName.test(meta.name)
 
   return nameMatches
-    && meta.mimeType === 'application/json'
+    && meta.mimeType === 'text/plain'
     && meta.trashed !== true
     && Array.isArray(meta.parents)
     && meta.parents.includes(folderId)
@@ -200,14 +200,28 @@ export async function getDiaryFileMeta(
   return meta
 }
 
+function serializeEntry(entry: DiaryEntry): string {
+  return `---\ndate: ${entry.date}\nupdated_at: ${entry.updated_at}\n---\n\n${entry.content}`
+}
+
+function parseEntry(text: string): DiaryEntry {
+  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
+  if (!match) throw new Error('Invalid diary format')
+  const frontmatter = match[1]
+  const content = match[2].replace(/^\n/, '')
+  const date = frontmatter.match(/^date:\s*(.+)$/m)?.[1]?.trim() ?? ''
+  const updated_at = frontmatter.match(/^updated_at:\s*(.+)$/m)?.[1]?.trim() ?? ''
+  return { date, content, updated_at }
+}
+
 export async function getEntryContent(token: string, fileId: string): Promise<DiaryEntry> {
   return driveWithRetry(
     () => fetch(`${BASE}/files/${fileId}?alt=media`, { headers: driveHeaders(token) }),
-    r => r.json() as Promise<DiaryEntry>,
+    async r => parseEntry(await r.text()),
   )
 }
 
-function buildMultipart(meta: object, body: string): { contentType: string; data: string } {
+function buildMultipart(meta: object, body: string, bodyMimeType = 'text/plain; charset=UTF-8'): { contentType: string; data: string } {
   const boundary = 'linger_boundary'
   const parts = [
     `--${boundary}`,
@@ -215,7 +229,7 @@ function buildMultipart(meta: object, body: string): { contentType: string; data
     '',
     JSON.stringify(meta),
     `--${boundary}`,
-    'Content-Type: application/json; charset=UTF-8',
+    `Content-Type: ${bodyMimeType}`,
     '',
     body,
     `--${boundary}--`,
@@ -229,22 +243,22 @@ export async function saveEntry(
   folderId: string,
   fileId?: string,
 ): Promise<DriveFileMeta> {
-  const body = JSON.stringify(entry)
+  const body = serializeEntry(entry)
   const fields = encodeURIComponent('id,name,modifiedTime,version')
 
   if (fileId) {
     return driveWithRetry(
       () => fetch(`${UPLOAD_BASE}/files/${fileId}?uploadType=media&fields=${fields}`, {
         method: 'PATCH',
-        headers: driveHeaders(token, { 'Content-Type': 'application/json; charset=UTF-8' }),
+        headers: driveHeaders(token, { 'Content-Type': 'text/plain; charset=UTF-8' }),
         body,
       }),
       r => r.json() as Promise<DriveFileMeta>,
     )
   }
 
-  const filename = `diary-${entry.date}.json`
-  const { contentType, data } = buildMultipart({ name: filename, parents: [folderId] }, body)
+  const filename = `diary-${entry.date}.md`
+  const { contentType, data } = buildMultipart({ name: filename, mimeType: 'text/plain', parents: [folderId] }, body)
   return driveWithRetry(
     () => fetch(`${UPLOAD_BASE}/files?uploadType=multipart&fields=${fields}`, {
       method: 'POST',
@@ -275,7 +289,7 @@ export async function listRevisions(token: string, fileId: string): Promise<Driv
 export async function getRevisionContent(token: string, fileId: string, revisionId: string): Promise<DiaryEntry> {
   return driveWithRetry(
     () => fetch(`${BASE}/files/${fileId}/revisions/${revisionId}?alt=media`, { headers: driveHeaders(token) }),
-    r => r.json() as Promise<DiaryEntry>,
+    async r => parseEntry(await r.text()),
   )
 }
 

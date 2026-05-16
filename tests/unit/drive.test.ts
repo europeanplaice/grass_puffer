@@ -15,6 +15,11 @@ function driveJsonResponse(body: unknown, status = 200): Response {
   })
 }
 
+function driveMarkdownResponse(entry: { date: string; content: string; updated_at: string }, status = 200): Response {
+  const body = `---\ndate: ${entry.date}\nupdated_at: ${entry.updated_at}\n---\n\n${entry.content}`
+  return new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=UTF-8' } })
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
 })
@@ -65,7 +70,7 @@ describe('ensureFolder', () => {
 describe('getEntryContent', () => {
   it('fetches entry content from Drive', async () => {
     const entry = { date: '2026-05-01', content: 'hello', updated_at: '2026-05-01T00:00:00.000Z' }
-    mockFetch(driveJsonResponse(entry))
+    mockFetch(driveMarkdownResponse(entry))
 
     const result = await getEntryContent('token', 'file-123')
     expect(result).toEqual(entry)
@@ -78,7 +83,7 @@ describe('getEntryContent', () => {
     const entry = { date: '2026-05-01', content: 'hello', updated_at: '' }
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(new Response('Too Many Requests', { status: 429 }))
-      .mockResolvedValueOnce(driveJsonResponse(entry)))
+      .mockResolvedValueOnce(driveMarkdownResponse(entry)))
 
     const result = await getEntryContent('token', 'file-123')
     expect(result.content).toBe('hello')
@@ -88,7 +93,7 @@ describe('getEntryContent', () => {
     const entry = { date: '2026-05-01', content: 'ok', updated_at: '' }
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(new Response('Server Error', { status: 500 }))
-      .mockResolvedValueOnce(driveJsonResponse(entry)))
+      .mockResolvedValueOnce(driveMarkdownResponse(entry)))
 
     const result = await getEntryContent('token', 'file-123')
     expect(result.content).toBe('ok')
@@ -116,7 +121,7 @@ describe('getEntryContent', () => {
       const entry = { date: '2026-05-01', content: 'ok', updated_at: '' }
       vi.stubGlobal('fetch', vi.fn()
         .mockResolvedValueOnce(new Response('Rate Limited', { status: 429, headers: { 'Retry-After': '1' } }))
-        .mockResolvedValueOnce(driveJsonResponse(entry)))
+        .mockResolvedValueOnce(driveMarkdownResponse(entry)))
 
       const promise = getEntryContent('token', 'file-123')
       await vi.runAllTimersAsync()
@@ -132,11 +137,11 @@ describe('getEntryContent', () => {
 })
 
 describe('getDiaryFileMeta', () => {
-  it('returns metadata for a JSON diary file in the cached diary folder', async () => {
+  it('returns metadata for a markdown diary file in the cached diary folder', async () => {
     const meta = {
       id: 'file-1',
-      name: 'diary-2026-05-01.json',
-      mimeType: 'application/json',
+      name: 'diary-2026-05-01.md',
+      mimeType: 'text/plain',
       parents: ['folder-1'],
       trashed: false,
       version: '2',
@@ -152,8 +157,8 @@ describe('getDiaryFileMeta', () => {
   it('rejects files outside the diary folder', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse({
       id: 'file-1',
-      name: 'diary-2026-05-01.json',
-      mimeType: 'application/json',
+      name: 'diary-2026-05-01.md',
+      mimeType: 'text/plain',
       parents: ['other-folder'],
       trashed: false,
     })))
@@ -166,8 +171,8 @@ describe('getDiaryFileMeta', () => {
   it('rejects diary files for a different date', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse({
       id: 'file-1',
-      name: 'diary-2026-05-02.json',
-      mimeType: 'application/json',
+      name: 'diary-2026-05-02.md',
+      mimeType: 'text/plain',
       parents: ['folder-1'],
       trashed: false,
     })))
@@ -180,8 +185,8 @@ describe('getDiaryFileMeta', () => {
   it('rejects trashed diary files', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse({
       id: 'file-1',
-      name: 'diary-2026-05-01.json',
-      mimeType: 'application/json',
+      name: 'diary-2026-05-01.md',
+      mimeType: 'text/plain',
       parents: ['folder-1'],
       trashed: true,
     })))
@@ -194,7 +199,7 @@ describe('getDiaryFileMeta', () => {
 
 describe('saveEntry', () => {
   it('PATCHes media only when fileId is provided (update)', async () => {
-    const meta = { id: 'file-1', name: 'diary-2026-05-01.json', version: '2' }
+    const meta = { id: 'file-1', name: 'diary-2026-05-01.md', version: '2' }
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(meta)))
     const entry = { date: '2026-05-01', content: 'updated', updated_at: '2026-05-01T00:00:00.000Z' }
 
@@ -205,12 +210,13 @@ describe('saveEntry', () => {
     expect(fetchCall[0]).toContain('/files/file-1')
     expect(fetchCall[0]).toContain('uploadType=media')
     expect(fetchCall[1].method).toBe('PATCH')
-    expect(fetchCall[1].headers['Content-Type']).toBe('application/json; charset=UTF-8')
-    expect(JSON.parse(fetchCall[1].body)).toEqual(entry)
+    expect(fetchCall[1].headers['Content-Type']).toBe('text/plain; charset=UTF-8')
+    expect(fetchCall[1].body).toContain('date: 2026-05-01')
+    expect(fetchCall[1].body).toContain('updated')
   })
 
   it('POSTes when no fileId (create)', async () => {
-    const meta = { id: 'new-file', name: 'diary-2026-05-01.json', version: '1' }
+    const meta = { id: 'new-file', name: 'diary-2026-05-01.md', version: '1' }
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(meta)))
     const entry = { date: '2026-05-01', content: 'new', updated_at: '2026-05-01T00:00:00.000Z' }
 
@@ -274,7 +280,7 @@ describe('listRevisions', () => {
 describe('getRevisionContent', () => {
   it('fetches revision content with alt=media', async () => {
     const entry = { date: '2026-05-01', content: 'rev', updated_at: '2026-05-01T00:00:00.000Z' }
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(entry)))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveMarkdownResponse(entry)))
 
     const result = await getRevisionContent('token', 'file-1', 'rev-1')
     expect(result).toEqual(entry)
