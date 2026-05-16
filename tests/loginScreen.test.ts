@@ -53,12 +53,16 @@ test.describe('LoginScreen — language toggle', () => {
 })
 
 test.describe('LoginScreen — footer links', () => {
-  test('shows Privacy Policy and Terms of Service links', async ({ page }) => {
+  test('shows About, Privacy Policy and Terms of Service links', async ({ page }) => {
     await loadHarness(page)
     await render(page)
 
+    const aboutLink = page.locator('.login-footer a[href="/home.html"]')
     const privacyLink = page.locator('.login-footer a[href="/privacy.html"]')
     const tosLink = page.locator('.login-footer a[href="/terms-of-service.html"]')
+
+    await expect(aboutLink).toBeVisible()
+    await expect(aboutLink).toHaveText('About')
 
     await expect(privacyLink).toBeVisible()
     await expect(privacyLink).toHaveText('Privacy Policy')
@@ -71,8 +75,12 @@ test.describe('LoginScreen — footer links', () => {
     await loadHarness(page)
     await render(page)
 
+    const aboutLink = page.locator('.login-footer a[href="/home.html"]')
     const privacyLink = page.locator('.login-footer a[href="/privacy.html"]')
     const tosLink = page.locator('.login-footer a[href="/terms-of-service.html"]')
+
+    await expect(aboutLink).toHaveAttribute('target', '_blank')
+    await expect(aboutLink).toHaveAttribute('rel', 'noopener noreferrer')
 
     await expect(privacyLink).toHaveAttribute('target', '_blank')
     await expect(privacyLink).toHaveAttribute('rel', 'noopener noreferrer')

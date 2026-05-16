@@ -40,6 +40,10 @@ export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
           {t.login.signInWithGoogle}
         </button>
         <p className="login-footer">
+          <a href="/home.html" target="_blank" rel="noopener noreferrer">
+            {t.login.aboutLinger}
+          </a>
+          {' · '}
           <a href="/privacy.html" target="_blank" rel="noopener noreferrer">
             {t.login.privacyPolicy}
           </a>

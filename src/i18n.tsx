@@ -90,6 +90,7 @@ const dictionaries = {
       driveFileScope: 'Only accesses diary files created by this app.',
       privacyPolicy: 'Privacy Policy',
       termsOfService: 'Terms of Service',
+      aboutLinger: 'About',
     },
     entry: {
       savedStatus: 'Saved.',
@@ -266,6 +267,7 @@ const dictionaries = {
       driveFileScope: 'このアプリが作成した日記ファイルのみにアクセスします。',
       privacyPolicy: 'プライバシーポリシー',
       termsOfService: '利用規約',
+      aboutLinger: 'Lingerについて',
     },
     entry: {
       savedStatus: '保存しました。',
