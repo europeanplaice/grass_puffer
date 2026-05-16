@@ -164,8 +164,8 @@ test.describe('SettingsModal — about data storage', () => {
     const listItems = page.locator('.settings-about').filter({ hasText: 'About data storage' }).locator('.settings-about-list li')
     await expect(listItems).toHaveCount(4)
     await expect(listItems.nth(0)).toContainText('linger_diary')
-    await expect(listItems.nth(1)).toContainText('diary-YYYY-MM-DD.json')
-    await expect(listItems.nth(2)).toContainText('{ date, content, updated_at }')
+    await expect(listItems.nth(1)).toContainText('diary-YYYY-MM-DD.md')
+    await expect(listItems.nth(2)).toContainText('YAML frontmatter')
     await expect(listItems.nth(3)).toContainText('drive.file')
   })
 

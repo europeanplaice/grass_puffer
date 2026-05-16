@@ -156,8 +156,8 @@ const dictionaries = {
       storageIntro: 'Your diary entries are stored in your Google Drive:',
       storageItems: [
         'A folder named linger_diary is created automatically',
-        'One JSON file per day: diary-YYYY-MM-DD.json',
-        'Format: { date, content, updated_at }',
+        'One Markdown file per day: diary-YYYY-MM-DD.md',
+        'Format: YAML frontmatter (date, updated_at) + plain text body',
         'This app only accesses files it created (scope: drive.file)',
       ],
       viewInDrive: 'View diary folder in Google Drive',
@@ -330,8 +330,8 @@ const dictionaries = {
       storageIntro: '日記は Google Drive に保存されます:',
       storageItems: [
         'linger_diary というフォルダが自動作成されます',
-        '1日につき1つの JSON ファイル: diary-YYYY-MM-DD.json',
-        '形式: { date, content, updated_at }',
+        '1日につき1つの Markdown ファイル: diary-YYYY-MM-DD.md',
+        '形式: YAMLフロントマター (date, updated_at) + 本文',
         'このアプリは自分で作成したファイルだけにアクセスします（scope: drive.file）',
       ],
       viewInDrive: 'Google Drive でフォルダを開く',
