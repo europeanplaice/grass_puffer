@@ -140,7 +140,7 @@ async function listJsonFiles(token, folderId) {
 }
 
 async function mdExists(token, folderId, date) {
-  const name = `diary-${date}.md`.replace(/'/g, "\\'")
+  const name = `diary-${date}.md`.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
   const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and name='${name}'`)
   const { files } = await driveGet(token, `${BASE}/files?q=${q}&fields=${encodeURIComponent('files(id)')}&pageSize=1`)
   return files.length > 0
