@@ -1,6 +1,6 @@
 # Linger — Google Drive Diary
 
-A minimalist personal diary app. Entries are stored as JSON files in your own Google Drive.
+A minimalist personal diary app. Entries are stored as Markdown files in your own Google Drive.
 
 **[-> Open the app](https://linger.europeanplaice.com/)**
 
@@ -15,9 +15,9 @@ A minimalist personal diary app. Entries are stored as JSON files in your own Go
 - Delete entries with an explicit confirmation step
 - Detect cross-device edit conflicts and choose whether to load latest, keep local edits, or overwrite
 - View and restore past revisions of an entry
-- Export all entries as a ZIP of JSON files
+- Export all entries as a ZIP of Markdown files
 - Settings modal for theme (light / dark / system), font, and language (English / Japanese)
-- Data stays in your Google Drive (`linger_diary/` folder), one JSON file per day
+- Data stays in your Google Drive (`linger_diary/` folder), one Markdown file per day
 - Warns before reload or date changes when there are unsaved edits
 - Works on mobile with a drawer sidebar, Android back-button support, and keyboard-aware layout
 - Installable as a Progressive Web App
@@ -40,11 +40,22 @@ Scope: `drive.file` — non-sensitive, only accesses files this app created.
 
 ### Drive storage
 All Drive API v3 calls are made server-side by Cloudflare Pages Functions at `/api/drive/…`.
-The browser never holds an OAuth token. Diary entries are stored as individual JSON files:
+The browser never holds an OAuth token. Diary entries are stored as individual Markdown files:
 
 ```
 /linger_diary/
-  diary-YYYY-MM-DD.json   ← { date, content, updated_at }
+  diary-YYYY-MM-DD.md   ← YAML frontmatter (date, updated_at) + plain-text body
+```
+
+Each file looks like:
+
+```markdown
+---
+date: YYYY-MM-DD
+updated_at: <ISO 8601 timestamp>
+---
+
+Entry content here…
 ```
 
 Folder ID is cached in the Cloudflare KV session record after first lookup.
