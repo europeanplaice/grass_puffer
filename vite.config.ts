@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import license from 'rollup-plugin-license'
 import { createHash } from 'crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { createRequire } from 'module'
@@ -52,6 +53,13 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    license({
+      thirdParty: {
+        output: {
+          file: resolve(__dirname, 'dist/LICENSES.txt'),
+        },
+      },
+    }),
     {
       name: 'sw-cache-version-dev',
       apply: 'serve',
