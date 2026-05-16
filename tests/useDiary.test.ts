@@ -8,7 +8,7 @@ function fileMeta(version: string, id = 'file-1') {
 }
 
 function datedFileMeta(date: string, version = '1', id = `file-${date}`) {
-  return { id, name: `diary-${date}.json`, version }
+  return { id, name: `diary-${date}.md`, version }
 }
 
 function entryResponse(version: string, content = 'hello', id = 'file-1') {

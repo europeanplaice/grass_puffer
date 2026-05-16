@@ -84,7 +84,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     updateCache(prev => {
       const next = new Map<string, EntryCache>()
       for (const f of files) {
-        const date = f.name.replace('diary-', '').replace('.json', '')
+        const date = f.name.replace('diary-', '').replace(/\.(json|md)$/, '')
         if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
 
         const existing = prev.get(date)
@@ -233,7 +233,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     const cached = cacheRef.current
     const normalizedQuery = query.toLowerCase()
     const candidates = files
-      .map(f => ({ date: f.name.replace('diary-', '').replace('.json', ''), fileId: f.id }))
+      .map(f => ({ date: f.name.replace('diary-', '').replace(/\.(json|md)$/, ''), fileId: f.id }))
       .filter(({ date }) => /^\d{4}-\d{2}-\d{2}$/.test(date))
 
     const mapped = await mapWithConcurrency(candidates, 5, async ({ date, fileId }) => {
