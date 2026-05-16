@@ -143,6 +143,8 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* ── Login ── */
@@ -1678,6 +1680,9 @@ body {
   color: var(--text);
   background: transparent;
   width: 100%;
+  padding-top: 0.75rem;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "palt" 1;
 }
 
 .entry-load-error {
