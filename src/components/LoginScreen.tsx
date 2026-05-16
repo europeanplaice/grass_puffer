@@ -13,7 +13,7 @@ export function LoginScreen({ onSignIn, onRetry, tokenExpired }: Props) {
   return (
     <main className="login-screen">
       <div className="login-card">
-        <AppIcon className="login-logo" />
+        <AppIcon className="login-logo" fetchPriority="high" />
         <h1>{t.documentTitle}</h1>
         <p>{t.login.privateDiary}</p>
         <p className="login-scope-note">{t.login.driveFileScope}</p>
