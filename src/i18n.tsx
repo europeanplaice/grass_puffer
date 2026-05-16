@@ -73,6 +73,8 @@ const dictionaries = {
       indexing: (done: number, total: number) => `Indexing… ${done}/${total}`,
       noResults: 'No results',
       remaining: (count: number) => `Indexing ${count} remaining entries…`,
+      partialResults: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'} could not be loaded.`,
+      queryLimit: (max: number) => `${max} character limit`,
     },
     login: {
       continueWithGoogle: 'Continue with Google',
@@ -247,6 +249,8 @@ const dictionaries = {
       indexing: (done: number, total: number) => `インデックス作成中... ${done}/${total}`,
       noResults: '結果がありません',
       remaining: (count: number) => `残り${count}件をインデックス作成中...`,
+      partialResults: (count: number) => `${count}件の日記を読み込めませんでした。`,
+      queryLimit: (max: number) => `${max}文字まで`,
     },
     login: {
       continueWithGoogle: 'Google で続行',

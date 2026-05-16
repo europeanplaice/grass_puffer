@@ -49,4 +49,47 @@ test.describe('SearchBar', () => {
     await expect.poll(() => page.evaluate(() => window.searchHarness.calls())).toEqual(['alpha'])
   })
 
+  test('shows partial results warning when unindexedCount > 0', async ({ page }) => {
+    await page.evaluate(() => {
+      window.searchHarness.setSearchResult('alpha', {
+        results: [{ date: '2026-04-01', snippet: 'alpha match' }],
+        unindexedCount: 3,
+      })
+    })
+    await page.getByPlaceholder('Search entries...').fill('alpha')
+    await expect(page.getByText('3 entries could not be loaded.')).toBeVisible()
+  })
+
+  test('does not show partial results warning when unindexedCount is 0', async ({ page }) => {
+    await page.evaluate(() => {
+      window.searchHarness.setSearchResult('beta', {
+        results: [],
+        unindexedCount: 0,
+      })
+    })
+    await page.getByPlaceholder('Search entries...').fill('beta')
+    await expect(page.getByText('No results')).toBeVisible()
+    await expect(page.getByText(/could not be loaded/)).toHaveCount(0)
+  })
+
+  test('shows character count warning when query exceeds 400 chars', async ({ page }) => {
+    const longQuery = 'a'.repeat(401)
+    await page.getByPlaceholder('Search entries...').fill(longQuery)
+    await expect(page.locator('.search-char-count')).toBeVisible()
+    await expect(page.locator('.search-char-count')).toContainText('401/500')
+  })
+
+  test('enforces 500 character limit on input', async ({ page }) => {
+    const overLimit = 'a'.repeat(600)
+    await page.getByPlaceholder('Search entries...').fill(overLimit)
+    const value = await page.getByPlaceholder('Search entries...').inputValue()
+    expect(value.length).toBeLessThanOrEqual(500)
+  })
+
+  test('shows limit style when query reaches 500 chars', async ({ page }) => {
+    const atLimit = 'a'.repeat(500)
+    await page.getByPlaceholder('Search entries...').fill(atLimit)
+    await expect(page.locator('.search-char-count--limit')).toBeVisible()
+  })
+
 })

@@ -236,6 +236,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
       .map(f => ({ date: f.name.replace('diary-', '').replace(/\.(json|md)$/, ''), fileId: f.id }))
       .filter(({ date }) => /^\d{4}-\d{2}-\d{2}$/.test(date))
 
+    let failedCount = 0
     const mapped = await mapWithConcurrency(candidates, 5, async ({ date, fileId }) => {
       const cachedEntry = cached.get(date)
       if (cachedEntry?.content) {
@@ -259,14 +260,14 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         })
         return { date, snippet }
       } catch {
-        // Skip entries that fail to load
+        failedCount++
         return null
       }
     })
 
     const results = mapped.filter((r): r is { date: string; snippet: string } => r !== null)
     results.sort((a, b) => b.date.localeCompare(a.date))
-    return { results, unindexedCount: 0 }
+    return { results, unindexedCount: failedCount }
   }, [isSignedIn, updateCache])
 
   const retryPendingSave = useCallback(async (): Promise<LoadedDiaryEntry | null> => {

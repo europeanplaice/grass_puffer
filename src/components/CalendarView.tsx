@@ -112,25 +112,18 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
           const isSelected = dateStr === selectedDate
           const isToday = dateStr === todayStr
           return (
-            <motion.div
+            <motion.button
               key={dateStr}
-              role="button"
-              tabIndex={0}
+              type="button"
               aria-label={dateStr}
               className={['cal-day', hasEntry ? 'has-entry' : '', isSelected ? 'selected' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
               onClick={() => onSelect(dateStr)}
-              onKeyDown={event => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault()
-                  onSelect(dateStr)
-                }
-              }}
               whileTap={{ scale: 0.82 }}
               transition={{ type: 'spring', stiffness: 600, damping: 25 }}
             >
               {day}
               {hasEntry && <span className="dot" />}
-            </motion.div>
+            </motion.button>
           )
         })}
       </div>

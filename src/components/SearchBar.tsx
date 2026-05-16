@@ -16,6 +16,8 @@ interface Props {
 }
 
 const SEARCH_DEBOUNCE_MS = 250
+const QUERY_MAX_LENGTH = 500
+const QUERY_WARN_THRESHOLD = 400
 
 export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
   const { t, locale } = useI18n()
@@ -23,6 +25,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
   const [results, setResults] = useState<Result[]>([])
   const [searched, setSearched] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
+  const [failedCount, setFailedCount] = useState(0)
   const timerRef = useRef<number | undefined>(undefined)
   const abortRef = useRef<AbortController | null>(null)
 
@@ -34,6 +37,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
       setResults([])
       setSearched(false)
       setIsSearching(false)
+      setFailedCount(0)
       return
     }
 
@@ -50,15 +54,17 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
 
       setIsSearching(true)
       try {
-        const { results: r } = await onSearch(query)
+        const { results: r, unindexedCount } = await onSearch(query)
         if (!controller.signal.aborted) {
           setResults(r)
           setSearched(true)
+          setFailedCount(unindexedCount)
         }
       } catch {
         if (!controller.signal.aborted) {
           setResults([])
           setSearched(true)
+          setFailedCount(0)
         }
       } finally {
         if (!controller.signal.aborted) {
@@ -74,6 +80,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
   }, [entriesLoading, onSearch, query])
 
   const hasQuery = query.trim().length > 0
+  const nearLimit = query.length >= QUERY_WARN_THRESHOLD
 
   return (
     <div className="search-bar">
@@ -87,8 +94,19 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
           placeholder={t.search.placeholder}
           value={query}
           onChange={e => setQuery(e.target.value)}
+          maxLength={QUERY_MAX_LENGTH}
+          aria-describedby={nearLimit ? 'search-char-count' : undefined}
         />
       </div>
+      {nearLimit && (
+        <div
+          id="search-char-count"
+          className={`search-char-count${query.length >= QUERY_MAX_LENGTH ? ' search-char-count--limit' : ''}`}
+          aria-live="polite"
+        >
+          {query.length}/{QUERY_MAX_LENGTH} — {t.search.queryLimit(QUERY_MAX_LENGTH)}
+        </div>
+      )}
       {isSearching && hasQuery && (
         <div className="search-status" role="status">
           <span className="search-status-spinner" aria-hidden="true" />
@@ -110,7 +128,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
             transition={{ duration: 0.14, ease: 'easeOut' }}
           >
             {results.map(r => (
-              <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setSearched(false) }}>
+              <li key={r.date} onClick={() => { onSelect(r.date); setQuery(''); setResults([]); setSearched(false); setFailedCount(0) }}>
                 <span className="search-date">{diaryDateLabel(r.date, true, 'long', locale)}</span>
                 <span className="search-snippet">…{r.snippet}…</span>
               </li>
@@ -120,6 +138,11 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
       </AnimatePresence>
       {searched && hasQuery && !entriesLoading && !isSearching && results.length === 0 && (
         <div className="search-status">{t.search.noResults}</div>
+      )}
+      {searched && hasQuery && !isSearching && failedCount > 0 && (
+        <div className="search-status error" role="status">
+          {t.search.partialResults(failedCount)}
+        </div>
       )}
     </div>
   )
