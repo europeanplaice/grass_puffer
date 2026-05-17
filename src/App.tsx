@@ -83,10 +83,10 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
         <div className="restoring-search" />
         <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
         <div className="sidebar-status">{t.app.loading}</div>
-        <ul className="entry-list restoring-entry-list">
-          <li />
-          <li />
-          <li />
+        <ul className="entry-list">
+          <li className="restoring-entry-list-item" aria-hidden="true" />
+          <li className="restoring-entry-list-item" aria-hidden="true" />
+          <li className="restoring-entry-list-item" aria-hidden="true" />
         </ul>
       </aside>
       <main className="main">
@@ -114,11 +114,15 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
               <span className="btn-more restoring-header-placeholder" aria-hidden="true">···</span>
             </div>
           </div>
-          <div className="editor-status-line" role="status">{t.app.loading}</div>
-          <div className="restoring-lines">
-            <span />
-            <span />
-            <span />
+          <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            <div className="entry-skeleton" aria-label={t.app.loading} aria-live="polite">
+              <div className="entry-skeleton-row short" />
+              <div className="entry-skeleton-row" />
+              <div className="entry-skeleton-row medium" />
+              <div className="entry-skeleton-row" />
+              <div className="entry-skeleton-row long" />
+              <div className="entry-skeleton-row medium" />
+            </div>
           </div>
         </div>
       </main>
@@ -470,10 +474,6 @@ export default function App() {
       : null
   }
 
-  if (isSignedIn && !initialLoadComplete) {
-    return <RestoringScreen selectedDate={selectedDate} onTitleClick={handleTitleClick} />
-  }
-
   if (status === 'signedOut' && !tokenExpired) {
     return (
       <LoginScreen
@@ -519,6 +519,13 @@ export default function App() {
         )}
         {recentDates.length > 0 && <h2 className="entry-list-heading">{t.app.recent}</h2>}
         <ul className="entry-list">
+          {diary.loading && recentDates.length === 0 && (
+            <>
+              <li className="restoring-entry-list-item" aria-hidden="true" />
+              <li className="restoring-entry-list-item" aria-hidden="true" />
+              <li className="restoring-entry-list-item" aria-hidden="true" />
+            </>
+          )}
           {recentDates.map(d => {
             const preview = recentPreviews.get(d)
             const isToday = d === todayDate
