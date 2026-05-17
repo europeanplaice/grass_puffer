@@ -587,6 +587,7 @@ body {
   visibility: hidden;
 }
 .cal-day.has-entry .dot { visibility: visible; }
+.cal-day-empty { visibility: hidden; pointer-events: none; cursor: default; }
 
 /* ── Sidebar bottom bar (account + settings) ── */
 .sidebar-bottom {

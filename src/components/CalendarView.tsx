@@ -71,6 +71,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
 
   const cells: (number | null)[] = [...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+  while (cells.length < 42) cells.push(null)
 
   return (
     <div className="calendar">
@@ -106,7 +107,12 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
       <div className="calendar-grid">
         {t.calendar.days.map(d => <div key={d} className="cal-day-label">{d}</div>)}
         {cells.map((day, i) => {
-          if (day === null) return <div key={`empty-${i}`} />
+          if (day === null) return (
+            <div key={`empty-${i}`} className="cal-day cal-day-empty" aria-hidden="true">
+              <span>0</span>
+              <span className="dot" />
+            </div>
+          )
           const dateStr = ymd(year, month + 1, day)
           const hasEntry = dates.has(dateStr)
           const isSelected = dateStr === selectedDate
