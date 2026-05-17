@@ -86,7 +86,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const { progress: saveProgress, startSave, completeSave } = useSaveProgress()
   const savedStatus = t.entry.savedStatus
   const [text, setText] = useState('')
-  const count = locale === 'ja' ? text.length : (text.trim() ? text.trim().split(/\s+/).length : 0)
+  const charCount = text.length
   const [savedText, setSavedText] = useState('')
   const [baseVersion, setBaseVersion] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -898,7 +898,7 @@ useEffect(() => {
       </div>
       {!loading && !loadFailed && (
         <div className="editor-wordcount" aria-hidden="true">
-          {t.entry.wordCount(count)}
+          {t.entry.charCount(charCount)}
         </div>
       )}
     </div>

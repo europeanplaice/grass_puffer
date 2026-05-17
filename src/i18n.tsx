@@ -134,7 +134,7 @@ const dictionaries = {
       overwrite: 'Overwrite',
       loadingEntry: 'Loading entry',
       placeholder: 'Write your thoughts here...',
-      wordCount: (n: number) => `${n} ${n === 1 ? 'word' : 'words'}`,
+      charCount: (n: number) => `${n} chars`,
     },
     settings: {
       title: 'Settings',
@@ -318,7 +318,7 @@ const dictionaries = {
       overwrite: '上書き',
       loadingEntry: '日記を読み込み中',
       placeholder: 'ここに記入してください...',
-      wordCount: (n: number) => `${n}文字`,
+      charCount: (n: number) => `${n}文字`,
     },
     settings: {
       title: '設定',
