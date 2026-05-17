@@ -122,7 +122,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
               transition={{ type: 'spring', stiffness: 600, damping: 25 }}
             >
               {day}
-              {hasEntry && <span className="dot" />}
+              <span className="dot" aria-hidden="true" />
             </motion.button>
           )
         })}

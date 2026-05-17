@@ -82,11 +82,11 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
         </div>
         <div className="restoring-search" />
         <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
-        <div className="sidebar-status">{t.app.loading}</div>
+        <h2 className="entry-list-heading">{t.app.recent}</h2>
         <ul className="entry-list">
-          <li className="restoring-entry-list-item" aria-hidden="true" />
-          <li className="restoring-entry-list-item" aria-hidden="true" />
-          <li className="restoring-entry-list-item" aria-hidden="true" />
+          <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
+          <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
+          <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
         </ul>
       </aside>
       <main className="main">
@@ -512,18 +512,17 @@ export default function App() {
         </div>
         <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
-        {diary.loading && <div className="sidebar-status">{t.app.loadingEntries}</div>}
         {diary.error && <div className="sidebar-status error">{t.app.loadError}</div>}
         {!diary.loading && !diary.error && (initialLoadComplete && diary.dates.length === 0 || forceEmptyState) && (
           <p className="sidebar-empty-hint">{t.app.noEntriesHint}</p>
         )}
-        {recentDates.length > 0 && <h2 className="entry-list-heading">{t.app.recent}</h2>}
+        {(diary.loading || recentDates.length > 0) && <h2 className="entry-list-heading">{t.app.recent}</h2>}
         <ul className="entry-list">
           {diary.loading && recentDates.length === 0 && (
             <>
-              <li className="restoring-entry-list-item" aria-hidden="true" />
-              <li className="restoring-entry-list-item" aria-hidden="true" />
-              <li className="restoring-entry-list-item" aria-hidden="true" />
+              <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
+              <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
+              <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
             </>
           )}
           {recentDates.map(d => {
