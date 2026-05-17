@@ -48,4 +48,54 @@ test.describe('CalendarView', () => {
     await page.getByLabel('Select month').selectOption('3')
     await expect(page.getByRole('button', { name: '2026-04-14' })).toHaveClass(/selected/)
   })
+
+  test('calendar grid is inside an overflow-hidden wrapper for slide animation', async ({ page }) => {
+    const wrap = page.locator('.calendar-grid-wrap')
+    await expect(wrap).toBeVisible()
+    // Grid is a direct child of the wrapper
+    await expect(wrap.locator('> .calendar-grid')).toBeVisible()
+
+    const overflow = await wrap.evaluate(el => getComputedStyle(el).overflow)
+    expect(overflow).toBe('hidden')
+  })
+
+  test('month navigation via select still works after animation wrapper added', async ({ page }) => {
+    const monthSelect = page.getByLabel('Select month')
+
+    await monthSelect.selectOption('5') // June
+    await expect(monthSelect).toHaveValue('5')
+    // After exit animation completes, exactly one grid should remain
+    await expect(page.locator('.calendar-grid')).toHaveCount(1)
+
+    await monthSelect.selectOption('1') // February
+    await expect(monthSelect).toHaveValue('1')
+    await expect(page.locator('.calendar-grid')).toHaveCount(1)
+  })
+
+  test('today cell uses inset box-shadow ring instead of outline', async ({ page }) => {
+    // Navigate to today's month so the today cell is present
+    const { year, month, dateStr } = await page.evaluate(() => {
+      const d = new Date()
+      const pad = (n: number) => String(n).padStart(2, '0')
+      return {
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        dateStr: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+      }
+    })
+    await page.getByLabel('Select year').selectOption(String(year))
+    await page.getByLabel('Select month').selectOption(String(month))
+
+    const todayCell = page.getByRole('button', { name: dateStr })
+    await expect(todayCell).toHaveClass(/today/)
+
+    // Ring must be box-shadow (inset), not outline — outline gets clipped by overflow:hidden
+    // on the grid wrapper when today falls on Sunday (leftmost column)
+    const boxShadow = await todayCell.evaluate(el => getComputedStyle(el).boxShadow)
+    expect(boxShadow).not.toBe('none')
+    expect(boxShadow).not.toBe('')
+
+    const outlineStyle = await todayCell.evaluate(el => getComputedStyle(el).outlineStyle)
+    expect(outlineStyle).toBe('none')
+  })
 })

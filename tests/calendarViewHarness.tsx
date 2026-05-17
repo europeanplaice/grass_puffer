@@ -1,4 +1,5 @@
 import { createRoot } from 'react-dom/client'
+import '../src/styles.css'
 import { CalendarView } from '../src/components/CalendarView'
 import { I18nProvider } from '../src/i18n'
 

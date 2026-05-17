@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
-import { AnimatePresence, MotionConfig } from 'motion/react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { useTheme } from './hooks/useTheme'
@@ -549,15 +549,20 @@ export default function App() {
         {diary.loading && <p className="sr-only" role="status">{t.app.loadingEntries}</p>}
         <ul className="entry-list">
           {diary.loading && recentDates.length === 0 && <SkeletonEntryRows />}
+          <AnimatePresence initial={false}>
           {recentDates.map(d => {
             const preview = recentPreviews.get(d)
             const isToday = d === todayDate
             const weekday = weekdayLabel(d, locale)
             return (
-            <li
+            <motion.li
               key={d}
               className={[d === selectedDate ? 'active' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
               onClick={() => selectDate(d)}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: 'easeOut' }}
             >
               <span
                 className="entry-list-date"
@@ -576,8 +581,9 @@ export default function App() {
                   t.app.noTextYet
                 )}
               </span>
-            </li>
+            </motion.li>
           )})}
+          </AnimatePresence>
         </ul>
         <div className="sidebar-bottom">
           {email && <div className="user-email" title={email}>{email}</div>}
