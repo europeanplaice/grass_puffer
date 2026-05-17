@@ -42,12 +42,16 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   const yearMonthRef = useRef({ year, month })
   yearMonthRef.current = { year, month }
 
+  const setDirectionFor = (newY: number, newM: number) => {
+    const { year: curY, month: curM } = yearMonthRef.current
+    const cur = curY * 12 + curM
+    const tgt = newY * 12 + newM
+    directionRef.current = tgt > cur ? 1 : tgt < cur ? -1 : 0
+  }
+
   useEffect(() => {
     if (!selectedParsed) return
-    const { year: curY, month: curM } = yearMonthRef.current
-    const current = curY * 12 + curM
-    const next = selectedParsed.y * 12 + (selectedParsed.m - 1)
-    directionRef.current = next > current ? 1 : next < current ? -1 : 0
+    setDirectionFor(selectedParsed.y, selectedParsed.m - 1)
     setYear(selectedParsed.y)
     setMonth(selectedParsed.m - 1)
   }, [selectedParsed?.y, selectedParsed?.m])
@@ -79,10 +83,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
   }
   const goToToday = () => {
     if (todayParsed) {
-      const { year: curY, month: curM } = yearMonthRef.current
-      const current = curY * 12 + curM
-      const target = todayParsed.y * 12 + (todayParsed.m - 1)
-      directionRef.current = target > current ? 1 : target < current ? -1 : 0
+      setDirectionFor(todayParsed.y, todayParsed.m - 1)
       setYear(todayParsed.y)
       setMonth(todayParsed.m - 1)
     }
@@ -103,7 +104,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
             value={month}
             onChange={event => {
               const newMonth = Number(event.target.value)
-              directionRef.current = newMonth > month ? 1 : newMonth < month ? -1 : 0
+              setDirectionFor(year, newMonth)
               setMonth(newMonth)
             }}
           >
@@ -117,7 +118,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
             value={year}
             onChange={event => {
               const newYear = Number(event.target.value)
-              directionRef.current = newYear > year ? 1 : newYear < year ? -1 : 0
+              setDirectionFor(newYear, month)
               setYear(newYear)
             }}
           >
@@ -165,7 +166,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
                   aria-label={dateStr}
                   className={['cal-day', hasEntry ? 'has-entry' : '', isSelected ? 'selected' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
                   onClick={() => onSelect(dateStr)}
-                  whileTap={{ scale: 0.82 }}
+                  whileTap={{ scale: 0.92 }}
                   transition={{ type: 'spring', stiffness: 600, damping: 25 }}
                 >
                   {day}

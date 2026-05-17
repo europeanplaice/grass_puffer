@@ -2184,9 +2184,11 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  /* Kill decorative CSS transitions only. Framer Motion JS animations are
+     handled by MotionConfig reducedMotion="user" at the app root.
+     animation-* properties are intentionally left alone to preserve
+     functional spinners (save-spinner, search-status-spinner etc). */
   *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
 }

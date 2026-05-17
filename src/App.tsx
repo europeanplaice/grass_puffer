@@ -557,6 +557,7 @@ export default function App() {
             return (
             <motion.li
               key={d}
+              layout
               className={[d === selectedDate ? 'active' : '', isToday ? 'today' : ''].filter(Boolean).join(' ')}
               onClick={() => selectDate(d)}
               initial={{ opacity: 0, y: -6 }}
