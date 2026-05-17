@@ -897,7 +897,7 @@ useEffect(() => {
       </AnimatePresence>
       </div>
       {!loading && !loadFailed && (
-        <div className="editor-wordcount" aria-hidden="true">
+        <div className="editor-charcount" aria-hidden="true">
           {t.entry.charCount(charCount)}
         </div>
       )}

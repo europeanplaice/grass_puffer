@@ -1692,7 +1692,7 @@ body {
   0% { background-position: 120% 0; }
   100% { background-position: -120% 0; }
 }
-.editor-wordcount {
+.editor-charcount {
   text-align: right;
   font-size: 0.72rem;
   color: var(--text-muted);
@@ -2092,7 +2092,7 @@ body {
   }
 
   .editor-textarea {
-    font-size: 1rem;
+    font-size: var(--editor-font-size, 1rem);
     padding-bottom: calc(1rem + var(--mobile-save-action-space));
     scroll-padding-bottom: calc(1rem + var(--mobile-save-action-space));
     scrollbar-width: none;

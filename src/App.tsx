@@ -182,6 +182,7 @@ export default function App() {
   const searchBarRef = useRef<SearchBarHandle>(null)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
+  const sidebarOpenRef = useRef(sidebarOpen)
   const lastFocusRefreshRef = useRef(0)
 
   useEffect(() => {
@@ -191,6 +192,10 @@ export default function App() {
   useEffect(() => {
     editorDirtyRef.current = editorDirty
   }, [editorDirty])
+
+  useEffect(() => {
+    sidebarOpenRef.current = sidebarOpen
+  }, [sidebarOpen])
 
   const isSignedIn = status === 'signedIn'
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
@@ -349,7 +354,7 @@ export default function App() {
         }
         if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'K' || e.key === 'k')) {
           e.preventDefault()
-          if (isMobileLayout()) {
+          if (isMobileLayout() && !sidebarOpenRef.current) {
             setSidebarOpen(true)
             history.pushState({ grassPufferSidebar: true } as SidebarHistoryState, '')
           }

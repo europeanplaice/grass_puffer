@@ -134,7 +134,7 @@ const dictionaries = {
       overwrite: 'Overwrite',
       loadingEntry: 'Loading entry',
       placeholder: 'Write your thoughts here...',
-      charCount: (n: number) => `${n} chars`,
+      charCount: (n: number) => `${n} ${n === 1 ? 'char' : 'chars'}`,
     },
     settings: {
       title: 'Settings',
