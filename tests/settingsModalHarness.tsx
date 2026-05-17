@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { SettingsModal } from '../src/components/SettingsModal'
+import type { FontSize } from '../src/hooks/useFontSize'
 import { I18nProvider } from '../src/i18n'
 import '../src/styles.css'
 
@@ -15,14 +16,16 @@ interface AppProps {
   autoSave: boolean
   modalOpen: boolean
   themeMode: 'light' | 'dark' | 'system'
+  fontSize: FontSize
   email?: string
 }
 
-function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme, email }: AppProps) {
+function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme, fontSize: initialFontSize, email }: AppProps) {
   const [autoSave, setAutoSave] = useState(initialAutoSave)
   const [open, setOpen] = useState(initialOpen)
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(initialTheme)
   const [font, setFont] = useState<'serif' | 'sans'>('serif')
+  const [fontSize, setFontSize] = useState<FontSize>(initialFontSize)
 
   const handleAutoSaveToggle = useCallback(() => {
     setAutoSave(prev => {
@@ -49,6 +52,8 @@ function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: ini
           onThemeModeChange={setTheme}
           fontMode={font}
           onFontToggle={() => setFont(f => f === 'serif' ? 'sans' : 'serif')}
+          fontSize={fontSize}
+          onFontSizeChange={setFontSize}
           dates={['2026-05-01', '2026-05-02']}
           onExport={handleExport}
           onClose={() => setOpen(false)}
@@ -60,7 +65,7 @@ function App({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: ini
 }
 
 window.settingsHarness = {
-  render: ({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme, email }: { autoSave?: boolean; modalOpen?: boolean; themeMode?: 'light' | 'dark' | 'system'; email?: string } = {}) => {
+  render: ({ autoSave: initialAutoSave, modalOpen: initialOpen, themeMode: initialTheme, fontSize: initialFontSize, email }: { autoSave?: boolean; modalOpen?: boolean; themeMode?: 'light' | 'dark' | 'system'; fontSize?: FontSize; email?: string } = {}) => {
     exportCalls.splice(0)
     exportReject = false
     root.render(
@@ -69,6 +74,7 @@ window.settingsHarness = {
           autoSave={initialAutoSave ?? true}
           modalOpen={initialOpen ?? true}
           themeMode={initialTheme ?? 'light'}
+          fontSize={initialFontSize ?? 'md'}
           email={email}
           key={Date.now()}
         />

@@ -298,3 +298,44 @@ test.describe('SettingsModal — Drive folder link', () => {
     expect(href).not.toContain('authuser')
   })
 })
+
+test.describe('SettingsModal — font size select', () => {
+  test('shows a select with four size options', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const select = page.locator('.settings-item:has-text("Font size") select')
+    await expect(select).toBeVisible()
+    await expect(select.locator('option')).toHaveCount(4)
+    await expect(select.locator('option[value="sm"]')).toHaveText('Small')
+    await expect(select.locator('option[value="md"]')).toHaveText('Medium')
+    await expect(select.locator('option[value="lg"]')).toHaveText('Large')
+    await expect(select.locator('option[value="xl"]')).toHaveText('Extra large')
+  })
+
+  test('defaults to medium', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const select = page.locator('.settings-item:has-text("Font size") select')
+    await expect(select).toHaveValue('md')
+  })
+
+  test('initializes with provided fontSize', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(() => window.settingsHarness.render({ fontSize: 'lg' }))
+    await page.waitForSelector('.settings-modal')
+
+    const select = page.locator('.settings-item:has-text("Font size") select')
+    await expect(select).toHaveValue('lg')
+  })
+
+  test('selecting xl updates the select value', async ({ page }) => {
+    await loadHarness(page)
+    await render(page)
+
+    const select = page.locator('.settings-item:has-text("Font size") select')
+    await select.selectOption('xl')
+    await expect(select).toHaveValue('xl')
+  })
+})
