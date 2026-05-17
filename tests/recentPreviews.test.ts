@@ -129,7 +129,11 @@ test.describe('recent entry previews', () => {
 
     await page.goto(baseUrl)
     await expect(page.locator('.editor-textarea')).toBeVisible()
-    await page.waitForTimeout(500)
+
+    // Wait for preview content to appear in the first non-today entry
+    await expect(
+      page.locator('.entry-list li:not(.today) .entry-list-preview').first()
+    ).toHaveText(/entry for/)
 
     // Verify preview dates were fetched on initial load
     const previewDates = recentDates.filter(d => d !== today)
@@ -142,7 +146,8 @@ test.describe('recent entry previews', () => {
     // Navigate to the previous day
     await page.locator('[aria-label="Previous day"]').click()
     await expect(page).toHaveURL(/#2026-05-08/)
-    await page.waitForTimeout(300)
+    // During the slide animation both old and new textareas coexist briefly; .last() is the incoming entry
+    await expect(page.locator('.editor-textarea').last()).toHaveValue(/entry for 2026-05-08/)
 
     // Only the navigated-to date should have been fetched
     const newFetches = requestLog.slice(beforeNavCount)
