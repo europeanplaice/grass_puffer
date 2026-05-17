@@ -24,32 +24,36 @@ test('valid session skips login screen and shows diary directly', async ({ page 
   await expect(page.locator('.login-screen')).toHaveCount(0)
 })
 
-test('keeps restoring editor header typography stable after loading', async ({ page }) => {
+test('keeps editor header typography stable between skeleton and loaded states', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 700 })
 
-  let releaseEntries!: () => void
-  const entriesGate = new Promise<void>(resolve => { releaseEntries = resolve })
+  let releaseEntry!: () => void
+  const entryGate = new Promise<void>(resolve => { releaseEntry = resolve })
 
   await page.route('/auth/session', async route => {
     await route.fulfill({ json: { signedIn: true } })
   })
   await page.route('/api/drive/entries', async route => {
-    await entriesGate
     await route.fulfill({ json: { files: [] } })
   })
   await page.route('/api/drive/entry/**', async route => {
+    await entryGate
     await route.fulfill({ status: 404, body: '' })
   })
 
   await page.goto(baseUrl)
-  await expect(page.locator('.restoring-editor .editor-header h2')).toBeVisible()
-  await expect.poll(async () => page.locator('.restoring-sidebar').evaluate(el => {
+
+  // Entry is loading — skeleton shown in the real editor (no separate restoring screen)
+  await expect(page.locator('.entry-skeleton')).toBeVisible()
+
+  // Sidebar is off-screen on mobile (not forced open during loading)
+  await expect.poll(async () => page.locator('.sidebar').evaluate(el => {
     const rect = el.getBoundingClientRect()
     return Math.round(rect.right)
   })).toBeLessThanOrEqual(0)
   await page.evaluate(() => document.fonts.ready)
 
-  const loadingMetrics = await page.locator('.restoring-editor .editor-header h2').evaluate(el => {
+  const loadingMetrics = await page.locator('.editor-header h2').evaluate(el => {
     const styles = getComputedStyle(el)
     const rect = el.getBoundingClientRect()
     return {
@@ -60,7 +64,7 @@ test('keeps restoring editor header typography stable after loading', async ({ p
     }
   })
 
-  releaseEntries()
+  releaseEntry()
   await expect(page.locator('textarea.editor-textarea')).toBeVisible()
 
   const loadedMetrics = await page.locator('.editor-header h2').evaluate(el => {
