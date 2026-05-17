@@ -1971,7 +1971,7 @@ body {
 
   .main { width: 100%; }
 
-  .editor { padding: 1rem 1rem 5.75rem; }
+  .editor { padding: 1rem 1rem 1rem; }
 
   .pull-refresh-indicator {
     display: flex;
