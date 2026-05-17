@@ -1692,6 +1692,17 @@ body {
   0% { background-position: 120% 0; }
   100% { background-position: -120% 0; }
 }
+.editor-wordcount {
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.6;
+  padding: 0.25rem 0 0;
+  user-select: none;
+  pointer-events: none;
+  min-height: 1.2em;
+}
+
 .editor-textarea {
   flex: 1;
   min-height: 0;
@@ -1701,7 +1712,7 @@ body {
   border: none;
   outline: none;
   font-family: var(--font-editor);
-  font-size: 1.05rem;
+  font-size: var(--editor-font-size, 1.05rem);
   line-height: 1.8;
   color: var(--text);
   background: transparent;

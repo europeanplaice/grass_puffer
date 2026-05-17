@@ -4,12 +4,14 @@ import { useAuth } from './hooks/useAuth'
 import { useDiary } from './hooks/useDiary'
 import { useTheme } from './hooks/useTheme'
 import { useFont } from './hooks/useFont'
+import { useFontSize } from './hooks/useFontSize'
 import { useServiceWorkerUpdate } from './hooks/useServiceWorkerUpdate'
 import { LoginScreen } from './components/LoginScreen'
 import { SessionExpiredModal } from './components/SessionExpiredModal'
 import { CalendarView } from './components/CalendarView'
 import { EntryEditor } from './components/EntryEditor'
 import { SearchBar } from './components/SearchBar'
+import type { SearchBarHandle } from './components/SearchBar'
 import { SettingsModal } from './components/SettingsModal'
 import { AppIcon } from './components/AppIcon'
 import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/date'
@@ -162,6 +164,7 @@ export default function App() {
   } = useAuth()
   const { mode: themeMode, setMode: setThemeMode, toggleTheme } = useTheme()
   const { mode: fontMode, toggleFont } = useFont()
+  const { fontSize, setFontSize } = useFontSize()
   const swUpdateAvailable = useServiceWorkerUpdate()
   const previewParams = new URLSearchParams(window.location.search).getAll('preview')
   const updateAvailable = swUpdateAvailable || previewParams.includes('update-banner')
@@ -176,6 +179,7 @@ export default function App() {
   const [recentPreviews, setRecentPreviews] = useState<Map<string, RecentPreview>>(new Map())
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [entryRefreshSignal, setEntryRefreshSignal] = useState(0)
+  const searchBarRef = useRef<SearchBarHandle>(null)
   const selectedDateRef = useRef(selectedDate)
   const editorDirtyRef = useRef(editorDirty)
   const lastFocusRefreshRef = useRef(0)
@@ -341,6 +345,15 @@ export default function App() {
         if (e.ctrlKey && e.shiftKey && (e.key === 'F' || e.key === 'f')) {
           e.preventDefault()
           toggleFont()
+          return
+        }
+        if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'K' || e.key === 'k')) {
+          e.preventDefault()
+          if (isMobileLayout()) {
+            setSidebarOpen(true)
+            history.pushState({ grassPufferSidebar: true } as SidebarHistoryState, '')
+          }
+          requestAnimationFrame(() => searchBarRef.current?.focus())
           return
         }
       }
@@ -521,7 +534,7 @@ export default function App() {
             <button className="btn-signout" onClick={handleSignOut} title={t.app.signOut}>↩</button>
           </div>
         </div>
-        <SearchBar onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
+        <SearchBar ref={searchBarRef} onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
         <CalendarView dates={datesSet} selectedDate={selectedDate} onSelect={selectDate} />
         {diary.error && <div className="sidebar-status error">{t.app.loadError}</div>}
         {!diary.loading && !diary.error && (initialLoadComplete && diary.dates.length === 0 || forceEmptyState) && (
@@ -578,6 +591,8 @@ export default function App() {
             onThemeModeChange={setThemeMode}
             fontMode={fontMode}
             onFontToggle={toggleFont}
+            fontSize={fontSize}
+            onFontSizeChange={setFontSize}
             dates={diary.dates}
             onExport={diary.exportAll}
             onClose={() => setSettingsOpen(false)}

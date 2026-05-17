@@ -134,6 +134,7 @@ const dictionaries = {
       overwrite: 'Overwrite',
       loadingEntry: 'Loading entry',
       placeholder: 'Write your thoughts here...',
+      wordCount: (n: number) => `${n} ${n === 1 ? 'word' : 'words'}`,
     },
     settings: {
       title: 'Settings',
@@ -155,6 +156,12 @@ const dictionaries = {
       goToToday: 'Go to today',
       toggleDarkTheme: 'Toggle dark theme',
       toggleSerifFont: 'Toggle serif font',
+      focusSearch: 'Focus search',
+      fontSize: 'Font size',
+      fontSizeSm: 'Small',
+      fontSizeMd: 'Medium',
+      fontSizeLg: 'Large',
+      fontSizeXl: 'Extra large',
       aboutDataStorage: 'About data storage',
       storageIntro: 'Your diary entries are stored in your Google Drive:',
       storageItems: [
@@ -311,6 +318,7 @@ const dictionaries = {
       overwrite: '上書き',
       loadingEntry: '日記を読み込み中',
       placeholder: 'ここに記入してください...',
+      wordCount: (n: number) => `${n}文字`,
     },
     settings: {
       title: '設定',
@@ -332,6 +340,12 @@ const dictionaries = {
       goToToday: '今日へ移動',
       toggleDarkTheme: 'ダークテーマ切替',
       toggleSerifFont: '明朝体切替',
+      focusSearch: '検索にフォーカス',
+      fontSize: '文字サイズ',
+      fontSizeSm: '小',
+      fontSizeMd: '中',
+      fontSizeLg: '大',
+      fontSizeXl: '特大',
       aboutDataStorage: 'データ保存について',
       storageIntro: '日記は Google Drive に保存されます:',
       storageItems: [

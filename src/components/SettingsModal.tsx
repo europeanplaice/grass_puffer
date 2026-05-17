@@ -4,6 +4,7 @@ import { ExportButton } from './ExportButton'
 import { shareApp } from '../utils/share'
 import { useI18n } from '../i18n'
 import type { ThemeMode } from '../hooks/useTheme'
+import type { FontSize } from '../hooks/useFontSize'
 
 interface SettingsModalProps {
   autoSave: boolean
@@ -12,13 +13,15 @@ interface SettingsModalProps {
   onThemeModeChange: (mode: ThemeMode) => void
   fontMode: 'serif' | 'sans'
   onFontToggle: () => void
+  fontSize: FontSize
+  onFontSizeChange: (size: FontSize) => void
   dates: string[]
   onExport: (onProgress: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
   onClose: () => void
   email?: string
 }
 
-export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeModeChange, fontMode, onFontToggle, dates, onExport, onClose, email }: SettingsModalProps) {
+export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeModeChange, fontMode, onFontToggle, fontSize, onFontSizeChange, dates, onExport, onClose, email }: SettingsModalProps) {
   const { t, language, setLanguage } = useI18n()
   const overlayRef = useRef<HTMLDivElement>(null)
   const [shareMsg, setShareMsg] = useState<string | null>(null)
@@ -109,6 +112,21 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
           </div>
           <div className="settings-divider" />
           <div className="settings-item">
+            <span className="settings-item-label">{t.settings.fontSize}</span>
+            <select
+              className="settings-language-select"
+              aria-label={t.settings.fontSize}
+              value={fontSize}
+              onChange={e => onFontSizeChange(e.target.value as FontSize)}
+            >
+              <option value="sm">{t.settings.fontSizeSm}</option>
+              <option value="md">{t.settings.fontSizeMd}</option>
+              <option value="lg">{t.settings.fontSizeLg}</option>
+              <option value="xl">{t.settings.fontSizeXl}</option>
+            </select>
+          </div>
+          <div className="settings-divider" />
+          <div className="settings-item">
             <span className="settings-item-label">{t.settings.autoSave}</span>
             <button
               className={`settings-switch ${autoSave ? 'active' : ''}`}
@@ -155,6 +173,10 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
               <div className="settings-shortcut-row">
                 <span className="settings-shortcut-desc">{t.settings.toggleSerifFont}</span>
                 <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>F</kbd></span>
+              </div>
+              <div className="settings-shortcut-row">
+                <span className="settings-shortcut-desc">{t.settings.focusSearch}</span>
+                <span className="settings-shortcut-keys"><kbd>Ctrl</kbd><span>+</span><kbd>K</kbd></span>
               </div>
             </div>
           </div>

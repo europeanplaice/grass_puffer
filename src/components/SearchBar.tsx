@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import type { SearchResult } from '../hooks/useDiary'
 import { diaryDateLabel } from '../utils/date'
@@ -19,7 +19,11 @@ const SEARCH_DEBOUNCE_MS = 250
 const QUERY_MAX_LENGTH = 500
 const QUERY_WARN_THRESHOLD = 400
 
-export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
+export interface SearchBarHandle {
+  focus(): void
+}
+
+export const SearchBar = forwardRef<SearchBarHandle, Props>(function SearchBar({ onSearch, onSelect, entriesLoading }, ref) {
   const { t, locale } = useI18n()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<Result[]>([])
@@ -28,6 +32,14 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
   const [failedCount, setFailedCount] = useState(0)
   const timerRef = useRef<number | undefined>(undefined)
   const abortRef = useRef<AbortController | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useImperativeHandle(ref, () => ({
+    focus() {
+      inputRef.current?.focus()
+      inputRef.current?.select()
+    },
+  }))
 
   useEffect(() => {
     window.clearTimeout(timerRef.current)
@@ -90,6 +102,7 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
           <path d="M10.5 10.5L14 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
         </svg>
         <input
+          ref={inputRef}
           type="search"
           placeholder={t.search.placeholder}
           value={query}
@@ -146,4 +159,4 @@ export function SearchBar({ onSearch, onSelect, entriesLoading }: Props) {
       )}
     </div>
   )
-}
+})
