@@ -109,7 +109,7 @@ export function CalendarView({ dates, selectedDate, onSelect }: Props) {
         {cells.map((day, i) => {
           if (day === null) return (
             <div key={`empty-${i}`} className="cal-day cal-day-empty" aria-hidden="true">
-              <span>0</span>
+              <span>&nbsp;</span>
               <span className="dot" />
             </div>
           )

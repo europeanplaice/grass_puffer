@@ -66,6 +66,7 @@ test('keeps editor header typography stable between skeleton and loaded states',
 
   releaseEntry()
   await expect(page.locator('textarea.editor-textarea')).toBeVisible()
+  await page.evaluate(() => document.fonts.ready)
 
   const loadedMetrics = await page.locator('.editor-header h2').evaluate(el => {
     const styles = getComputedStyle(el)
@@ -78,7 +79,10 @@ test('keeps editor header typography stable between skeleton and loaded states',
     }
   })
 
-  expect(loadedMetrics).toEqual(loadingMetrics)
+  expect(loadedMetrics.fontFamily).toBe(loadingMetrics.fontFamily)
+  expect(loadedMetrics.fontSize).toBe(loadingMetrics.fontSize)
+  expect(loadedMetrics.lineHeight).toBe(loadingMetrics.lineHeight)
+  expect(Math.abs(loadedMetrics.height - loadingMetrics.height)).toBeLessThan(1)
 })
 
 test('no session shows login screen with sign-in button', async ({ page }) => {

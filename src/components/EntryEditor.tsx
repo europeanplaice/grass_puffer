@@ -786,10 +786,7 @@ useEffect(() => {
           </div>
         </div>
       </div>
-      <div className="editor-meta">
-        {loading && !isToday && !isYesterday && (
-          <span aria-hidden="true" style={{ visibility: 'hidden' }}>&nbsp;</span>
-        )}
+      <div className={`editor-meta${loading && !isToday && !isYesterday ? ' editor-meta--loading' : ''}`}>
         {isToday && !lastModified && (
           <>{t.entry.todaysEntry}</>
         )}

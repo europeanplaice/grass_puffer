@@ -69,6 +69,19 @@ function dismissActiveTextCursor() {
   window.getSelection()?.removeAllRanges()
 }
 
+function SkeletonEntryRows() {
+  return (
+    <>
+      {[0, 1, 2].map(i => (
+        <li key={i} className="restoring-entry-list-item" aria-hidden="true">
+          <span className="restoring-entry-date-skel" />
+          <span className="restoring-entry-preview-skel" />
+        </li>
+      ))}
+    </>
+  )
+}
+
 function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string; onTitleClick: () => void }) {
   const { t, locale } = useI18n()
   const weekday = weekdayLabel(selectedDate, locale)
@@ -84,9 +97,7 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
         <CalendarView dates={new Set()} selectedDate={selectedDate} onSelect={() => {}} />
         <h2 className="entry-list-heading">{t.app.recent}</h2>
         <ul className="entry-list">
-          <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
-          <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
-          <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
+          <SkeletonEntryRows />
         </ul>
       </aside>
       <main className="main">
@@ -114,7 +125,7 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
               <span className="btn-more restoring-header-placeholder" aria-hidden="true">···</span>
             </div>
           </div>
-          <div style={{ position: 'relative', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+          <div className="restoring-editor-body">
             <div className="entry-skeleton" aria-label={t.app.loading} aria-live="polite">
               <div className="entry-skeleton-row short" />
               <div className="entry-skeleton-row" />
@@ -517,14 +528,9 @@ export default function App() {
           <p className="sidebar-empty-hint">{t.app.noEntriesHint}</p>
         )}
         {(diary.loading || recentDates.length > 0) && <h2 className="entry-list-heading">{t.app.recent}</h2>}
+        {diary.loading && <p className="sr-only" role="status">{t.app.loadingEntries}</p>}
         <ul className="entry-list">
-          {diary.loading && recentDates.length === 0 && (
-            <>
-              <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
-              <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
-              <li className="restoring-entry-list-item" aria-hidden="true"><span className="restoring-entry-date-skel" /><span className="restoring-entry-preview-skel" /></li>
-            </>
-          )}
+          {diary.loading && recentDates.length === 0 && <SkeletonEntryRows />}
           {recentDates.map(d => {
             const preview = recentPreviews.get(d)
             const isToday = d === todayDate
