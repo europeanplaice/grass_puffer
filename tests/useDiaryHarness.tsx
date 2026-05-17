@@ -28,7 +28,7 @@ globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
 type SaveFn = (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
 type GetContentFn = (date: string) => Promise<LoadedDiaryEntry | null>
 type SearchFn = (query: string) => Promise<{ results: { date: string; snippet: string }[]; unindexedCount: number }>
-type ExportAllFn = (onProgress?: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
+type ExportAllFn = (format: 'txt' | 'md', onProgress?: (done: number, total: number) => void) => Promise<{ date: string; content: string }[]>
 let _save: SaveFn | null = null
 let _getContent: GetContentFn | null = null
 let _search: SearchFn | null = null
@@ -87,10 +87,10 @@ window.diaryHarness = {
     if (!_search) throw new Error('harness not started')
     return _search(query)
   },
-  exportAll: async () => {
+  exportAll: async (format: 'txt' | 'md' = 'txt') => {
     if (!_exportAll) throw new Error('harness not started')
     progressCalls = []
-    return _exportAll((done, total) => progressCalls.push({ done, total }))
+    return _exportAll(format, (done, total) => progressCalls.push({ done, total }))
   },
   refreshEntries: async () => {
     if (!_refreshEntries) throw new Error('harness not started')
