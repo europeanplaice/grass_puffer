@@ -111,6 +111,7 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const weekday = weekdayLabel(date, locale)
   const isToday = date === todayYmd()
   const isYesterday = date === yesterdayYmd()
+  const isFuture = date > todayYmd()
 
   // Use a ref to track the latest onSave without restarting debounce timers
   const onSaveRef = useRef(onSave)
@@ -787,7 +788,7 @@ useEffect(() => {
           </div>
         </div>
       </div>
-      <div className={`editor-meta${loading && !isToday && !isYesterday ? ' editor-meta--loading' : ''}`}>
+      <div className={`editor-meta${loading && !isToday && !isYesterday ? ' editor-meta--loading' : ''}${isFuture ? ' editor-meta--future' : ''}`}>
         {isToday && !lastModified && (
           <>{t.entry.todaysEntry}</>
         )}
@@ -800,7 +801,10 @@ useEffect(() => {
         {isYesterday && lastModified && (
           <>{t.entry.entryLastModified(t.entry.yesterdaysEntry)} <relative-time datetime={lastModified} /></>
         )}
-        {!isToday && !isYesterday && lastModified && (
+        {isFuture && (
+          <>{t.entry.futureEntry}</>
+        )}
+        {!isToday && !isYesterday && !isFuture && lastModified && (
           <>{t.entry.lastModified} <relative-time datetime={lastModified} /></>
         )}
       </div>

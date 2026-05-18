@@ -1234,6 +1234,9 @@ body {
 .editor-meta:empty {
   display: none;
 }
+.editor-meta--future {
+  color: var(--warning, #b45309);
+}
 .editor-meta--loading:empty {
   display: block;
   min-height: 1.2rem;
