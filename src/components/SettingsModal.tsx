@@ -187,7 +187,7 @@ export function SettingsModal({ autoSave, onAutoSaveToggle, themeMode, onThemeMo
               {t.settings.storageIntro}
             </p>
             <ul className="settings-about-list">
-              {t.settings.storageItems.map(item => <li key={item}>{item}</li>)}
+              {t.settings.storageItems.map((item, i) => <li key={i}>{item}</li>)}
             </ul>
             <a
               href={`https://drive.google.com/drive/search?q=linger_diary${email ? `&authuser=${encodeURIComponent(email)}` : ''}`}
