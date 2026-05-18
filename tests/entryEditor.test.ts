@@ -1078,4 +1078,33 @@ test.describe('EntryEditor — editor meta info', () => {
     await expect(meta).not.toContainText('Yesterday\'s entry')
     await expect(meta).toContainText('Last modified:')
   })
+
+  test('shows future date warning for future dates with no content', async ({ page }) => {
+    await loadHarness(page)
+    const tomorrow = await page.evaluate(() => {
+      const d = new Date()
+      d.setDate(d.getDate() + 1)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
+    await renderEditor(page, { date: tomorrow, initialContent: '', version: null })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toHaveText('This is a future date')
+  })
+
+  test('shows future date warning for future dates with content, not last modified', async ({ page }) => {
+    await loadHarness(page)
+    const tomorrow = await page.evaluate(() => {
+      const d = new Date()
+      d.setDate(d.getDate() + 1)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    })
+    await renderEditor(page, { date: tomorrow, initialContent: 'future content', version: '1' })
+
+    const meta = page.locator('.editor-meta')
+    await expect(meta).toBeVisible()
+    await expect(meta).toHaveText('This is a future date')
+    await expect(meta).not.toContainText('Last modified:')
+  })
 })
