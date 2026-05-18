@@ -1764,7 +1764,6 @@ body {
   width: 100%;
   padding-top: 0.75rem;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "palt" 1;
 }
 
 .entry-load-error {
