@@ -33,22 +33,6 @@ async function renderEditor(
   await page.waitForSelector('textarea.editor-textarea')
 }
 
-async function pullTextareaWithTouch(page: import('@playwright/test').Page, startY = 80, endY = 230) {
-  await page.locator('textarea.editor-textarea').evaluate((textarea, points) => {
-    const touchEvent = (type: string, clientY: number) => {
-      const event = new Event(type, { bubbles: true, cancelable: true })
-      Object.defineProperty(event, 'touches', {
-        value: type === 'touchend' || type === 'touchcancel' ? [] : [{ clientY }],
-      })
-      textarea.dispatchEvent(event)
-    }
-
-    touchEvent('touchstart', points.startY)
-    touchEvent('touchmove', points.endY)
-    touchEvent('touchend', points.endY)
-  }, { startY, endY })
-}
-
 
 test.describe('EntryEditor — date header', () => {
   test('notifies when the visible entry finishes loading', async ({ page }) => {
@@ -395,83 +379,12 @@ test.describe('EntryEditor — refresh entry', () => {
     ])
   })
 
-  test('hides the refresh button on mobile and uses pull-to-refresh at the top of the textarea', async ({ page }) => {
+  test('shows the refresh button on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await loadHarness(page)
     await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
 
-    await expect(page.getByRole('button', { name: 'Refresh entry' })).toBeHidden()
-    await page.evaluate(() => {
-      window.editorHarness.clearCalls()
-      window.editorHarness.setRemoteEntry('fresh from drive', '2')
-    })
-
-    await pullTextareaWithTouch(page)
-
-    await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from drive')
-    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
-      { date: '2026-05-01' },
-    ])
-  })
-
-  test('supports mobile touch events for pull-to-refresh', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
-    await loadHarness(page)
-    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
-
-    await page.evaluate(() => {
-      window.editorHarness.clearCalls()
-      window.editorHarness.setRemoteEntry('fresh from touch', '2')
-    })
-
-    await pullTextareaWithTouch(page)
-
-    await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from touch')
-    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
-      { date: '2026-05-01' },
-    ])
-  })
-
-  test('does not pull-to-refresh when mobile textarea is scrolled away from the top', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 500 })
-    await loadHarness(page)
-    await renderEditor(page, {
-      date: '2026-05-01',
-      initialContent: Array.from({ length: 80 }, (_, i) => `line ${i + 1}`).join('\n'),
-      version: '1',
-    })
-
-    await page.locator('textarea.editor-textarea').evaluate(textarea => {
-      textarea.scrollTop = 120
-    })
-    await page.evaluate(() => {
-      window.editorHarness.clearCalls()
-      window.editorHarness.setRemoteEntry('fresh from drive', '2')
-    })
-
-    await pullTextareaWithTouch(page)
-
-    await expect(page.locator('textarea.editor-textarea')).not.toHaveValue('fresh from drive')
-    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
-  })
-
-  test('blocks pull-to-refresh when there are unsaved edits', async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 })
-    await loadHarness(page)
-    await renderEditor(page, { date: '2026-05-01', initialContent: 'saved content', version: '1' })
-
-    await page.locator('textarea.editor-textarea').fill('unsaved local edit')
-    await page.evaluate(() => {
-      window.editorHarness.clearCalls()
-      window.editorHarness.setRemoteEntry('fresh from drive', '2')
-    })
-
-    await pullTextareaWithTouch(page)
-
-    await expect(page.locator('textarea.editor-textarea')).toHaveValue('unsaved local edit')
-    await expect(page.locator('.unsaved-nav-banner')).toContainText('Unsaved changes')
-    await expect(page.locator('.unsaved-nav-banner')).toContainText('save before refreshing?')
-    await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
+    await expect(page.getByRole('button', { name: 'Refresh entry' })).toBeVisible()
   })
 })
 

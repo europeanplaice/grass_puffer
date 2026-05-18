@@ -57,9 +57,6 @@ const SAVED_STATUS_VISIBLE_MS = 1600
 const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 1500
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
-const MOBILE_MEDIA_QUERY = '(max-width: 640px)'
-const PULL_REFRESH_THRESHOLD = 72
-const PULL_REFRESH_MAX = 96
 
 function RefreshIcon() {
   return (
@@ -76,9 +73,6 @@ function SpinnerIcon() {
   return <span className="btn-saving-spinner" aria-hidden="true" />
 }
 
-function isMobileLayout(): boolean {
-  return window.matchMedia(MOBILE_MEDIA_QUERY).matches
-}
 
 export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, onDirtyChange, autoSave, onPrevDay, onNextDay, pendingNavDate, onPendingNavigate, onCancelNavigation, reauthSaveResult, isSignedIn, onExpired, onLoadComplete, onSaveComplete, refreshSignal = 0 }: Props) {
   const { t, locale } = useI18n()
@@ -106,7 +100,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [refreshing, setRefreshing] = useState(false)
   const tokenExpiredForDateRef = useRef<string | null>(null)
   const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
-  const [pullDistance, setPullDistance] = useState(0)
   const weekday = weekdayLabel(date, locale)
   const isToday = date === todayYmd()
   const isYesterday = date === yesterdayYmd()
@@ -130,7 +123,6 @@ const hasConflictRef = useRef(hasConflict)
 const loadingRef = useRef(loading)
 const loadFailedRef = useRef(loadFailed)
 const refreshingRef = useRef(refreshing)
-const pullDistanceRef = useRef(pullDistance)
 
 const setSavedTextValue = useCallback((value: string) => {
   savedTextRef.current = value
@@ -151,8 +143,7 @@ useEffect(() => {
   loadingRef.current = loading
   loadFailedRef.current = loadFailed
   refreshingRef.current = refreshing
-  pullDistanceRef.current = pullDistance
-}, [text, savedText, baseVersion, saving, hasConflict, loading, loadFailed, refreshing, pullDistance])
+}, [text, savedText, baseVersion, saving, hasConflict, loading, loadFailed, refreshing])
 
   const applyLoadedEntry = useCallback((entry: LoadedDiaryEntry | null) => {
     const driveText = entry?.entry.content ?? ''
@@ -501,83 +492,6 @@ useEffect(() => {
     }
   }
 
-  const pullStartYRef = useRef<number | null>(null)
-  const pullActiveRef = useRef(false)
-
-  const canStartPullRefresh = useCallback(() => {
-    const textarea = textareaRef.current
-    return Boolean(
-      isMobileLayout() &&
-      textarea &&
-      textarea.scrollTop <= 1 &&
-      !loadingRef.current &&
-      !savingRef.current &&
-      !refreshingRef.current &&
-      !hasConflictRef.current &&
-      !showDeleteModal &&
-      !showHistoryModal,
-    )
-  }, [showDeleteModal, showHistoryModal])
-
-  const handleTouchStart = useCallback((e: globalThis.TouchEvent) => {
-    if (!canStartPullRefresh()) return
-    pullStartYRef.current = e.touches[0]?.clientY ?? null
-    pullActiveRef.current = pullStartYRef.current !== null
-  }, [canStartPullRefresh])
-
-  const handleTouchMove = useCallback((e: globalThis.TouchEvent) => {
-    if (!pullActiveRef.current || pullStartYRef.current === null) return
-    const textarea = textareaRef.current
-    if (!textarea || textarea.scrollTop > 1) {
-      pullActiveRef.current = false
-      pullDistanceRef.current = 0
-      setPullDistance(0)
-      return
-    }
-
-    // Prevent scroll before checking direction: if we wait until distance > 0,
-    // iOS Safari and Chrome for Android will have already classified the gesture
-    // as a scroll and marked subsequent touchmove events as non-cancelable.
-    if (e.cancelable) e.preventDefault()
-
-    const distance = (e.touches[0]?.clientY ?? pullStartYRef.current) - pullStartYRef.current
-    if (distance <= 0) {
-      pullDistanceRef.current = 0
-      setPullDistance(0)
-      return
-    }
-
-    const nextDistance = Math.min(PULL_REFRESH_MAX, distance * 0.55)
-    pullDistanceRef.current = nextDistance
-    setPullDistance(nextDistance)
-  }, [])
-
-  const finishPullRefresh = useCallback(() => {
-    if (!pullActiveRef.current) return
-    const shouldRefresh = pullDistanceRef.current >= PULL_REFRESH_THRESHOLD
-    pullStartYRef.current = null
-    pullActiveRef.current = false
-    pullDistanceRef.current = 0
-    setPullDistance(0)
-    if (shouldRefresh) void refreshEntry()
-  }, [refreshEntry])
-
-  useEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-
-    textarea.addEventListener('touchstart', handleTouchStart, { passive: true })
-    textarea.addEventListener('touchmove', handleTouchMove, { passive: false })
-    textarea.addEventListener('touchend', finishPullRefresh)
-    textarea.addEventListener('touchcancel', finishPullRefresh)
-
-    return () => {
-      textarea.removeEventListener('touchstart', handleTouchStart)
-      textarea.removeEventListener('touchmove', handleTouchMove)
-      textarea.removeEventListener('touchend', finishPullRefresh)
-      textarea.removeEventListener('touchcancel', finishPullRefresh)
-    }
-  }, [loading, handleTouchStart, handleTouchMove, finishPullRefresh])
 
   return (
     <>
@@ -647,13 +561,6 @@ useEffect(() => {
       )}
     </AnimatePresence>
     <div className="editor">
-      <div
-        className={`pull-refresh-indicator${pullDistance >= PULL_REFRESH_THRESHOLD ? ' ready' : ''}${refreshing ? ' refreshing' : ''}`}
-        style={{ transform: `translate(-50%, ${refreshing ? 0 : Math.round(pullDistance - PULL_REFRESH_MAX)}px)` }}
-        aria-hidden="true"
-      >
-        <span className="pull-refresh-spinner" />
-      </div>
       {saveProgress !== null && (
         <div className="save-progress-bar" aria-hidden="true">
           <div
