@@ -181,6 +181,23 @@ describe('post entry handler', () => {
     expect(drive.saveEntry).toHaveBeenCalledOnce()
   })
 
+  it('falls through to legacy path when fileId is provided but baseVersion is null', async () => {
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        body: JSON.stringify({ content: 'updated', fileId: 'validFileId1234567890', baseVersion: null }),
+      }),
+      params: { date: '2026-05-01' },
+    })
+    const res = await onPostEntry(ctx as any)
+    // Legacy path: remote file exists (version '7') but client has no version → 409 conflict.
+    // Before the fix this silently PATCHed via the optimistic path with no If-Match.
+    expect(res.status).toBe(409)
+    expect(drive.findEntryMeta).toHaveBeenCalledOnce()
+    expect(drive.getDiaryFileMeta).not.toHaveBeenCalled()
+    expect(drive.saveEntry).not.toHaveBeenCalled()
+  })
+
   it('saves when Drive signals 412 but remote content still matches baseContent', async () => {
     vi.mocked(drive.saveEntry).mockRejectedValueOnce(new drive.DriveConflictError())
     vi.mocked(drive.getDiaryFileMeta).mockResolvedValueOnce({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '9' })

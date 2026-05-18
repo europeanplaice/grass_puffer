@@ -266,6 +266,13 @@ describe('saveEntry', () => {
     expect(fetchCall[1].method).toBe('POST')
   })
 
+  it('throws when folderId is null and no fileId is provided (create)', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const entry = { date: '2026-05-01', content: 'x', updated_at: '' }
+    await expect(saveEntry('token', entry, null)).rejects.toThrow(/folderId is required/)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
   it('builds multipart body with boundary', async () => {
     const meta = { id: 'f', name: 'diary-2026-05-01.json', version: '1' }
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(meta)))

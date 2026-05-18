@@ -8,6 +8,8 @@ type QueuedResponse = { status: number; body: unknown; delayMs?: number }
 
 const fetchCalls: FetchCall[] = []
 const queue: QueuedResponse[] = []
+const evictedCalls: string[][] = []
+let currentEmail: string | null = 'user@example.com'
 
 globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
   fetchCalls.push({ url: String(input), method: String(init?.method ?? 'GET'), body: typeof init?.body === 'string' ? init.body : undefined })
@@ -39,7 +41,9 @@ let expiredCount = 0
 let progressCalls: { done: number; total: number }[] = []
 
 function Harness() {
-  const diary = useDiary(true, () => { expiredCount++ })
+  const diary = useDiary(true, currentEmail, () => { expiredCount++ }, (dates) => {
+    evictedCalls.push([...dates])
+  })
 
   useEffect(() => {
     _save = diary.save
@@ -116,4 +120,25 @@ window.diaryHarness = {
   },
   expiredCalls: () => expiredCount,
   clearExpiredCalls: () => { expiredCount = 0 },
+  evictedCalls: () => evictedCalls.map(d => [...d]),
+  clearEvictedCalls: () => { evictedCalls.splice(0) },
+  setEmail: (e: string | null) => { currentEmail = e },
+  seedLocalStorageUser: (u: string | null) => {
+    if (u === null) localStorage.removeItem('linger_session_user')
+    else localStorage.setItem('linger_session_user', u)
+  },
+  seedIdb: async (entries: { date: string; meta: unknown; content?: unknown; snippet?: string }[]) => {
+    const db = await new Promise<IDBDatabase>((res, rej) => {
+      const r = indexedDB.open('linger_diary_cache', 1)
+      r.onupgradeneeded = () => r.result.createObjectStore('entries', { keyPath: 'date' })
+      r.onsuccess = () => res(r.result)
+      r.onerror = () => rej(r.error)
+    })
+    await Promise.all(entries.map(e => new Promise<void>((res, rej) => {
+      const req = db.transaction('entries', 'readwrite').objectStore('entries').put(e)
+      req.onsuccess = () => res()
+      req.onerror = () => rej(req.error)
+    })))
+    db.close()
+  },
 }

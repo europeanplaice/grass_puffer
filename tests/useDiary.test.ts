@@ -43,6 +43,11 @@ async function startHarness(page: import('@playwright/test').Page, extraEntries:
   await page.waitForSelector('#harness-ready')
 }
 
+// Navigate to harness without clearing IDB so tests can inspect cross-session IDB state.
+async function reloadHarness(page: import('@playwright/test').Page) {
+  await page.goto(`${baseUrl}/tests/useDiaryHarness.html`)
+}
+
 test.describe('useDiary save — conflict detection', () => {
   test('first save of a new entry posts once and lets the API check existence', async ({ page }) => {
     await loadHarness(page)
@@ -167,26 +172,17 @@ test.describe('useDiary save — conflict detection', () => {
     expect(calls[0].method).toBe('POST')
   })
 
-  test('real conflict is detected when cached version differs from baseVersion', async ({ page }) => {
+  test('real conflict is detected when save is called with a stale baseVersion', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)
 
-    // First save → cache has version 2
+    // First save → seeds cache with file-1 at version 2
     await page.evaluate(({ meta }) => {
       window.diaryHarness.q({ status: 200, body: meta })
     }, { meta: fileMeta('2') })
-
     await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'my text', null))
 
-    // Simulate: getContent ran and updated cache to version 3
-    await page.evaluate(({ entry3 }) => {
-      window.diaryHarness.q(
-        { status: 200, body: entry3 },  // getEntryByDate (called by getContent)
-      )
-      return window.diaryHarness.triggerGetContent('2026-05-01')
-    }, { entry3: entryResponse('3', 'remote text') })
-
-    // Now cache has version 3, but our baseVersion is 2 → conflict returned by the save API
+    // Second save with old baseVersion 2; server reports the remote is now at version 3
     await page.evaluate(({ entry3 }) => {
       window.diaryHarness.q({ status: 409, body: { conflict: entry3 } })
     }, { entry3: entryResponse('3', 'remote text') })
@@ -366,6 +362,150 @@ test.describe('useDiary refreshEntries', () => {
     const calls = await page.evaluate(() => window.diaryHarness.calls())
     expect(calls).toHaveLength(1)
     expect(calls[0].url).toBe('/api/drive/entries')
+  })
+})
+
+test.describe('useDiary IDB cache — eviction callback', () => {
+  // These tests use refreshEntries to trigger loadEntryList after content is in memory cache.
+  // The eviction mechanism is the same whether content came from IDB or getContent.
+
+  test('fires onEntriesEvicted when Drive returns a newer version than cached content', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page, { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] })
+
+    // Load content into memory cache
+    await page.evaluate(() => {
+      window.diaryHarness.q({ status: 200, body: { entry: { date: '2026-05-01', content: 'hello', updated_at: '' }, meta: { id: 'file-1', name: 'diary-2026-05-01.md', version: '1' } } })
+      return window.diaryHarness.triggerGetContent('2026-05-01')
+    })
+
+    await page.evaluate(() => window.diaryHarness.clearEvictedCalls())
+
+    // Refresh: Drive now returns a newer version → content must be evicted
+    await page.evaluate(async () => {
+      window.diaryHarness.q({ status: 200, body: { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '2' }] } })
+      await window.diaryHarness.refreshEntries()
+    })
+
+    expect(await page.evaluate(() => window.diaryHarness.evictedCalls())).toEqual([['2026-05-01']])
+  })
+
+  test('does not fire onEntriesEvicted when Drive returns the same version', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page, { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] })
+
+    await page.evaluate(() => {
+      window.diaryHarness.q({ status: 200, body: { entry: { date: '2026-05-01', content: 'hello', updated_at: '' }, meta: { id: 'file-1', name: 'diary-2026-05-01.md', version: '1' } } })
+      return window.diaryHarness.triggerGetContent('2026-05-01')
+    })
+
+    await page.evaluate(() => window.diaryHarness.clearEvictedCalls())
+
+    await page.evaluate(async () => {
+      window.diaryHarness.q({ status: 200, body: { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] } })
+      await window.diaryHarness.refreshEntries()
+    })
+
+    expect(await page.evaluate(() => window.diaryHarness.evictedCalls())).toEqual([])
+  })
+
+  test('fires onEntriesEvicted when an entry is deleted on another device', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page, { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] })
+
+    await page.evaluate(() => {
+      window.diaryHarness.q({ status: 200, body: { entry: { date: '2026-05-01', content: 'hello', updated_at: '' }, meta: { id: 'file-1', name: 'diary-2026-05-01.md', version: '1' } } })
+      return window.diaryHarness.triggerGetContent('2026-05-01')
+    })
+
+    await page.evaluate(() => window.diaryHarness.clearEvictedCalls())
+
+    // Refresh: Drive returns empty list — entry was deleted on another device
+    await page.evaluate(async () => {
+      window.diaryHarness.q({ status: 200, body: { files: [] } })
+      await window.diaryHarness.refreshEntries()
+    })
+
+    expect(await page.evaluate(() => window.diaryHarness.evictedCalls())).toEqual([['2026-05-01']])
+  })
+})
+
+test.describe('useDiary IDB cache — cross-account isolation', () => {
+  // Tests use a real page reload to persist IDB between sessions (realistic scenario).
+
+  test('clears IDB when signed-in account differs from stored user', async ({ page }) => {
+    // Session 1: sign in as user@example.com, save entry → IDB populated
+    await loadHarness(page)
+    await startHarness(page, { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] })
+    await page.evaluate(({ meta }) => {
+      window.diaryHarness.q({ status: 200, body: meta })
+    }, { meta: { id: 'file-1', name: 'diary-2026-05-01.md', version: '1' } })
+    await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'secret diary', null))
+
+    // Verify linger_session_user was set to the default email
+    const firstUser = await page.evaluate(() => localStorage.getItem('linger_session_user'))
+    expect(firstUser).toBe('user@example.com')
+
+    // Session 2: reload page (IDB preserved), sign in as a different account
+    await reloadHarness(page)
+    await page.evaluate(async () => {
+      window.diaryHarness.setEmail('other@example.com')
+      window.diaryHarness.q({ status: 200, body: { files: [] } })
+      window.diaryHarness.start()
+    })
+    await page.waitForSelector('#harness-ready')
+
+    // IDB was cleared: no dates from user@example.com's session visible
+    await expect(page.locator('#harness-ready')).toHaveAttribute('data-dates', '')
+    const stored = await page.evaluate(() => localStorage.getItem('linger_session_user'))
+    expect(stored).toBe('other@example.com')
+  })
+
+  test('preserves IDB when the same account signs back in', async ({ page }) => {
+    // Session 1: sign in as user@example.com, save entry → IDB populated
+    await loadHarness(page)
+    await startHarness(page, { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] })
+    await page.evaluate(({ meta }) => {
+      window.diaryHarness.q({ status: 200, body: meta })
+    }, { meta: { id: 'file-1', name: 'diary-2026-05-01.md', version: '1' } })
+    await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'my diary', null))
+
+    // Session 2: same account signs back in
+    await reloadHarness(page)
+    await page.evaluate(async () => {
+      // Same email as default (user@example.com) — IDB should not be cleared
+      window.diaryHarness.q({ status: 200, body: { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] } })
+      window.diaryHarness.start()
+    })
+
+    // IDB data should appear before Drive response resolves (0-RTT)
+    await expect(page.locator('[data-dates="2026-05-01"]')).toBeVisible({ timeout: 2000 })
+    await page.waitForSelector('#harness-ready')
+    await expect(page.locator('#harness-ready')).toHaveAttribute('data-dates', '2026-05-01')
+  })
+})
+
+test.describe('useDiary IDB cache — 0-RTT startup', () => {
+  test('shows IDB-cached dates before the Drive list call resolves', async ({ page }) => {
+    // Session 1: save entry to populate IDB
+    await loadHarness(page)
+    await startHarness(page, { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] })
+    await page.evaluate(({ meta }) => {
+      window.diaryHarness.q({ status: 200, body: meta })
+    }, { meta: { id: 'file-1', name: 'diary-2026-05-01.md', version: '1' } })
+    await page.evaluate(() => window.diaryHarness.save('2026-05-01', 'hello', null))
+
+    // Session 2: reload with delayed Drive response
+    await reloadHarness(page)
+    await page.evaluate(() => {
+      // Drive response deliberately delayed so IDB hydration is observable first
+      window.diaryHarness.q({ status: 200, body: { files: [{ id: 'file-1', name: 'diary-2026-05-01.md', version: '1' }] }, delayMs: 500 })
+      window.diaryHarness.start()
+    })
+
+    // Entry from IDB should appear well within the 500ms Drive delay
+    await expect(page.locator('[data-dates="2026-05-01"]')).toBeVisible({ timeout: 300 })
+    await page.waitForSelector('#harness-ready')
   })
 })
 

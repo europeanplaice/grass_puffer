@@ -95,10 +95,10 @@ export const onRequestPost: PagesFunction<Env, 'date', Data> = async (context) =
   try {
     const entry: DiaryEntry = { date, content: body.content, updated_at: new Date().toISOString() }
 
-    // Optimistic path: fileId is known AND we have a version to check (or force).
-    // Without baseVersion the optimistic path offers no concurrency guarantee, so fall through
-    // to the legacy path which handles null-baseVersion correctly.
-    if (body.fileId && (body.force || typeof body.baseVersion === 'string')) {
+    // Optimistic path: fileId is known. Fall through to the legacy path only when
+    // baseVersion is explicitly null (client has no version to match), which would
+    // otherwise silently overwrite the file without any concurrency protection.
+    if (body.fileId && (body.force || body.baseVersion !== null)) {
       if (!/^[a-zA-Z0-9_-]{10,200}$/.test(body.fileId)) return jsonResponse({ error: 'Invalid file ID' }, 400)
       const folderId = await ensureFolder(accessToken, sessionId, session, context.env)
       const ifMatch = (!body.force && typeof body.baseVersion === 'string') ? body.baseVersion : undefined

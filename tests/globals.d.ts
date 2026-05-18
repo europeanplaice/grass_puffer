@@ -56,6 +56,11 @@ interface Window {
     resetFolderState: () => void
     expiredCalls: () => number
     clearExpiredCalls: () => void
+    evictedCalls: () => string[][]
+    clearEvictedCalls: () => void
+    setEmail: (e: string | null) => void
+    seedLocalStorageUser: (u: string | null) => void
+    seedIdb: (entries: { date: string; meta: unknown; content?: unknown; snippet?: string }[]) => Promise<void>
   }
   editorHarness: {
     render: (opts: {
