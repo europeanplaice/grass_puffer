@@ -201,7 +201,7 @@ export default function App() {
   const [initialLoadComplete, setInitialLoadComplete] = useState(false)
   const loadingSeenRef = useRef(false)
 
-  const diary = useDiary(isSignedIn, handleExpired)
+  const diary = useDiary(isSignedIn, email, handleExpired)
 
   useEffect(() => {
     if (!isSignedIn) {

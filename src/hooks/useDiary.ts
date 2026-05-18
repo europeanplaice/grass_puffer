@@ -62,7 +62,7 @@ async function mapWithConcurrency<T, R>(
   return results
 }
 
-export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState {
+export function useDiary(isSignedIn: boolean, email: string | null, onExpired: () => void): DiaryState {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cache, setCache] = useState<Map<string, EntryCache>>(new Map())
@@ -133,6 +133,14 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     setError(null)
     ;(async () => {
       try {
+        // If the signed-in account differs from the last known account, evict IDB
+        // before hydrating to prevent one user's diary from briefly appearing to another.
+        const storedUser = localStorage.getItem('linger_session_user')
+        if (email !== null && storedUser !== email) {
+          await clearCache().catch(() => {})
+          localStorage.setItem('linger_session_user', email)
+        }
+
         // Preload from IDB immediately so the sidebar and previously-opened entries
         // appear without waiting for the Drive network round trip.
         const idbEntries = await getAllCached().catch(() => [] as CachedEntry[])
