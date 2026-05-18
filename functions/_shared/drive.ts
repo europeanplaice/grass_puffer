@@ -269,6 +269,7 @@ export async function saveEntry(
   }
 
   const filename = `diary-${entry.date}.md`
+  if (!folderId) throw new Error('folderId is required when creating a new entry')
   const { contentType, data } = buildMultipart({ name: filename, mimeType: 'text/plain', parents: [folderId] }, body)
   return driveWithRetry(
     () => fetch(`${UPLOAD_BASE}/files?uploadType=multipart&fields=${fields}`, {

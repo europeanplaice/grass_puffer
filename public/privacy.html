@@ -77,8 +77,17 @@
     <li><code>linger_font</code> — font preference</li>
     <li><code>linger_language</code> — language preference (<code>en</code> / <code>ja</code>)</li>
     <li><code>linger_had_session</code> — a <code>true</code>/<code>false</code> flag indicating whether the user was previously signed in, used to show a "continue with your previous session" prompt on the login screen</li>
+    <li><code>linger_session_user</code> — the email address of the last signed-in user, used to detect account switches and clear locally cached diary data before another user signs in</li>
   </ul>
   <p>None of these contain diary content or authentication tokens.</p>
+
+  <h2>5a. IndexedDB Cache</h2>
+  <p>
+    To enable instant startup, this app caches diary entry metadata and content in your browser's
+    IndexedDB under the key <code>linger_diary_cache</code>. This data is stored locally on your
+    device and is never transmitted anywhere. It is cleared automatically when you sign out.
+    You can also clear it manually via your browser's developer tools or by clearing site data.
+  </p>
 
   <h2>6. Data Sharing</h2>
   <p>

@@ -62,7 +62,7 @@ async function mapWithConcurrency<T, R>(
   return results
 }
 
-export function useDiary(isSignedIn: boolean, email: string | null, onExpired: () => void): DiaryState {
+export function useDiary(isSignedIn: boolean, email: string | null, onExpired: () => void, onEntriesEvicted?: (dates: string[]) => void): DiaryState {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [cache, setCache] = useState<Map<string, EntryCache>>(new Map())
@@ -70,7 +70,9 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
   const saveQueueRef = useRef<Map<string, Promise<unknown>>>(new Map())
   const pendingSaveRef = useRef<PendingSave | null>(null)
   const onExpiredRef = useRef(onExpired)
+  const onEvictedRef = useRef(onEntriesEvicted)
   useEffect(() => { onExpiredRef.current = onExpired })
+  useEffect(() => { onEvictedRef.current = onEntriesEvicted })
   useEffect(() => { cacheRef.current = cache }, [cache])
 
   const updateCache = useCallback((updater: (prev: Map<string, EntryCache>) => Map<string, EntryCache>) => {
@@ -90,6 +92,7 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
     const toUpsert: CachedEntry[] = []
     const toDelete: string[] = []
     const prevDates = new Set(prev.keys())
+    const evicted: string[] = []
 
     for (const f of files) {
       const date = f.name.replace('diary-', '').replace(/\.(json|md)$/, '')
@@ -103,15 +106,20 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
         existing.meta.id === f.id &&
         existing.meta.version === f.version,
       )
+      if (!canReuseContent && existing?.content) evicted.push(date)
       next.set(date, canReuseContent ? { ...existing!, meta: f } : { meta: f })
       toUpsert.push(canReuseContent && existing?.content
         ? { date, meta: f, content: existing.content, snippet: existing.snippet }
         : { date, meta: f })
     }
 
-    for (const date of prevDates) toDelete.push(date)
+    for (const date of prevDates) {
+      if (prev.get(date)?.content) evicted.push(date)
+      toDelete.push(date)
+    }
 
     updateCache(() => next)
+    if (evicted.length) onEvictedRef.current?.(evicted)
 
     // Background IDB sync — non-blocking
     Promise.all([
