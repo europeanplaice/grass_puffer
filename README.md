@@ -64,10 +64,10 @@ Drive 429/5xx responses are retried with exponential backoff.
 
 ### State
 - `useAuth` (`src/hooks/useAuth.ts`) — calls `/auth/session` on load to check sign-in state;
-  exposes `{ signedIn, signIn, signOut }`
-- `useDiary` (`src/hooks/useDiary.ts`) — on sign-in, calls `ensureFolder` + `listEntries` via
-  the `/api/drive/…` proxy; lazily fetches content per entry into a `Map<date, EntryCache>`;
-  exposes `{ dates, getContent, save, remove, search }`
+  exposes `{ status, tokenExpired, hadSession, email, signIn, signOut, handleExpired, retryAfterExpired }`
+- `useDiary` (`src/hooks/useDiary.ts`) — on sign-in, calls `listEntries` via the `/api/drive/…`
+  proxy; lazily fetches content per entry into a `Map<date, EntryCache>`;
+  exposes `{ loading, error, dates, getContent, save, remove, search, refreshEntries, retryPendingSave, exportAll }`
 
 ### Local storage
 The browser stores only non-sensitive preferences in `localStorage`:
@@ -83,8 +83,13 @@ No tokens or diary content are ever written to `localStorage`.
 - `LoginScreen` — shown when not signed in
 - `App` — sidebar + main panel layout
 - `CalendarView` — monthly grid built with native `Date` arithmetic; dots on dates with entries
-- `EntryEditor` — `<textarea>`, save/delete; Ctrl+S triggers save
-- `SearchBar` — client-side full-text search across loaded entry content
+- `EntryEditor` — `<textarea>`, save/delete; Ctrl+S triggers save; handles conflict resolution
+- `SearchBar` — full-text search via Drive API; fetches and caches entry content for snippet extraction
+- `SettingsModal` — theme, font, language, auto-save, export, keyboard shortcuts
+- `SessionExpiredModal` — prompts re-auth when the session expires and retries the pending save
+- `HistoryModal` — view and restore past Drive revisions of an entry
+- `ExportButton` — triggers ZIP export of all entries
+- `ErrorBoundary` — catches render errors and displays a fallback UI
 
 ### Deployment
 The app is deployed to **Cloudflare Pages** via GitHub Actions (see `.github/workflows/deploy.yml`).
