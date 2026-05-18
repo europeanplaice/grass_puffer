@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
 import {
   ensureFolder, getEntryContent, saveEntry, deleteEntry,
-  listRevisions, getRevisionContent, getDiaryFileMeta, DriveError,
+  listRevisions, getRevisionContent, getDiaryFileMeta, DriveError, DriveConflictError,
 } from '../../functions/_shared/drive'
 
 function mockFetch(response: unknown): void {
@@ -197,6 +197,15 @@ describe('getDiaryFileMeta', () => {
   })
 })
 
+describe('DriveConflictError', () => {
+  it('has the correct name and message', () => {
+    const e = new DriveConflictError()
+    expect(e.name).toBe('DriveConflictError')
+    expect(e.message).toBe('Version conflict')
+    expect(e).toBeInstanceOf(Error)
+  })
+})
+
 describe('saveEntry', () => {
   it('PATCHes media only when fileId is provided (update)', async () => {
     const meta = { id: 'file-1', name: 'diary-2026-05-01.md', version: '2' }
@@ -213,6 +222,35 @@ describe('saveEntry', () => {
     expect(fetchCall[1].headers['Content-Type']).toBe('text/plain; charset=UTF-8')
     expect(fetchCall[1].body).toContain('date: 2026-05-01')
     expect(fetchCall[1].body).toContain('updated')
+  })
+
+  it('sends If-Match header when ifMatch is provided', async () => {
+    const meta = { id: 'file-1', name: 'diary-2026-05-01.md', version: '3' }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(meta)))
+    const entry = { date: '2026-05-01', content: 'updated', updated_at: '2026-05-01T00:00:00.000Z' }
+
+    await saveEntry('token', entry, null, 'file-1', '2')
+
+    const fetchCall = (vi.mocked(fetch).mock.calls[0] as any)
+    expect(fetchCall[1].headers['If-Match']).toBe('2')
+  })
+
+  it('omits If-Match header when ifMatch is not provided', async () => {
+    const meta = { id: 'file-1', name: 'diary-2026-05-01.md', version: '3' }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(driveJsonResponse(meta)))
+    const entry = { date: '2026-05-01', content: 'updated', updated_at: '2026-05-01T00:00:00.000Z' }
+
+    await saveEntry('token', entry, null, 'file-1')
+
+    const fetchCall = (vi.mocked(fetch).mock.calls[0] as any)
+    expect(fetchCall[1].headers['If-Match']).toBeUndefined()
+  })
+
+  it('throws DriveConflictError on 412', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Precondition Failed', { status: 412 })))
+    const entry = { date: '2026-05-01', content: 'updated', updated_at: '2026-05-01T00:00:00.000Z' }
+
+    await expect(saveEntry('token', entry, null, 'file-1', '2')).rejects.toBeInstanceOf(DriveConflictError)
   })
 
   it('POSTes when no fileId (create)', async () => {

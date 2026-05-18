@@ -34,6 +34,13 @@ export class DriveError extends Error {
   }
 }
 
+export class DriveConflictError extends Error {
+  constructor() {
+    super('Version conflict')
+    this.name = 'DriveConflictError'
+  }
+}
+
 function driveHeaders(token: string, extra?: Record<string, string>): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
@@ -54,6 +61,7 @@ async function driveWithRetry<T>(
     const res = await fetcher()
     if (res.ok || (accept204 && res.status === 204)) return parse(res)
 
+    if (res.status === 412) throw new DriveConflictError()
     const body = await res.text()
     if ((res.status === 429 || res.status >= 500) && attempt < delays.length) {
       let delay = delays[attempt]
@@ -240,17 +248,20 @@ function buildMultipart(meta: object, body: string, bodyMimeType = 'text/plain; 
 export async function saveEntry(
   token: string,
   entry: DiaryEntry,
-  folderId: string,
+  folderId: string | null,
   fileId?: string,
+  ifMatch?: string | null,
 ): Promise<DriveFileMeta> {
   const body = serializeEntry(entry)
   const fields = encodeURIComponent('id,name,modifiedTime,version')
 
   if (fileId) {
+    const extra: Record<string, string> = { 'Content-Type': 'text/plain; charset=UTF-8' }
+    if (ifMatch != null) extra['If-Match'] = ifMatch
     return driveWithRetry(
       () => fetch(`${UPLOAD_BASE}/files/${fileId}?uploadType=media&fields=${fields}`, {
         method: 'PATCH',
-        headers: driveHeaders(token, { 'Content-Type': 'text/plain; charset=UTF-8' }),
+        headers: driveHeaders(token, extra),
         body,
       }),
       r => r.json() as Promise<DriveFileMeta>,

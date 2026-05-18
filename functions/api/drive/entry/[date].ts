@@ -8,8 +8,9 @@ import {
   ensureFolder,
   getDiaryFileMeta,
   DriveError,
+  DriveConflictError,
 } from '../../../_shared/drive'
-import type { DiaryEntry } from '../../../_shared/drive'
+import type { DiaryEntry, DriveFileMeta } from '../../../_shared/drive'
 
 const MAX_ENTRY_CONTENT_LENGTH = 500_000
 const MAX_ENTRY_BODY_BYTES = 1_000_000
@@ -92,25 +93,46 @@ export const onRequestPost: PagesFunction<Env, 'date', Data> = async (context) =
   if (!session) return jsonResponse({ error: 'Unauthorized' }, 401)
 
   try {
-    const hasBaseVersion = Object.prototype.hasOwnProperty.call(body, 'baseVersion')
     const entry: DiaryEntry = { date, content: body.content, updated_at: new Date().toISOString() }
-    const folderId = await ensureFolder(accessToken, sessionId, session, context.env)
-    let fileId: string | undefined
-    let meta = null
+
+    // Optimistic path: fileId is known — skip pre-flight meta check and PATCH directly.
+    // If-Match guards against concurrent edits; on 412 we fall back to a full conflict check.
     if (body.fileId) {
       if (!/^[a-zA-Z0-9_-]{10,200}$/.test(body.fileId)) return jsonResponse({ error: 'Invalid file ID' }, 400)
+      const folderId = await ensureFolder(accessToken, sessionId, session, context.env)
+      const ifMatch = (!body.force && typeof body.baseVersion === 'string') ? body.baseVersion : undefined
       try {
-        meta = await getDiaryFileMeta(accessToken, sessionId, session, context.env, body.fileId, date)
+        const savedMeta = await saveEntry(accessToken, entry, folderId, body.fileId, ifMatch)
+        return jsonResponse(savedMeta)
       } catch (e) {
+        if (e instanceof DriveConflictError) {
+          // 412: remote version changed — fetch current state and check for real conflict
+          let meta: DriveFileMeta
+          try {
+            meta = await getDiaryFileMeta(accessToken, sessionId, session, context.env, body.fileId, date)
+          } catch (e2) {
+            if (e2 instanceof DriveError && e2.status === 404) return jsonResponse({ conflict: null }, 409)
+            throw e2
+          }
+          const remoteEntry = await getEntryContent(accessToken, meta.id)
+          if (body.baseContent != null && remoteEntry.content === body.baseContent) {
+            // Content is identical despite the version bump — safe to overwrite
+            const savedMeta = await saveEntry(accessToken, entry, folderId, meta.id)
+            return jsonResponse(savedMeta)
+          }
+          return jsonResponse({ conflict: { entry: remoteEntry, meta } }, 409)
+        }
         if (e instanceof DriveError && e.status === 404) return jsonResponse({ conflict: null }, 409)
         throw e
       }
-      fileId = meta.id
-    } else {
-      meta = await findEntryMeta(accessToken, sessionId, session, context.env, date)
-      fileId = meta?.id
-      if (!meta && hasBaseVersion && !body.force && body.baseVersion != null) return jsonResponse({ conflict: null }, 409)
     }
+
+    // No fileId: search by filename (first save on this device or new entry)
+    const folderId = await ensureFolder(accessToken, sessionId, session, context.env)
+    const hasBaseVersion = Object.prototype.hasOwnProperty.call(body, 'baseVersion')
+    const meta = await findEntryMeta(accessToken, sessionId, session, context.env, date)
+    const fileId = meta?.id
+    if (!meta && hasBaseVersion && !body.force && body.baseVersion != null) return jsonResponse({ conflict: null }, 409)
 
     if (meta && hasBaseVersion && !body.force && (meta.version ?? null) !== (body.baseVersion ?? null)) {
       const remoteEntry = await getEntryContent(accessToken, meta.id)
