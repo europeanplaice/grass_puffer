@@ -83,7 +83,7 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
     })
   }, [])
 
-  const loadEntryList = useCallback(async (preserveExistingContent: boolean) => {
+  const loadEntryList = useCallback(async (preserveExistingContent: boolean, syncPersistentCache: boolean) => {
     const files = await listEntries()
 
     // Compute new state and IDB diff using the current cache snapshot
@@ -108,24 +108,28 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
       )
       if (!canReuseContent && existing?.content) evicted.push(date)
       next.set(date, canReuseContent ? { ...existing!, meta: f } : { meta: f })
-      toUpsert.push(canReuseContent && existing?.content
-        ? { date, meta: f, content: existing.content, snippet: existing.snippet }
-        : { date, meta: f })
+      if (syncPersistentCache) {
+        toUpsert.push(canReuseContent && existing?.content
+          ? { date, meta: f, content: existing.content, snippet: existing.snippet }
+          : { date, meta: f })
+      }
     }
 
     for (const date of prevDates) {
       if (prev.get(date)?.content) evicted.push(date)
-      toDelete.push(date)
+      if (syncPersistentCache) toDelete.push(date)
     }
 
     updateCache(() => next)
     if (evicted.length) onEvictedRef.current?.(evicted)
 
-    // Background IDB sync — non-blocking
-    Promise.all([
-      ...toUpsert.map(e => putCached(e).catch(() => {})),
-      ...toDelete.map(d => deleteCached(d).catch(() => {})),
-    ]).catch(() => {})
+    if (syncPersistentCache) {
+      // Background IDB sync — non-blocking
+      Promise.all([
+        ...toUpsert.map(e => putCached(e).catch(() => {})),
+        ...toDelete.map(d => deleteCached(d).catch(() => {})),
+      ]).catch(() => {})
+    }
   }, [updateCache])
 
   // Load entry list when signed in
@@ -143,15 +147,19 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
       try {
         // If the signed-in account differs from the last known account, evict IDB
         // before hydrating to prevent one user's diary from briefly appearing to another.
+        const canUsePersistentCache = email !== null
         const storedUser = localStorage.getItem('linger_session_user')
-        if (email !== null && storedUser !== email) {
+        if (!canUsePersistentCache) {
+          await clearCache().catch(() => {})
+          localStorage.removeItem('linger_session_user')
+        } else if (storedUser !== email) {
           await clearCache().catch(() => {})
           localStorage.setItem('linger_session_user', email)
         }
 
         // Preload from IDB immediately so the sidebar and previously-opened entries
         // appear without waiting for the Drive network round trip.
-        const idbEntries = await getAllCached().catch(() => [] as CachedEntry[])
+        const idbEntries = canUsePersistentCache ? await getAllCached().catch(() => [] as CachedEntry[]) : []
         if (idbEntries.length > 0) {
           updateCache(() => {
             const m = new Map<string, EntryCache>()
@@ -161,7 +169,7 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
           setLoading(false)
         }
         // Always sync with Drive to pick up remote changes and evict stale content
-        await loadEntryList(true)
+        await loadEntryList(true, canUsePersistentCache)
       } catch (e) {
         if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
         console.error('Failed to load diary entries:', e)
@@ -170,17 +178,17 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
         setLoading(false)
       }
     })()
-  }, [isSignedIn, loadEntryList, updateCache])
+  }, [isSignedIn, email, loadEntryList, updateCache])
 
   const refreshEntries = useCallback(async (): Promise<void> => {
     if (!isSignedIn) return
     try {
-      await loadEntryList(true)
+      await loadEntryList(true, email !== null)
     } catch (e) {
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
       throw e
     }
-  }, [isSignedIn, loadEntryList])
+  }, [isSignedIn, email, loadEntryList])
 
   const getContent = useCallback(async (date: string): Promise<LoadedDiaryEntry | null> => {
     if (!isSignedIn) return null
@@ -206,13 +214,13 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
         }
         return next
       })
-      putCached({ date, meta, content, snippet: content.content.slice(0, 500) }).catch(() => {})
+      if (email !== null) putCached({ date, meta, content, snippet: content.content.slice(0, 500) }).catch(() => {})
       return { entry: content, meta }
     } catch (e) {
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); throw e }
       throw e
     }
-  }, [isSignedIn, updateCache])
+  }, [isSignedIn, email, updateCache])
 
   const save = useCallback(async (date: string, content: string, baseVersion: string | null, force = false, baseContent?: string | null): Promise<LoadedDiaryEntry> => {
     if (!isSignedIn) throw new Error('Not signed in')
@@ -228,7 +236,7 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
           next.set(date, { meta, content: entry, snippet: entry.content.slice(0, 500) })
           return next
         })
-        putCached({ date, meta, content: entry, snippet: entry.content.slice(0, 500) }).catch(() => {})
+        if (email !== null) putCached({ date, meta, content: entry, snippet: entry.content.slice(0, 500) }).catch(() => {})
         return { entry, meta }
       } catch (e) {
         if (e instanceof TokenExpiredError) {
@@ -259,7 +267,7 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
     })
     saveQueueRef.current.set(date, run)
     return run
-  }, [isSignedIn, updateCache])
+  }, [isSignedIn, email, updateCache])
 
   const remove = useCallback(async (date: string): Promise<void> => {
     if (!isSignedIn) throw new Error('Not signed in')

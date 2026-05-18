@@ -95,15 +95,29 @@ export const onRequestPost: PagesFunction<Env, 'date', Data> = async (context) =
   try {
     const entry: DiaryEntry = { date, content: body.content, updated_at: new Date().toISOString() }
 
-    // Optimistic path: fileId is known. Fall through to the legacy path only when
-    // baseVersion is explicitly null (client has no version to match), which would
-    // otherwise silently overwrite the file without any concurrency protection.
+    // Known fileId path: avoid filename search, but still validate current Drive
+    // metadata before writing because Drive v3 does not document version as an
+    // If-Match token.
     if (body.fileId && (body.force || body.baseVersion !== null)) {
       if (!/^[a-zA-Z0-9_-]{10,200}$/.test(body.fileId)) return jsonResponse({ error: 'Invalid file ID' }, 400)
       const folderId = await ensureFolder(accessToken, sessionId, session, context.env)
-      const ifMatch = (!body.force && typeof body.baseVersion === 'string') ? body.baseVersion : undefined
+      let currentMeta: DriveFileMeta | null = null
+      if (!body.force && typeof body.baseVersion === 'string') {
+        try {
+          currentMeta = await getDiaryFileMeta(accessToken, sessionId, session, context.env, body.fileId, date)
+        } catch (e) {
+          if (e instanceof DriveError && e.status === 404) return jsonResponse({ conflict: null }, 409)
+          throw e
+        }
+        if ((currentMeta.version ?? null) !== body.baseVersion) {
+          const remoteEntry = await getEntryContent(accessToken, currentMeta.id)
+          if (body.baseContent == null || remoteEntry.content !== body.baseContent) {
+            return jsonResponse({ conflict: { entry: remoteEntry, meta: currentMeta } }, 409)
+          }
+        }
+      }
       try {
-        const savedMeta = await saveEntry(accessToken, entry, folderId, body.fileId, ifMatch)
+        const savedMeta = await saveEntry(accessToken, entry, folderId, currentMeta?.id ?? body.fileId)
         return jsonResponse(savedMeta)
       } catch (e) {
         if (e instanceof DriveConflictError) {

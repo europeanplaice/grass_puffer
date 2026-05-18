@@ -106,30 +106,7 @@ describe('post entry handler', () => {
     expect(res.status).toBe(413)
   })
 
-  it('skips getDiaryFileMeta and calls saveEntry directly when fileId is known', async () => {
-    const ctx = makeContext({
-      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
-        method: 'POST',
-        body: JSON.stringify({ content: 'updated', fileId: 'validFileId1234567890' }),
-      }),
-      params: { date: '2026-05-01' },
-    })
-
-    const res = await onPostEntry(ctx as any)
-
-    expect(res.status).toBe(200)
-    expect(drive.getDiaryFileMeta).not.toHaveBeenCalled()
-    expect(drive.saveEntry).toHaveBeenCalledWith(
-      'tok',
-      expect.objectContaining({ date: '2026-05-01', content: 'updated' }),
-      'folder-1',
-      'validFileId1234567890',
-      undefined,
-    )
-    expect(drive.getEntryContent).not.toHaveBeenCalled()
-  })
-
-  it('passes baseVersion as If-Match and skips conflict fetch when Drive accepts the write', async () => {
+  it('validates the current Drive file before saving when fileId is known and baseVersion is provided', async () => {
     const ctx = makeContext({
       request: new Request('http://localhost/api/drive/entry/2026-05-01', {
         method: 'POST',
@@ -141,19 +118,46 @@ describe('post entry handler', () => {
     const res = await onPostEntry(ctx as any)
 
     expect(res.status).toBe(200)
-    expect(drive.getDiaryFileMeta).not.toHaveBeenCalled()
+    expect(drive.getDiaryFileMeta).toHaveBeenCalledWith(
+      'tok',
+      'sid',
+      {},
+      {},
+      'validFileId1234567890',
+      '2026-05-01',
+    )
+    expect(drive.saveEntry).toHaveBeenCalledWith(
+      'tok',
+      expect.objectContaining({ date: '2026-05-01', content: 'updated' }),
+      'folder-1',
+      'entry-1',
+    )
+    expect(drive.getEntryContent).not.toHaveBeenCalled()
+  })
+
+  it('skips conflict fetch when current Drive version still matches baseVersion', async () => {
+    const ctx = makeContext({
+      request: new Request('http://localhost/api/drive/entry/2026-05-01', {
+        method: 'POST',
+        body: JSON.stringify({ content: 'updated', fileId: 'validFileId1234567890', baseVersion: '8' }),
+      }),
+      params: { date: '2026-05-01' },
+    })
+
+    const res = await onPostEntry(ctx as any)
+
+    expect(res.status).toBe(200)
+    expect(drive.getDiaryFileMeta).toHaveBeenCalledOnce()
     expect(drive.getEntryContent).not.toHaveBeenCalled()
     expect(drive.saveEntry).toHaveBeenCalledWith(
       'tok',
       expect.any(Object),
       'folder-1',
-      'validFileId1234567890',
-      '8',
+      'entry-1',
     )
   })
 
-  it('returns a conflict without saving when Drive signals 412 and remote content differs', async () => {
-    vi.mocked(drive.saveEntry).mockRejectedValueOnce(new drive.DriveConflictError())
+  it('returns a conflict without saving when current Drive content differs from baseContent', async () => {
     vi.mocked(drive.getDiaryFileMeta).mockResolvedValueOnce({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '9' })
     vi.mocked(drive.getEntryContent).mockResolvedValueOnce({ date: '2026-05-01', content: 'remote edit', updated_at: '' })
     const ctx = makeContext({
@@ -178,7 +182,7 @@ describe('post entry handler', () => {
         meta: { version: '9' },
       },
     })
-    expect(drive.saveEntry).toHaveBeenCalledOnce()
+    expect(drive.saveEntry).not.toHaveBeenCalled()
   })
 
   it('falls through to legacy path when fileId is provided but baseVersion is null', async () => {
@@ -198,8 +202,7 @@ describe('post entry handler', () => {
     expect(drive.saveEntry).not.toHaveBeenCalled()
   })
 
-  it('saves when Drive signals 412 but remote content still matches baseContent', async () => {
-    vi.mocked(drive.saveEntry).mockRejectedValueOnce(new drive.DriveConflictError())
+  it('saves when current Drive version changed but remote content still matches baseContent', async () => {
     vi.mocked(drive.getDiaryFileMeta).mockResolvedValueOnce({ id: 'entry-1', name: 'diary-2026-05-01.json', version: '9' })
     vi.mocked(drive.getEntryContent).mockResolvedValueOnce({ date: '2026-05-01', content: 'local base', updated_at: '' })
     const ctx = makeContext({
@@ -219,8 +222,8 @@ describe('post entry handler', () => {
 
     expect(res.status).toBe(200)
     expect(drive.getEntryContent).toHaveBeenCalledWith('tok', 'entry-1')
-    expect(drive.saveEntry).toHaveBeenCalledTimes(2)
-    expect(drive.saveEntry).toHaveBeenLastCalledWith(
+    expect(drive.saveEntry).toHaveBeenCalledOnce()
+    expect(drive.saveEntry).toHaveBeenCalledWith(
       'tok',
       expect.objectContaining({ date: '2026-05-01', content: 'updated' }),
       'folder-1',

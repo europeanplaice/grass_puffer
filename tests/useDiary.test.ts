@@ -461,6 +461,27 @@ test.describe('useDiary IDB cache — cross-account isolation', () => {
     expect(stored).toBe('other@example.com')
   })
 
+  test('does not hydrate IDB when the signed-in account email is unknown', async ({ page }) => {
+    await loadHarness(page)
+    await page.evaluate(async () => {
+      window.diaryHarness.seedLocalStorageUser('user@example.com')
+      await window.diaryHarness.seedIdb([{
+        date: '2026-05-01',
+        meta: { id: 'file-1', name: 'diary-2026-05-01.md', version: '1' },
+        content: { date: '2026-05-01', content: 'cached secret', updated_at: '' },
+        snippet: 'cached secret',
+      }])
+      window.diaryHarness.setEmail(null)
+      window.diaryHarness.q({ status: 200, body: { files: [] } })
+      window.diaryHarness.start()
+    })
+    await page.waitForSelector('#harness-ready')
+
+    await expect(page.locator('#harness-ready')).toHaveAttribute('data-dates', '')
+    const stored = await page.evaluate(() => localStorage.getItem('linger_session_user'))
+    expect(stored).toBeNull()
+  })
+
   test('preserves IDB when the same account signs back in', async ({ page }) => {
     // Session 1: sign in as user@example.com, save entry → IDB populated
     await loadHarness(page)

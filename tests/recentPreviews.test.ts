@@ -149,12 +149,10 @@ test.describe('recent entry previews', () => {
     // During the slide animation both old and new textareas coexist briefly; .last() is the incoming entry
     await expect(page.locator('.editor-textarea').last()).toHaveValue(/entry for 2026-05-08/)
 
-    // Only the navigated-to date should have been fetched
+    // Preview content is cached in memory, so navigation should reuse it instead of
+    // re-fetching the entry or any other preview date.
     const newFetches = requestLog.slice(beforeNavCount)
-    const expectedDate = '2026-05-08'
-    expect(newFetches).toContain(expectedDate)
-    // Other preview dates should NOT be re-fetched
-    for (const d of previewDates.filter(d => d !== expectedDate)) {
+    for (const d of previewDates) {
       expect(newFetches.filter(f => f === d)).toHaveLength(0)
     }
   })
