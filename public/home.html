@@ -93,6 +93,48 @@
     are never exposed to the browser.
   </p>
 
+  <h2>How to verify this app is safe</h2>
+  <p>
+    You don't have to take our word for it. Here are four concrete steps you can take to verify
+    that Linger cannot read, copy, or transmit your diary entries anywhere other than your own
+    Google Drive.
+  </p>
+  <ol>
+    <li>
+      <strong>Check the security headers</strong> —
+      Visit
+      <a href="https://securityheaders.com/?q=linger.europeanplaice.com&followRedirects=on" target="_blank" rel="noopener noreferrer">securityheaders.com</a>
+      and enter <code>linger.europeanplaice.com</code>.
+      The <strong>Content-Security-Policy</strong> header restricts all network connections to
+      <code>'self'</code>, <code>googleapis.com</code>, and <code>accounts.google.com</code> only —
+      meaning the browser is physically prevented from sending your data anywhere else, even if
+      someone injected malicious code into the page.
+    </li>
+    <li>
+      <strong>Check what Google permissions you granted</strong> —
+      Go to
+      <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer">Google Account → Apps &amp; services</a>
+      and find Linger. The only scope listed should be
+      <strong>See, edit, create, and delete only the specific Google Drive files you use with this app</strong>
+      (<code>drive.file</code>). This scope cannot access any other files in your Drive.
+      You can also revoke access from this page at any time.
+    </li>
+    <li>
+      <strong>Inspect network requests in your browser</strong> —
+      Open DevTools (F12) → Network tab while using the app. Every request goes to
+      <code>/api/drive/…</code> (the Cloudflare proxy on this domain) or
+      <code>accounts.google.com</code> (OAuth). No requests are made to any third-party server.
+    </li>
+    <li>
+      <strong>Read the source code</strong> —
+      The entire codebase is open source on
+      <a href="https://github.com/europeanplaice/linger" target="_blank" rel="noopener noreferrer">GitHub</a>.
+      The server-side logic in <code>functions/</code> shows exactly what happens with your OAuth
+      token and diary content. You can also self-host using your own Google Cloud and Cloudflare
+      accounts — see the README for instructions.
+    </li>
+  </ol>
+
   <div class="footer">
     <a href="/privacy.html">Privacy Policy</a> &nbsp;·&nbsp;
     <a href="/terms-of-service.html">Terms of Service</a>
