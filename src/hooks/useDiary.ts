@@ -14,7 +14,7 @@ export interface DiaryState {
   loading: boolean
   error: string | null
   dates: string[]                                      // sorted desc
-  getContent: (date: string) => Promise<LoadedDiaryEntry | null>
+  getContent: (date: string, options?: { forceNetwork?: boolean }) => Promise<LoadedDiaryEntry | null>
   save: (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
   remove: (date: string) => Promise<void>
   search: (query: string) => Promise<SearchResult>
@@ -190,16 +190,26 @@ export function useDiary(isSignedIn: boolean, email: string | null, onExpired: (
     }
   }, [isSignedIn, email, loadEntryList])
 
-  const getContent = useCallback(async (date: string): Promise<LoadedDiaryEntry | null> => {
+  const getContent = useCallback(async (date: string, options: { forceNetwork?: boolean } = {}): Promise<LoadedDiaryEntry | null> => {
     if (!isSignedIn) return null
     try {
       const cached = cacheRef.current.get(date)
 
       // Content is already in memory (verified by listEntries version check or saved this session)
-      if (cached?.content) return { entry: cached.content, meta: cached.meta }
+      if (cached?.content && !options.forceNetwork) return { entry: cached.content, meta: cached.meta }
 
       const loaded = await getEntryByDate(date, undefined, cached?.meta.id)
-      if (!loaded || loaded === 'not-modified') return null
+      if (!loaded || loaded === 'not-modified') {
+        if (options.forceNetwork && cached) {
+          updateCache(prev => {
+            const next = new Map(prev)
+            next.delete(date)
+            return next
+          })
+          if (email !== null) deleteCached(date).catch(() => {})
+        }
+        return null
+      }
       const { entry: content, meta } = loaded
       updateCache(prev => {
         const next = new Map(prev)

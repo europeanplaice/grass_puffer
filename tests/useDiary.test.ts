@@ -196,7 +196,36 @@ test.describe('useDiary save — conflict detection', () => {
   })
 })
 
-test.describe('useDiary getContent — session expiry', () => {
+test.describe('useDiary getContent', () => {
+  test('can bypass cached content when a fresh entry is requested', async ({ page }) => {
+    await loadHarness(page)
+    await startHarness(page, { files: [fileMeta('1')] })
+
+    await page.evaluate(({ entry }) => {
+      window.diaryHarness.q({ status: 200, body: entry })
+      return window.diaryHarness.triggerGetContent('2026-05-01')
+    }, { entry: entryResponse('1', 'cached text') })
+
+    await page.evaluate(() => window.diaryHarness.clearCalls())
+
+    const refreshed = await page.evaluate(({ entry }) => {
+      window.diaryHarness.q({ status: 200, body: entry })
+      return window.diaryHarness.triggerGetContent('2026-05-01', { forceNetwork: true })
+    }, { entry: entryResponse('2', 'fresh text') })
+
+    expect(refreshed?.entry.content).toBe('fresh text')
+    expect(refreshed?.meta.version).toBe('2')
+
+    const calls = await page.evaluate(() => window.diaryHarness.calls())
+    expect(calls).toHaveLength(1)
+    expect(calls[0].url).toBe('/api/drive/entry/2026-05-01?fileId=file-1')
+
+    await page.evaluate(() => window.diaryHarness.clearCalls())
+    const cached = await page.evaluate(() => window.diaryHarness.triggerGetContent('2026-05-01'))
+    expect(cached?.entry.content).toBe('fresh text')
+    expect(await page.evaluate(() => window.diaryHarness.calls())).toHaveLength(0)
+  })
+
   test('calls onExpired and re-throws TokenExpiredError when /api returns 401', async ({ page }) => {
     await loadHarness(page)
     await startHarness(page)

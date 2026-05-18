@@ -44,7 +44,7 @@ interface Window {
       | { ok: true; result: import('../src/types').LoadedDiaryEntry }
       | { ok: false; conflict: unknown; error: string }
     >
-    triggerGetContent: (date: string) => Promise<void>
+    triggerGetContent: (date: string, options?: { forceNetwork?: boolean }) => Promise<import('../src/types').LoadedDiaryEntry | null>
     search: (query: string) => Promise<import('../src/hooks/useDiary').SearchResult>
     exportAll: (format: 'txt' | 'md') => Promise<{ date: string; content: string }[]>
     refreshEntries: () => Promise<void>

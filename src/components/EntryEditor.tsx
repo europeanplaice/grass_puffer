@@ -12,7 +12,7 @@ import { useSaveProgress } from '../hooks/useSaveProgress'
 
 interface Props {
   date: string
-  getContent: (date: string) => Promise<LoadedDiaryEntry | null>
+  getContent: (date: string, options?: { forceNetwork?: boolean }) => Promise<LoadedDiaryEntry | null>
   onSave: (date: string, content: string, baseVersion: string | null, force?: boolean, baseContent?: string | null) => Promise<LoadedDiaryEntry>
   onDelete: (date: string) => Promise<void>
   onMenuClick: () => void
@@ -330,7 +330,7 @@ useEffect(() => {
     setShowRefreshConfirm(false)
     setStatus('')
     try {
-      const entry = await getContentRef.current(date)
+      const entry = await getContentRef.current(date, { forceNetwork: !silent })
       applyLoadedEntry(entry)
       onLoadCompleteRef.current?.(date, entry)
       setLoadFailed(false)
