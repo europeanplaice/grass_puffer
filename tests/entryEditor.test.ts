@@ -33,29 +33,6 @@ async function renderEditor(
   await page.waitForSelector('textarea.editor-textarea')
 }
 
-async function pullTextarea(page: import('@playwright/test').Page, startY = 80, endY = 230) {
-  await page.locator('textarea.editor-textarea').evaluate((textarea, points) => {
-    textarea.dispatchEvent(new PointerEvent('pointerdown', {
-      bubbles: true,
-      cancelable: true,
-      clientY: points.startY,
-      pointerType: 'touch',
-    }))
-    textarea.dispatchEvent(new PointerEvent('pointermove', {
-      bubbles: true,
-      cancelable: true,
-      clientY: points.endY,
-      pointerType: 'touch',
-    }))
-    textarea.dispatchEvent(new PointerEvent('pointerup', {
-      bubbles: true,
-      cancelable: true,
-      clientY: points.endY,
-      pointerType: 'touch',
-    }))
-  }, { startY, endY })
-}
-
 async function pullTextareaWithTouch(page: import('@playwright/test').Page, startY = 80, endY = 230) {
   await page.locator('textarea.editor-textarea').evaluate((textarea, points) => {
     const touchEvent = (type: string, clientY: number) => {
@@ -429,7 +406,7 @@ test.describe('EntryEditor — refresh entry', () => {
       window.editorHarness.setRemoteEntry('fresh from drive', '2')
     })
 
-    await pullTextarea(page)
+    await pullTextareaWithTouch(page)
 
     await expect(page.locator('textarea.editor-textarea')).toHaveValue('fresh from drive')
     await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([
@@ -472,7 +449,7 @@ test.describe('EntryEditor — refresh entry', () => {
       window.editorHarness.setRemoteEntry('fresh from drive', '2')
     })
 
-    await pullTextarea(page)
+    await pullTextareaWithTouch(page)
 
     await expect(page.locator('textarea.editor-textarea')).not.toHaveValue('fresh from drive')
     await expect.poll(() => page.evaluate(() => window.editorHarness.getContentCalls())).toEqual([])
@@ -489,7 +466,7 @@ test.describe('EntryEditor — refresh entry', () => {
       window.editorHarness.setRemoteEntry('fresh from drive', '2')
     })
 
-    await pullTextarea(page)
+    await pullTextareaWithTouch(page)
 
     await expect(page.locator('textarea.editor-textarea')).toHaveValue('unsaved local edit')
     await expect(page.locator('.unsaved-nav-banner')).toContainText('Unsaved changes')

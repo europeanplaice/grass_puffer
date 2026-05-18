@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import type { PointerEvent } from 'react'
 import { EntryConflictError } from '../hooks/useDiary'
 import { TokenExpiredError } from '../api/driveEntries'
 import type { LoadedDiaryEntry } from '../types'
@@ -536,6 +535,11 @@ useEffect(() => {
       return
     }
 
+    // Prevent scroll before checking direction: if we wait until distance > 0,
+    // iOS Safari and Chrome for Android will have already classified the gesture
+    // as a scroll and marked subsequent touchmove events as non-cancelable.
+    if (e.cancelable) e.preventDefault()
+
     const distance = (e.touches[0]?.clientY ?? pullStartYRef.current) - pullStartYRef.current
     if (distance <= 0) {
       pullDistanceRef.current = 0
@@ -543,7 +547,6 @@ useEffect(() => {
       return
     }
 
-    if (e.cancelable) e.preventDefault()
     const nextDistance = Math.min(PULL_REFRESH_MAX, distance * 0.55)
     pullDistanceRef.current = nextDistance
     setPullDistance(nextDistance)
@@ -575,35 +578,6 @@ useEffect(() => {
       textarea.removeEventListener('touchcancel', finishPullRefresh)
     }
   }, [loading, handleTouchStart, handleTouchMove, finishPullRefresh])
-
-  const handlePointerDown = useCallback((e: PointerEvent<HTMLTextAreaElement>) => {
-    if (e.pointerType !== 'touch' || !canStartPullRefresh()) return
-    pullStartYRef.current = e.clientY
-    pullActiveRef.current = true
-  }, [canStartPullRefresh])
-
-  const handlePointerMove = useCallback((e: PointerEvent<HTMLTextAreaElement>) => {
-    if (e.pointerType !== 'touch' || !pullActiveRef.current || pullStartYRef.current === null) return
-    const textarea = textareaRef.current
-    if (!textarea || textarea.scrollTop > 1) {
-      pullActiveRef.current = false
-      pullDistanceRef.current = 0
-      setPullDistance(0)
-      return
-    }
-
-    const distance = e.clientY - pullStartYRef.current
-    if (distance <= 0) {
-      pullDistanceRef.current = 0
-      setPullDistance(0)
-      return
-    }
-
-    if (e.cancelable) e.preventDefault()
-    const nextDistance = Math.min(PULL_REFRESH_MAX, distance * 0.55)
-    pullDistanceRef.current = nextDistance
-    setPullDistance(nextDistance)
-  }, [])
 
   return (
     <>
@@ -887,10 +861,6 @@ useEffect(() => {
                 if (status && status !== savedStatus) setStatus('')
               }}
               readOnly={loadFailed}
-              onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={finishPullRefresh}
-              onPointerCancel={finishPullRefresh}
               placeholder={t.entry.placeholder}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
