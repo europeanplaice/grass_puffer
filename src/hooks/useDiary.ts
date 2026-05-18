@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type { DiaryEntry, DriveFileMeta, LoadedDiaryEntry } from '../types'
 import { listEntries, searchEntries, getEntryByDate, saveEntry, deleteEntry, TokenExpiredError, SaveConflictError } from '../api/driveEntries'
+import { getAllCached, putCached, deleteCached, clearCache } from '../lib/diaryCache'
+import type { CachedEntry } from '../lib/diaryCache'
 
 interface EntryCache {
   meta: DriveFileMeta
@@ -81,25 +83,41 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
 
   const loadEntryList = useCallback(async (preserveExistingContent: boolean) => {
     const files = await listEntries()
-    updateCache(prev => {
-      const next = new Map<string, EntryCache>()
-      for (const f of files) {
-        const date = f.name.replace('diary-', '').replace(/\.(json|md)$/, '')
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
 
-        const existing = prev.get(date)
-        const canReuseContent = Boolean(
-          preserveExistingContent &&
-          existing?.content &&
-          existing.meta.id === f.id &&
-          existing.meta.version === f.version,
-        )
-        next.set(date, canReuseContent
-          ? { ...existing!, meta: f }
-          : { meta: f })
-      }
-      return next
-    })
+    // Compute new state and IDB diff using the current cache snapshot
+    const prev = cacheRef.current
+    const next = new Map<string, EntryCache>()
+    const toUpsert: CachedEntry[] = []
+    const toDelete: string[] = []
+    const prevDates = new Set(prev.keys())
+
+    for (const f of files) {
+      const date = f.name.replace('diary-', '').replace(/\.(json|md)$/, '')
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) continue
+      prevDates.delete(date)
+
+      const existing = prev.get(date)
+      const canReuseContent = Boolean(
+        preserveExistingContent &&
+        existing?.content &&
+        existing.meta.id === f.id &&
+        existing.meta.version === f.version,
+      )
+      next.set(date, canReuseContent ? { ...existing!, meta: f } : { meta: f })
+      toUpsert.push(canReuseContent && existing?.content
+        ? { date, meta: f, content: existing.content, snippet: existing.snippet }
+        : { date, meta: f })
+    }
+
+    for (const date of prevDates) toDelete.push(date)
+
+    updateCache(() => next)
+
+    // Background IDB sync — non-blocking
+    Promise.all([
+      ...toUpsert.map(e => putCached(e).catch(() => {})),
+      ...toDelete.map(d => deleteCached(d).catch(() => {})),
+    ]).catch(() => {})
   }, [updateCache])
 
   // Load entry list when signed in
@@ -108,13 +126,26 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
       const empty = new Map<string, EntryCache>()
       cacheRef.current = empty
       setCache(empty)
+      clearCache().catch(() => {})
       return
     }
     setLoading(true)
     setError(null)
     ;(async () => {
       try {
-        await loadEntryList(false)
+        // Preload from IDB immediately so the sidebar and previously-opened entries
+        // appear without waiting for the Drive network round trip.
+        const idbEntries = await getAllCached().catch(() => [] as CachedEntry[])
+        if (idbEntries.length > 0) {
+          updateCache(() => {
+            const m = new Map<string, EntryCache>()
+            for (const e of idbEntries) m.set(e.date, { meta: e.meta, content: e.content, snippet: e.snippet })
+            return m
+          })
+          setLoading(false)
+        }
+        // Always sync with Drive to pick up remote changes and evict stale content
+        await loadEntryList(true)
       } catch (e) {
         if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
         console.error('Failed to load diary entries:', e)
@@ -123,7 +154,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         setLoading(false)
       }
     })()
-  }, [isSignedIn, loadEntryList])
+  }, [isSignedIn, loadEntryList, updateCache])
 
   const refreshEntries = useCallback(async (): Promise<void> => {
     if (!isSignedIn) return
@@ -139,9 +170,12 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
     if (!isSignedIn) return null
     try {
       const cached = cacheRef.current.get(date)
-      const loaded = await getEntryByDate(date, cached?.content ? cached.meta.version : undefined, cached?.meta.id)
-      if (loaded === 'not-modified') return { entry: cached!.content!, meta: cached!.meta }
-      if (!loaded) return null
+
+      // Content is already in memory (verified by listEntries version check or saved this session)
+      if (cached?.content) return { entry: cached.content, meta: cached.meta }
+
+      const loaded = await getEntryByDate(date, undefined, cached?.meta.id)
+      if (!loaded || loaded === 'not-modified') return null
       const { entry: content, meta } = loaded
       updateCache(prev => {
         const next = new Map(prev)
@@ -156,6 +190,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         }
         return next
       })
+      putCached({ date, meta, content, snippet: content.content.slice(0, 500) }).catch(() => {})
       return { entry: content, meta }
     } catch (e) {
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); throw e }
@@ -177,6 +212,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
           next.set(date, { meta, content: entry, snippet: entry.content.slice(0, 500) })
           return next
         })
+        putCached({ date, meta, content: entry, snippet: entry.content.slice(0, 500) }).catch(() => {})
         return { entry, meta }
       } catch (e) {
         if (e instanceof TokenExpiredError) {
@@ -220,6 +256,7 @@ export function useDiary(isSignedIn: boolean, onExpired: () => void): DiaryState
         next.delete(date)
         return next
       })
+      deleteCached(date).catch(() => {})
     } catch (e) {
       if (e instanceof TokenExpiredError) { onExpiredRef.current(); return }
       throw e

@@ -27,6 +27,12 @@ function datedEntryResponse(date: string, content: string, version = '1') {
 
 async function loadHarness(page: import('@playwright/test').Page) {
   await page.goto(`${baseUrl}/tests/useDiaryHarness.html`)
+  // Clear IndexedDB between tests so cached data from one test never leaks into the next
+  await page.evaluate(() => new Promise<void>((resolve) => {
+    const req = indexedDB.deleteDatabase('linger_diary_cache')
+    req.onsuccess = () => resolve()
+    req.onerror = () => resolve()
+  }))
 }
 
 async function startHarness(page: import('@playwright/test').Page, extraEntries: { files: { id: string; name: string; version: string }[] } = ENTRIES_EMPTY) {
