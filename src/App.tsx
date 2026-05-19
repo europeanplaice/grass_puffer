@@ -122,7 +122,6 @@ function RestoringScreen({ selectedDate, onTitleClick }: { selectedDate: string;
               <span className="btn-day-nav restoring-header-placeholder" aria-hidden="true">›</span>
             </div>
             <div className="editor-actions">
-              <span className="btn-refresh-entry restoring-header-placeholder" aria-hidden="true" />
               <span className="btn-save restoring-header-placeholder" aria-hidden="true">{t.entry.save}</span>
               <span className="btn-more restoring-header-placeholder" aria-hidden="true">···</span>
             </div>

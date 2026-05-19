@@ -58,16 +58,6 @@ const SAVED_STATUS_EXIT_MS = 220
 const AUTO_SAVE_MS = 1500
 const KEYBOARD_INSET_VAR = '--mobile-keyboard-inset-bottom'
 
-function RefreshIcon() {
-  return (
-    <svg className="btn-icon" aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12a9 9 0 0 1-15.5 6.3L3 16" />
-      <path d="M3 21v-5h5" />
-      <path d="M3 12A9 9 0 0 1 18.5 5.7L21 8" />
-      <path d="M21 3v5h-5" />
-    </svg>
-  )
-}
 
 function SpinnerIcon() {
   return <span className="btn-saving-spinner" aria-hidden="true" />
@@ -99,7 +89,6 @@ export function EntryEditor({ date, getContent, onSave, onDelete, onMenuClick, o
   const [conflictRemote, setConflictRemote] = useState<LoadedDiaryEntry | null>(null)
   const [refreshing, setRefreshing] = useState(false)
   const tokenExpiredForDateRef = useRef<string | null>(null)
-  const [showRefreshConfirm, setShowRefreshConfirm] = useState(false)
   const weekday = weekdayLabel(date, locale)
   const isToday = date === todayYmd()
   const isYesterday = date === yesterdayYmd()
@@ -143,7 +132,7 @@ useEffect(() => {
   loadingRef.current = loading
   loadFailedRef.current = loadFailed
   refreshingRef.current = refreshing
-}, [text, savedText, baseVersion, saving, hasConflict, loading, loadFailed, refreshing])
+}, [text, savedText, baseVersion, saving, hasConflict, loading, loadFailed])
 
   const applyLoadedEntry = useCallback((entry: LoadedDiaryEntry | null) => {
     const driveText = entry?.entry.content ?? ''
@@ -165,7 +154,6 @@ useEffect(() => {
     setLoadFailed(false)
     setHasConflict(false)
     setConflictRemote(null)
-    setShowRefreshConfirm(false)
     fileIdRef.current = null
     getContentRef.current(date).then(entry => {
       if (cancelled) return
@@ -241,7 +229,6 @@ useEffect(() => {
       setLastModified(saved.entry.updated_at ?? null)
       fileIdRef.current = saved.meta.id
       setStatus(savedStatus)
-      setShowRefreshConfirm(false)
       success = true
       onSaveCompleteRef.current?.(date, currentText)
       return true
@@ -317,7 +304,6 @@ useEffect(() => {
 
   const loadFreshEntry = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) setRefreshing(true)
-    setShowRefreshConfirm(false)
     setStatus('')
     try {
       const entry = await getContentRef.current(date, { forceNetwork: !silent })
@@ -333,36 +319,12 @@ useEffect(() => {
     }
   }, [date, applyLoadedEntry])
 
-  const refreshEntry = useCallback(async () => {
-    if (loadingRef.current || savingRef.current || refreshingRef.current || hasConflictRef.current) return
-    if (textRef.current !== savedTextRef.current) {
-      setShowRefreshConfirm(true)
-      setStatus('')
-      return
-    }
-
-    await loadFreshEntry()
-  }, [loadFreshEntry])
-
   useEffect(() => {
     if (refreshSignal <= 0) return
     if (loadingRef.current || savingRef.current || refreshingRef.current || hasConflictRef.current) return
     if (textRef.current !== savedTextRef.current) return
     void loadFreshEntry({ silent: true })
   }, [refreshSignal, loadFreshEntry])
-
-  const handleSaveAndRefresh = useCallback(async () => {
-    const ok = await save(true)
-    if (ok) {
-      await loadFreshEntry()
-    }
-  }, [save, loadFreshEntry])
-
-  const handleDiscardAndRefresh = useCallback(async () => {
-    setText(savedTextRef.current)
-    setShowRefreshConfirm(false)
-    await loadFreshEntry()
-  }, [loadFreshEntry])
 
   useEffect(() => {
     if (isSignedIn && tokenExpiredForDateRef.current === date) {
@@ -601,18 +563,6 @@ useEffect(() => {
         </div>
         <div className="editor-actions">
           <motion.button
-            className="btn-refresh-entry"
-            onClick={refreshEntry}
-            disabled={loading || saving || refreshing}
-            aria-busy={refreshing}
-            aria-label={refreshing ? t.entry.refreshingEntry : t.entry.refreshEntry}
-            title={t.entry.refreshEntry}
-            whileTap={{ scale: 0.88 }}
-            transition={{ type: 'spring', stiffness: 600, damping: 25 }}
-          >
-            {refreshing ? <SpinnerIcon /> : <RefreshIcon />}
-          </motion.button>
-          <motion.button
             className={`btn-save${saving ? ' btn-saving' : status === savedStatus ? ' btn-saved' : ''}`}
             onClick={handleExplicitSave}
             disabled={saving || !isDirty || loadFailed}
@@ -705,16 +655,6 @@ useEffect(() => {
           </div>
         </div>
       )}
-      {showRefreshConfirm && !pendingNavDate && (
-        <div className="unsaved-nav-banner">
-          <span>{t.entry.unsavedRefresh}</span>
-          <div className="unsaved-nav-actions">
-            <button onClick={handleSaveAndRefresh} disabled={saving || refreshing}>{t.common.save}</button>
-            <button onClick={handleDiscardAndRefresh} disabled={refreshing}>{t.common.discard}</button>
-            <button onClick={() => setShowRefreshConfirm(false)}>{t.common.cancel}</button>
-          </div>
-        </div>
-      )}
       {hasConflict && (
         <div className="conflict-panel">
           <div>
@@ -753,7 +693,7 @@ useEffect(() => {
             <div className="entry-load-error" role="alert">
               <strong>{t.entry.failedToLoad}</strong>
               <p>{t.entry.failedToLoadHint}</p>
-              <button onClick={refreshEntry} disabled={refreshing}>
+              <button onClick={() => loadFreshEntry()} disabled={refreshing}>
                 {refreshing ? t.entry.refreshingEntry : t.entry.refreshEntry}
               </button>
             </div>
