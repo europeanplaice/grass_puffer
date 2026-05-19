@@ -373,6 +373,7 @@ test.describe('HistoryModal — API calls', () => {
   test('makes correct requests to Drive Revisions API', async ({ page }) => {
     await loadHarness(page)
     await renderModal(page, { fileId: 'my-file-id' })
+    await page.waitForFunction(() => window.historyHarness.calls().length >= 2)
 
     const calls = await page.evaluate(() => window.historyHarness.calls())
     expect(calls[0].url).toBe('/api/drive/revisions/my-file-id')
