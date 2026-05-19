@@ -2155,6 +2155,7 @@ body {
     padding: 0;
     border-radius: 999px;
     box-shadow: 0 6px 18px var(--save-btn-shadow);
+    outline: none;
   }
   .editor-actions .btn-delete {
     width: 2.75rem;
