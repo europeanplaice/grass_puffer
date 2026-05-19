@@ -419,7 +419,10 @@ body {
   align-items: center;
   justify-content: center;
 }
-.btn-day-nav:hover { background: var(--border); color: var(--text); }
+@media (hover: hover) {
+  .btn-day-nav:hover { background: var(--border); color: var(--text); }
+}
+.btn-day-nav:active { background: var(--border); color: var(--text); }
 
 /* ── Button icon / text helpers ── */
 .btn-icon { display: block; flex-shrink: 0; }
