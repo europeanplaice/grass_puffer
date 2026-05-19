@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-
-const coarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
 import { AnimatePresence, motion } from 'motion/react'
 import { EntryConflictError } from '../hooks/useDiary'
 import { TokenExpiredError } from '../api/driveEntries'
@@ -10,6 +8,14 @@ import { HistoryModal } from './HistoryModal'
 import { shareEntry } from '../utils/share'
 import { useI18n } from '../i18n'
 import { useSaveProgress } from '../hooks/useSaveProgress'
+
+const coarsePointer = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches
+const dayNavWhileTap = coarsePointer
+  ? { scale: 0.82, backgroundColor: 'var(--border)', color: 'var(--text)' }
+  : { scale: 0.82 }
+const dayNavTransition = coarsePointer
+  ? { type: 'spring' as const, stiffness: 600, damping: 25, backgroundColor: { duration: 0 }, color: { duration: 0 } }
+  : { type: 'spring' as const, stiffness: 600, damping: 25 }
 
 interface Props {
   date: string
@@ -546,8 +552,7 @@ useEffect(() => {
         <div className="editor-date-group">
           <button className="btn-menu" onClick={onMenuClick} title={t.entry.openMenu}>☰</button>
           <motion.button className="btn-day-nav" onClick={onPrevDay} aria-label={t.entry.previousDay}
-            whileTap={coarsePointer ? { scale: 0.82, backgroundColor: 'var(--border)', color: 'var(--text)' } : { scale: 0.82 }}
-            transition={coarsePointer ? { type: 'spring', stiffness: 600, damping: 25, backgroundColor: { duration: 0 }, color: { duration: 0 } } : { type: 'spring', stiffness: 600, damping: 25 }}
+            whileTap={dayNavWhileTap} transition={dayNavTransition}
           >‹</motion.button>
           <h2>
             <span
@@ -562,8 +567,7 @@ useEffect(() => {
             </span>
           </h2>
           <motion.button className="btn-day-nav" onClick={onNextDay} aria-label={t.entry.nextDay}
-            whileTap={coarsePointer ? { scale: 0.82, backgroundColor: 'var(--border)', color: 'var(--text)' } : { scale: 0.82 }}
-            transition={coarsePointer ? { type: 'spring', stiffness: 600, damping: 25, backgroundColor: { duration: 0 }, color: { duration: 0 } } : { type: 'spring', stiffness: 600, damping: 25 }}
+            whileTap={dayNavWhileTap} transition={dayNavTransition}
           >›</motion.button>
         </div>
         <div className="editor-actions">
