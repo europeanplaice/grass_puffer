@@ -224,10 +224,13 @@ useEffect(() => {
     try {
       const currentText = textRef.current
       const saved = await onSaveRef.current(date, currentText, baseVersionRef.current, undefined, savedTextRef.current)
+      const newVersion = saved.meta.version ?? null
+      const newModified = saved.entry.updated_at ?? null
+      const newId = saved.meta.id
       setSavedTextValue(currentText)
-      setBaseVersionValue(saved.meta.version ?? null)
-      setLastModified(saved.entry.updated_at ?? null)
-      fileIdRef.current = saved.meta.id
+      setBaseVersionValue(newVersion)
+      setLastModified(newModified)
+      fileIdRef.current = newId
       setStatus(savedStatus)
       success = true
       onSaveCompleteRef.current?.(date, currentText)

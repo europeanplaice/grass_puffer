@@ -14,6 +14,7 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
   await page.addInitScript(() => {
     window.localStorage.setItem('linger_language', 'en')
+    window.localStorage.setItem('linger_autosave', 'false')
   })
   await page.route('/auth/session', async route => {
     await route.fulfill({ json: { signedIn: true } })
