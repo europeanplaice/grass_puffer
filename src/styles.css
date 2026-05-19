@@ -418,11 +418,16 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
-@media (hover: hover) {
+/* Hover + :active styles only apply to devices with a real pointer (mouse).
+   On touch devices we rely on framer-motion's whileTap (scale) for feedback,
+   which avoids the sticky :active state mobile Chrome leaves behind when the
+   click handler triggers a re-render before pointerup is dispatched. */
+@media (hover: hover) and (pointer: fine) {
   .btn-day-nav:hover { background: var(--border); color: var(--text); }
+  .btn-day-nav:active { background: var(--border); color: var(--text); }
 }
-.btn-day-nav:active { background: var(--border); color: var(--text); }
 
 /* ── Button icon / text helpers ── */
 .btn-icon { display: block; flex-shrink: 0; }
