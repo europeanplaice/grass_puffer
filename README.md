@@ -10,7 +10,7 @@ A minimalist personal diary app. Entries are stored as Markdown files in your ow
 - Optional Drive auto-save after a few seconds of editing
 - Calendar view to navigate by date, with dots marking days that have entries
 - Previous/next day controls, plus Alt+Left / Alt+Right and Alt+Up for today
-- Full-text search across indexed entries, with background indexing progress
+- Full-text search via Drive API, with on-demand snippet extraction from matched entries
 - Recent-entry list with first-line previews
 - Delete entries with an explicit confirmation step
 - Detect cross-device edit conflicts and choose whether to load latest, keep local edits, or overwrite
@@ -74,6 +74,7 @@ The browser stores only non-sensitive preferences in `localStorage`:
 - `linger_autosave` — whether auto-save is enabled
 - `linger_theme` — `light` / `dark` / `system`
 - `linger_font` — font preference
+- `linger_fontsize` — font size (`sm` / `md` / `lg` / `xl`)
 - `linger_language` — `en` / `ja`
 - `linger_had_session` — `true`/`false` flag indicating whether the user was previously signed in (used to show the "continue with your previous session" prompt on the login screen)
 
