@@ -1041,6 +1041,17 @@ body {
   padding: 0.2rem 0.65rem;
 }
 .update-banner-reload:hover { background: rgba(255, 255, 255, 0.32); }
+[data-theme="dark"] .update-banner {
+  background: #21252b;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+}
+[data-theme="dark"] .update-banner-reload {
+  background: transparent;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+[data-theme="dark"] .update-banner-reload:hover { background: rgba(152,195,121,0.12); }
 /* Push app content below the fixed banner (box-sizing: border-box means
    the 100dvh height absorbs the padding, so content starts below the banner) */
 .app--has-update-banner {
