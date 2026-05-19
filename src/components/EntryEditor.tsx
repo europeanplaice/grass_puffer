@@ -544,8 +544,8 @@ useEffect(() => {
         <div className="editor-date-group">
           <button className="btn-menu" onClick={onMenuClick} title={t.entry.openMenu}>☰</button>
           <motion.button className="btn-day-nav" onClick={onPrevDay} aria-label={t.entry.previousDay}
-            whileTap={{ scale: 0.82, backgroundColor: 'var(--border)', color: 'var(--text)' }}
-            transition={{ type: 'spring', stiffness: 600, damping: 25, backgroundColor: { duration: 0 }, color: { duration: 0 } }}
+            whileTap={{ scale: 0.82 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >‹</motion.button>
           <h2>
             <span
@@ -560,8 +560,8 @@ useEffect(() => {
             </span>
           </h2>
           <motion.button className="btn-day-nav" onClick={onNextDay} aria-label={t.entry.nextDay}
-            whileTap={{ scale: 0.82, backgroundColor: 'var(--border)', color: 'var(--text)' }}
-            transition={{ type: 'spring', stiffness: 600, damping: 25, backgroundColor: { duration: 0 }, color: { duration: 0 } }}
+            whileTap={{ scale: 0.82 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 25 }}
           >›</motion.button>
         </div>
         <div className="editor-actions">
