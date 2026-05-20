@@ -164,7 +164,7 @@ export default function App() {
   const { mode: themeMode, setMode: setThemeMode, toggleTheme } = useTheme()
   const { mode: fontMode, toggleFont } = useFont()
   const { fontSize, setFontSize } = useFontSize()
-  const swUpdateAvailable = useServiceWorkerUpdate()
+  const { updateAvailable: swUpdateAvailable, applyUpdate } = useServiceWorkerUpdate()
   const previewParams = new URLSearchParams(window.location.search).getAll('preview')
   const updateAvailable = swUpdateAvailable || previewParams.includes('update-banner')
   const forceEmptyState = previewParams.includes('empty-state')
@@ -518,11 +518,11 @@ export default function App() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className={`app${updateAvailable ? ' app--has-update-banner' : ''}`}>
-      {updateAvailable && (
+    <div className={`app${updateAvailable && !editorDirty ? ' app--has-update-banner' : ''}`}>
+      {updateAvailable && !editorDirty && (
         <div className="update-banner" role="status">
           <span>{t.update.available}</span>
-          <button className="update-banner-reload" onClick={() => window.location.reload()}>
+          <button className="update-banner-reload" onClick={applyUpdate}>
             {t.update.reload}
           </button>
         </div>

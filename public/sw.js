@@ -17,7 +17,11 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)),
   )
-  self.skipWaiting()
+  // Do NOT call skipWaiting() here — the page controls when to activate via postMessage.
+})
+
+self.addEventListener('message', event => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting()
 })
 
 self.addEventListener('activate', event => {
@@ -37,7 +41,8 @@ self.addEventListener('activate', event => {
       ]),
     ),
   )
-  self.clients.claim()
+  // clients.claim() intentionally omitted — the page reloads itself after SKIP_WAITING,
+  // so claiming existing clients is unnecessary and risks serving new assets to old JS.
 })
 
 self.addEventListener('fetch', event => {
