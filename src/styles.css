@@ -1350,6 +1350,7 @@ body {
   gap: 0.4rem;
 }
 .editor-actions button:disabled { opacity: 0.5; cursor: default; }
+.editor-actions .btn-save:disabled { cursor: not-allowed; }
 .editor-actions .btn-save {
   display: inline-flex;
   align-items: center;
