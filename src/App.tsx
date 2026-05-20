@@ -18,6 +18,7 @@ import { todayYmd, ymd, parseYmd, weekdayLabel, diaryDateLabel } from './utils/d
 import { TokenExpiredError } from './api/driveEntries'
 import type { LoadedDiaryEntry } from './types'
 import { useI18n } from './i18n'
+import { LogOut } from 'lucide-react'
 
 type RecentPreview = {
   snippet: string
@@ -539,7 +540,7 @@ export default function App() {
           <h1 className="app-title" onClick={handleTitleClick}><AppIcon className="app-title-icon" /> {t.appTitle}</h1>
           <div className="sidebar-actions">
             <button className="btn-close-sidebar" onClick={closeSidebar} title={t.app.closeMenu} aria-label={t.app.closeMenu}>×</button>
-            <button className="btn-signout" onClick={handleSignOut} title={t.app.signOut}>↩</button>
+            <button className="btn-signout" onClick={handleSignOut} title={t.app.signOut}><LogOut size={14} /></button>
           </div>
         </div>
         <SearchBar ref={searchBarRef} onSearch={diary.search} onSelect={selectDate} entriesLoading={diary.loading} />
