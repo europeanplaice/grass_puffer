@@ -39,14 +39,19 @@ export function weekdayLabel(date: string, locale = DEFAULT_DATE_LOCALE): string
   return d.toLocaleDateString(locale, { weekday: 'short' })
 }
 
-export function diaryDateLabel(date: string, includeYear = true, month: 'long' | 'short' = 'long', locale = DEFAULT_DATE_LOCALE): string {
+function isSameYear(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear()
+}
+
+export function diaryDateLabel(date: string, includeYear = true, month: 'long' | 'short' = 'long', locale = DEFAULT_DATE_LOCALE, omitCurrentYear = false): string {
   const d = dateFromYmd(date)
   if (!d) return date
 
+  const showYear = includeYear && !(omitCurrentYear && isSameYear(d, new Date()))
   return d.toLocaleDateString(locale, {
     month,
     day: 'numeric',
-    ...(includeYear ? { year: 'numeric' as const } : {}),
+    ...(showYear ? { year: 'numeric' as const } : {}),
   })
 }
 
@@ -79,7 +84,7 @@ export function formatRevisionTime(iso: string, locale = DEFAULT_DATE_LOCALE, la
 
   if (dDayStart.getTime() === todayStart.getTime()) return `${labels.today} ${time}`
   if (dDayStart.getTime() === yesterdayStart.getTime()) return `${labels.yesterday} ${time}`
-  if (d.getFullYear() === now.getFullYear()) {
+  if (isSameYear(d, now)) {
     const date = d.toLocaleDateString(locale, { month: 'short', day: 'numeric' })
     return `${date}, ${time}`
   }

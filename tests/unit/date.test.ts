@@ -131,7 +131,23 @@ describe('date utils', () => {
       const result = diaryDateLabel('2026-05-15')
       expect(result).toContain('5月')
       expect(result).toContain('15')
-      expect(result).toContain('2026')
+    })
+
+    it('includes year for current year by default', () => {
+      const currentYear = new Date().getFullYear()
+      const result = diaryDateLabel(`${currentYear}-05-15`)
+      expect(result).toContain(String(currentYear))
+    })
+
+    it('omits year for current year when omitCurrentYear=true', () => {
+      const currentYear = new Date().getFullYear()
+      const result = diaryDateLabel(`${currentYear}-05-15`, true, 'long', undefined, true)
+      expect(result).not.toContain(String(currentYear))
+    })
+
+    it('includes year for past years even when omitCurrentYear=true', () => {
+      const result = diaryDateLabel('2025-05-15', true, 'long', 'en-US', true)
+      expect(result).toContain('2025')
     })
 
     it('can use short month format', () => {
@@ -143,17 +159,56 @@ describe('date utils', () => {
       const result = diaryDateLabel('2026-05-15', true, 'long', 'en-US')
       expect(result).toContain('May')
       expect(result).toContain('15')
-      expect(result).toContain('2026')
     })
 
     it('omits year when includeYear is false', () => {
-      const withYear = diaryDateLabel('2026-05-15', true)
-      const withoutYear = diaryDateLabel('2026-05-15', false)
+      const withYear = diaryDateLabel('2025-05-15', true)
+      const withoutYear = diaryDateLabel('2025-05-15', false)
       expect(withYear.length).toBeGreaterThan(withoutYear.length)
+    })
+
+    it('omitCurrentYear has no effect when includeYear is false', () => {
+      const withoutYear = diaryDateLabel('2025-05-15', false)
+      const withoutYearAndOmit = diaryDateLabel('2025-05-15', false, 'long', undefined, true)
+      expect(withoutYear).toBe(withoutYearAndOmit)
     })
 
     it('returns original string for invalid date', () => {
       expect(diaryDateLabel('invalid')).toBe('invalid')
+    })
+
+    describe('year boundary with omitCurrentYear=true', () => {
+      afterEach(() => {
+        vi.useRealTimers()
+      })
+
+      it('omits year for Dec 31 entry when current date is Dec 31 same year', () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2025-12-31T23:59:59'))
+        const result = diaryDateLabel('2025-12-31', true, 'long', 'en-US', true)
+        expect(result).not.toContain('2025')
+      })
+
+      it('shows year for Dec 31 entry after midnight on Jan 1 next year', () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2026-01-01T00:00:00'))
+        const result = diaryDateLabel('2025-12-31', true, 'long', 'en-US', true)
+        expect(result).toContain('2025')
+      })
+
+      it('shows year for Jan 1 future entry when current date is Dec 31 prior year', () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2025-12-31T23:59:59'))
+        const result = diaryDateLabel('2026-01-01', true, 'long', 'en-US', true)
+        expect(result).toContain('2026')
+      })
+
+      it('always shows year when omitCurrentYear=false regardless of year match', () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(new Date('2025-12-31T23:59:59'))
+        const result = diaryDateLabel('2025-12-31', true, 'long', 'en-US', false)
+        expect(result).toContain('2025')
+      })
     })
   })
 

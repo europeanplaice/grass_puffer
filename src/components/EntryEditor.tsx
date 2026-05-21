@@ -559,10 +559,10 @@ useEffect(() => {
               className="entry-date-text"
               data-today={isToday || undefined}
               data-dirty={isDirty || undefined}
-              aria-label={isToday ? `${diaryDateLabel(date, true, 'long', locale)}${weekday ? ` ${weekday}` : ''}, ${t.common.today}` : undefined}
+              aria-label={isToday ? `${diaryDateLabel(date, true, 'long', locale, true)}${weekday ? ` ${weekday}` : ''}, ${t.common.today}` : undefined}
             >
-              <span className="entry-date-label-full">{diaryDateLabel(date, true, 'long', locale)}</span>
-              <span className="entry-date-label-short">{diaryDateLabel(date, true, 'short', locale)}</span>
+              <span className="entry-date-label-full">{diaryDateLabel(date, true, 'long', locale, true)}</span>
+              <span className="entry-date-label-short">{diaryDateLabel(date, true, 'short', locale, true)}</span>
               {weekday && <span className="entry-date-weekday">{weekday}</span>}
             </span>
           </h2>
